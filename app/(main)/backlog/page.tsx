@@ -46,6 +46,7 @@ import {
   Loader2,
   Check,
 } from "lucide-react";
+import TaskModal from "./components/TaskModal";
 
 // Estrutura padrão
 const DEFAULT_TASK = {
@@ -85,6 +86,37 @@ export default function BacklogPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
 
+  // Estados da sprint e sprints (para futuras funcionalidades de múltiplas sprints)
+  const [sprints, setSprints] = useState<any[]>([]);
+  const [activeSprint, setActiveSprint] = useState<any | null>(null);
+  const [isSprintModalOpen, setIsSprintModalOpen] = useState(false);
+  const [sprintForm, setSprintForm] = useState({
+    name: "",
+    duration: 14,
+  });
+
+  // Histórico
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Estados dos Epics 
+  const [epics, setEpics] = useState<any[]>([]);
+  const [isEpicModalOpen, setIsEpicModalOpen] = useState(false);
+  const [newEpicName, setNewEpicName] = useState("");
+  const [newEpicColor, setNewEpicColor] = useState("#6366F1");
+
+  const epicColors = [
+    "#6366F1", // Indigo
+    "#8B5CF6", // Purple
+    "#EC4899", // Pink
+    "#F43F5E", // Rose
+    "#F97316", // Orange
+    "#F59E0B", // Amber
+    "#10B981", // Emerald
+    "#14B8A6", // Teal
+    "#06B6D4", // Cyan
+    "#3B82F6", // Blue
+  ];
+
   // Estados do Drag and Drop
   const [draggedItem, setDraggedItem] = useState<{
     issue: any;
@@ -102,7 +134,6 @@ export default function BacklogPage() {
 
     setIsLoading(true);
 
-    // AGORA BUSCA NA SUBCOLEÇÃO: projects/{projectId}/tasks
     const q = query(
       collection(db, "projects", activeProject.id, "tasks"),
       orderBy("createdAt", "desc"),
@@ -114,13 +145,88 @@ export default function BacklogPage() {
         ...doc.data(),
       }));
 
-      setSprintIssues(tasksData.filter((t: any) => t.target === "sprint"));
+      setSprintIssues(
+        tasksData.filter((t: any) => t.sprintId === activeSprint?.id),
+      );
+
       setBacklogIssues(tasksData.filter((t: any) => t.target === "backlog"));
+
       setIsLoading(false);
     });
 
     return () => unsubscribe();
+  }, [activeProject, activeSprint]);
+
+  useEffect(() => {
+    if (!activeProject?.id) return;
+
+    const q = query(
+      collection(db, "projects", activeProject.id, "epics"),
+      orderBy("createdAt", "desc"),
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setEpics(data);
+    });
+
+    return () => unsubscribe();
   }, [activeProject]);
+
+  useEffect(() => {
+    if (!activeProject?.id) return;
+
+    const q = query(
+      collection(db, "projects", activeProject.id, "sprints"),
+      orderBy("createdAt", "desc"),
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setSprints(data);
+
+      const active = data.find((s: any) => s.status === "active");
+      setActiveSprint(active || null);
+    });
+
+    return () => unsubscribe();
+  }, [activeProject]);
+
+  const getSprintCountdown = (endDate: any) => {
+    const now = new Date();
+    const end = new Date(endDate?.seconds * 1000);
+
+    const diff = end.getTime() - now.getTime();
+
+    if (diff <= 0) return "Finalizada";
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+    return `${days}d ${hours}h restantes`;
+  };
+
+  useEffect(() => {
+    if (!activeSprint || !activeProject?.id) return;
+
+    const now = new Date();
+    const end = new Date(activeSprint.endDate?.seconds * 1000);
+
+    if (now > end && activeSprint.status === "active") {
+      updateDoc(
+        doc(db, "projects", activeProject.id, "sprints", activeSprint.id),
+        { status: "completed" },
+      );
+    }
+  }, [activeSprint]);
 
   // --- Funções Drag & Drop ---
   const handleDragStart = (
@@ -153,22 +259,53 @@ export default function BacklogPage() {
     target: "sprint" | "backlog",
   ) => {
     e.preventDefault();
+
     if (!draggedItem || !activeProject?.id) return;
 
-    const { issue, source } = draggedItem;
-    if (source === target) return;
-
-    setDraggedItem(null);
+    const { issue } = draggedItem;
 
     try {
-      // AGORA ATUALIZA NA SUBCOLEÇÃO
-      await updateDoc(
-        doc(db, "projects", activeProject.id, "tasks", issue.id),
-        { target },
-      );
+      if (target === "sprint") {
+        if (!activeSprint) {
+          alert("Crie uma sprint antes de mover tarefas.");
+          return;
+        }
+
+        await updateDoc(
+          doc(db, "projects", activeProject.id, "tasks", issue.id),
+          {
+            sprintId: activeSprint.id,
+            target: "sprint",
+          },
+        );
+      } else {
+        await updateDoc(
+          doc(db, "projects", activeProject.id, "tasks", issue.id),
+          {
+            sprintId: null,
+            target: "backlog",
+          },
+        );
+      }
     } catch (error) {
-      console.error("Erro ao mover a tarefa: ", error);
+      console.error("Erro ao mover tarefa:", error);
     }
+
+    setDraggedItem(null);
+  };
+
+  const handleCreateEpic = async () => {
+    if (!newEpicName.trim() || !activeProject?.id) return;
+
+    await addDoc(collection(db, "projects", activeProject.id, "epics"), {
+      name: newEpicName,
+      color: newEpicColor,
+      createdAt: serverTimestamp(),
+      status: "active",
+    });
+
+    setNewEpicName("");
+    setIsEpicModalOpen(false);
   };
 
   // --- Funções do Modal ---
@@ -308,6 +445,35 @@ export default function BacklogPage() {
     });
   };
 
+  const handleCreateSprint = async () => {
+    if (!activeProject?.id || !sprintForm.name.trim()) return;
+
+    // Se já existir sprint ativa, finalizar ela primeiro
+    if (activeSprint) {
+      await updateDoc(
+        doc(db, "projects", activeProject.id, "sprints", activeSprint.id),
+        { status: "completed" },
+      );
+    }
+
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(startDate.getDate() + sprintForm.duration);
+
+    await addDoc(collection(db, "projects", activeProject.id, "sprints"), {
+      name: sprintForm.name,
+      startDate,
+      endDate,
+      status: "active",
+      createdAt: serverTimestamp(),
+    });
+
+    setSprintForm({ name: "", duration: 14 });
+    setIsSprintModalOpen(false);
+  };
+
+  const completedSprints = sprints.filter((s: any) => s.status === "completed");
+
   // --- Salvar Tarefa ---
   const handleSaveTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -332,11 +498,14 @@ export default function BacklogPage() {
       epic: taskForm.epic,
       status: finalStatus,
       priority: taskForm.priority,
+      epicId: taskForm.epic || null,
       points: Number(taskForm.points),
       tags: (taskForm.tags || []).length > 0 ? taskForm.tags : ["Nova"],
       checklist: currentChecklist,
       attachments: taskForm.attachments || [],
       target: taskForm.target,
+      sprintId:
+        taskForm.target === "sprint" && activeSprint ? activeSprint.id : null,
       assignee: taskForm.assignee,
       assigneePhoto: taskForm.assigneePhoto || "",
       updatedAt: new Date().toLocaleDateString("pt-PT"),
@@ -398,6 +567,8 @@ export default function BacklogPage() {
     (acc, issue) => acc + (Number(issue.points) || 0),
     0,
   );
+
+
   const sprintDonePoints = filteredSprint
     .filter((i) => i.status === "done")
     .reduce((acc, issue) => acc + (Number(issue.points) || 0), 0);
@@ -417,7 +588,6 @@ export default function BacklogPage() {
 
   return (
     <div className="p-8 h-full flex flex-col w-full relative">
-      {/* Input oculto para carregar ficheiros */}
       <input
         type="file"
         ref={fileInputRef}
@@ -426,7 +596,7 @@ export default function BacklogPage() {
         accept="image/*,.pdf,.doc,.docx,.txt"
       />
 
-      {/* HEADER DA PÁGINA */}
+      {/* HEADER */}
       <div className="flex items-center justify-between mb-8 shrink-0">
         <div>
           <div className="flex items-center gap-2 text-xs text-zinc-500 font-medium mb-1">
@@ -445,52 +615,93 @@ export default function BacklogPage() {
           <button className="flex items-center gap-2 bg-[#1A1A1E] border border-[#27272A] text-zinc-300 px-3 py-2 rounded-lg text-sm font-medium hover:bg-[#27272A] hover:text-white transition-all">
             <Filter size={16} /> Filtros
           </button>
+
           <button
             onClick={openCreateModal}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)]"
           >
             <Plus size={16} /> Criar Issue
           </button>
+          <button
+            onClick={() => setIsSprintModalOpen(true)}
+            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all"
+          >
+            🚀 Criar Sprint
+          </button>
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="text-xs text-zinc-400 hover:text-white transition-colors"
+          >
+            {showHistory ? "Ocultar Histórico" : "Ver Histórico"}
+          </button>
         </div>
       </div>
 
-      {/* BARRA DE PESQUISA E FILTROS RÁPIDOS */}
-      <div className="flex items-center gap-4 mb-8 shrink-0">
-        <div className="relative flex-1">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
-            size={18}
-          />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Pesquisar por título, ID ou tag..."
-            className="w-full bg-[#121214] border border-[#27272A] text-sm text-zinc-200 rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-indigo-500 transition-all"
-          />
-        </div>
-        <div className="hidden lg:flex items-center gap-2 bg-[#121214] border border-[#27272A] p-1 rounded-lg">
-          <span className="px-3 py-1.5 text-xs font-medium bg-[#1A1A1E] text-white rounded-md cursor-pointer">
-            Todas
-          </span>
-          <span className="px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-white cursor-pointer transition-colors">
-            Apenas Bugs
-          </span>
-          <span className="px-3 py-1.5 text-xs font-medium text-zinc-500 hover:text-white cursor-pointer transition-colors">
-            Minhas Tarefas
-          </span>
-        </div>
-      </div>
+      {/* HISTÓRICO */}
+      {showHistory && (
+        <div className="mb-8 border border-[#27272A] rounded-xl bg-[#0D0D0F] overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#27272A] bg-[#121214] flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-white">
+              Histórico de Sprints
+            </h3>
+            <span className="text-xs text-zinc-500">
+              {completedSprints.length} finalizadas
+            </span>
+          </div>
 
-      {/* ESTADO DE CARREGAMENTO */}
+          {completedSprints.length === 0 ? (
+            <div className="p-6 text-center text-sm text-zinc-600">
+              Nenhuma sprint finalizada ainda.
+            </div>
+          ) : (
+            <div className="divide-y divide-[#27272A]">
+              {completedSprints.map((sprint: any) => {
+                const start = sprint.startDate?.seconds
+                  ? new Date(
+                      sprint.startDate.seconds * 1000,
+                    ).toLocaleDateString("pt-PT")
+                  : "-";
+
+                const end = sprint.endDate?.seconds
+                  ? new Date(sprint.endDate.seconds * 1000).toLocaleDateString(
+                      "pt-PT",
+                    )
+                  : "-";
+
+                return (
+                  <div
+                    key={sprint.id}
+                    className="px-4 py-4 flex items-center justify-between hover:bg-[#121214] transition-colors"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-white">
+                        {sprint.name}
+                      </p>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        {start} → {end}
+                      </p>
+                    </div>
+
+                    <span className="text-xs px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      Finalizada
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CONTEÚDO PRINCIPAL */}
       {isLoading ? (
         <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 gap-4">
           <Loader2 size={32} className="animate-spin text-indigo-500" />
           <p>A carregar o planeamento...</p>
         </div>
       ) : (
-        /* LISTAS DE TAREFAS */
         <div className="flex-1 overflow-y-auto pr-2 pb-10 custom-scrollbar">
+          {/* HEADER DESKTOP */}
           <div className="hidden lg:flex items-center gap-3 px-10 py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
             <div className="w-16">Tipo / ID</div>
             <div className="flex-1">Detalhes da Issue</div>
@@ -501,131 +712,330 @@ export default function BacklogPage() {
             <div className="w-12 text-center">Resp</div>
           </div>
 
-          {/* === SPRINT ATUAL === */}
-          <div
-            className={`mb-8 border-2 transition-all duration-300 rounded-xl ${draggedItem && draggedItem.source !== "sprint" ? "border-indigo-500/50 bg-indigo-500/5 scale-[1.01]" : "border-transparent"}`}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, "sprint")}
-          >
-            <div className="bg-[#121214] border border-[#27272A] rounded-t-xl overflow-hidden">
-              <div
-                onClick={() => setIsSprintOpen(!isSprintOpen)}
-                className="flex items-center justify-between p-4 cursor-pointer hover:bg-[#1A1A1E] transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <button className="text-zinc-400">
-                    {isSprintOpen ? (
-                      <ChevronDown size={18} />
-                    ) : (
-                      <ChevronRight size={18} />
-                    )}
-                  </button>
-                  <div>
-                    <h2 className="text-sm font-semibold text-white">
-                      Sprint Atual (Ativa)
-                    </h2>
-                    <p className="text-[11px] text-zinc-500 mt-0.5">
-                      Tarefas em curso para o objetivo atual
+          {/* ================= SPRINT ================= */}
+          <div className="mb-8">
+            <div
+              onClick={() => setIsSprintOpen(!isSprintOpen)}
+              className="bg-[#121214] border border-[#27272A] rounded-t-xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-[#1A1A1E] transition-colors">
+                <div>
+                  <h2 className="text-sm font-semibold text-white">
+                    {activeSprint ? activeSprint.name : "Sem Sprint Ativa"}
+                  </h2>
+
+                  {activeSprint && (
+                    <p className="text-xs text-indigo-400 mt-1">
+                      {getSprintCountdown(activeSprint.endDate)}
                     </p>
-                  </div>
+                  )}
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <div className="flex items-center gap-4 text-xs font-medium text-zinc-400">
-                    <span>{filteredSprint.length} issues</span>
-                    <span className="bg-[#1A1A1E] px-2 py-1 rounded text-zinc-200 border border-[#27272A]">
-                      {sprintDonePoints} / {sprintTotalPoints} pts concluídos
-                    </span>
-                  </div>
+
+                <div className="flex items-center gap-4 text-xs text-zinc-400">
+                  <span>{sprintIssues.length} issues</span>
+
+                  <span className="bg-[#1A1A1E] px-2 py-1 rounded border border-[#27272A] text-zinc-200">
+                    {sprintDonePoints} / {sprintTotalPoints} pts
+                  </span>
                 </div>
               </div>
+
+              {/* Barra de progresso */}
               <div className="w-full h-1 bg-[#1A1A1E]">
                 <div
                   className="h-full bg-indigo-500 transition-all duration-500"
                   style={{ width: `${sprintProgress}%` }}
-                ></div>
+                />
               </div>
             </div>
 
             {isSprintOpen && (
-              <div className="border-x border-b border-[#27272A] rounded-b-xl bg-[#0D0D0F] min-h-[60px]">
-                {filteredSprint.map((issue) => (
-                  <IssueRow
-                    key={issue.id}
-                    issue={issue}
-                    onClick={() => openEditModal(issue, "sprint")}
-                    onDragStart={(e: any) =>
-                      handleDragStart(e, issue, "sprint")
-                    }
-                    onDragEnd={handleDragEnd}
-                  />
-                ))}
-                {filteredSprint.length === 0 && (
-                  <div className="p-8 text-center text-sm text-zinc-600 border-2 border-dashed border-[#27272A] m-2 rounded-lg">
-                    Arraste tarefas para a Sprint Atual
+              <div
+                className="
+                border-x border-b border-[#27272A] 
+                rounded-b-xl 
+                bg-[#0D0D0F]
+                min-h-[80px]
+                max-h-[45vh]
+                overflow-y-auto
+                transition-all
+              "
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => handleDrop(e, "sprint")}
+              >
+                {sprintIssues.length > 0 ? (
+                  sprintIssues.map((issue) => (
+                    <IssueRow
+                      key={issue.id}
+                      issue={issue}
+                      epics={epics}
+                      onClick={() => openEditModal(issue, "sprint")}
+                      onDragStart={(e: any) =>
+                        handleDragStart(e, issue, "sprint")
+                      }
+                      onDragEnd={handleDragEnd}
+                    />
+                  ))
+                ) : (
+                  <div className="p-6 text-center text-sm text-zinc-600">
+                    Arraste tarefas para a Sprint
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* === BACKLOG === */}
-          <div
-            className={`border-2 transition-all duration-300 rounded-xl ${draggedItem && draggedItem.source !== "backlog" ? "border-indigo-500/50 bg-indigo-500/5 scale-[1.01]" : "border-transparent"}`}
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, "backlog")}
-          >
+          {/* ================= BACKLOG ================= */}
+          <div>
             <div
               onClick={() => setIsBacklogOpen(!isBacklogOpen)}
-              className="flex items-center justify-between bg-[#121214] border border-[#27272A] p-4 cursor-pointer hover:bg-[#1A1A1E] rounded-t-xl"
+              className="flex items-center justify-between bg-[#121214] border border-[#27272A] p-4 rounded-t-xl cursor-pointer hover:bg-[#1A1A1E]"
             >
-              <div className="flex items-center gap-3">
-                <button className="text-zinc-400">
-                  {isBacklogOpen ? (
-                    <ChevronDown size={18} />
-                  ) : (
-                    <ChevronRight size={18} />
-                  )}
-                </button>
-                <div>
-                  <h2 className="text-sm font-semibold text-white">
-                    Backlog de Produto
-                  </h2>
-                  <p className="text-[11px] text-zinc-500 mt-0.5">
-                    Tarefas futuras por priorizar
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4 text-xs font-medium text-zinc-500">
-                <span>{filteredBacklog.length} issues</span>
-                <span className="bg-[#1A1A1E] px-2 py-1 rounded text-zinc-300 border border-[#27272A]">
-                  {filteredBacklog.reduce(
-                    (acc, issue) => acc + (Number(issue.points) || 0),
-                    0,
-                  )}{" "}
-                  pts totais
-                </span>
-              </div>
+              <h2 className="text-sm font-semibold text-white">
+                Backlog de Produto
+              </h2>
+              <span className="text-xs text-zinc-500">
+                {backlogIssues.length} issues
+              </span>
             </div>
+
             {isBacklogOpen && (
-              <div className="border-x border-b border-[#27272A] rounded-b-xl bg-[#0D0D0F] min-h-[60px]">
-                {filteredBacklog.map((issue) => (
-                  <IssueRow
-                    key={issue.id}
-                    issue={issue}
-                    onClick={() => openEditModal(issue, "backlog")}
-                    onDragStart={(e: any) =>
-                      handleDragStart(e, issue, "backlog")
-                    }
-                    onDragEnd={handleDragEnd}
-                  />
-                ))}
-                {filteredBacklog.length === 0 && (
-                  <div className="p-8 text-center text-sm text-zinc-600 border-2 border-dashed border-[#27272A] m-2 rounded-lg">
-                    O Backlog está vazio. Crie novas issues.
+              <div
+                className="
+                border-x border-b border-[#27272A] 
+                rounded-b-xl 
+                bg-[#0D0D0F]
+                min-h-[80px]
+                max-h-[45vh]
+                overflow-y-auto
+                transition-all
+              "
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => handleDrop(e, "backlog")}
+              >
+                {backlogIssues.length > 0 ? (
+                  backlogIssues.map((issue) => (
+                    <IssueRow
+                      key={issue.id}
+                      issue={issue}
+                      epics={epics}
+                      onClick={() => openEditModal(issue, "backlog")}
+                      onDragStart={(e: any) =>
+                        handleDragStart(e, issue, "backlog")
+                      }
+                      onDragEnd={handleDragEnd}
+                    />
+                  ))
+                ) : (
+                  <div className="p-6 text-center text-sm text-zinc-600">
+                    Backlog vazio
                   </div>
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {isSprintModalOpen && (
+        <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[#0D0D0F] border border-[#27272A] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* HEADER */}
+            <div className="px-6 py-5 border-b border-[#27272A] bg-gradient-to-r from-indigo-600/10 to-purple-600/10">
+              <h2 className="text-lg font-semibold text-white">
+                🚀 Criar Nova Sprint
+              </h2>
+              <p className="text-xs text-zinc-500 mt-1">
+                Defina nome, duração e comece a organizar o trabalho.
+              </p>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* ALERTA SE EXISTE SPRINT ATIVA */}
+              {activeSprint && (
+                <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs p-3 rounded-lg">
+                  Existe uma sprint ativa: <strong>{activeSprint.name}</strong>.
+                  Ela será finalizada automaticamente ao criar uma nova.
+                </div>
+              )}
+
+              {/* NOME */}
+              <div>
+                <label className="block text-xs text-zinc-500 mb-2 uppercase tracking-wider">
+                  Nome da Sprint
+                </label>
+                <input
+                  type="text"
+                  value={sprintForm.name}
+                  onChange={(e) =>
+                    setSprintForm({ ...sprintForm, name: e.target.value })
+                  }
+                  placeholder="Ex: Sprint 12 - Autenticação"
+                  className="w-full bg-[#121214] border border-[#27272A] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all"
+                />
+              </div>
+
+              {/* DURAÇÃO */}
+              <div>
+                <label className="block text-xs text-zinc-500 mb-2 uppercase tracking-wider">
+                  Duração
+                </label>
+
+                <div className="flex gap-2 mb-3">
+                  {[7, 14, 21].map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() =>
+                        setSprintForm({ ...sprintForm, duration: days })
+                      }
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all border ${
+                        sprintForm.duration === days
+                          ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_10px_rgba(79,70,229,0.4)]"
+                          : "bg-[#1A1A1E] border-[#27272A] text-zinc-400 hover:bg-[#27272A] hover:text-white"
+                      }`}
+                    >
+                      {days} dias
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="number"
+                  min={1}
+                  value={sprintForm.duration}
+                  onChange={(e) =>
+                    setSprintForm({
+                      ...sprintForm,
+                      duration: Number(e.target.value),
+                    })
+                  }
+                  className="w-full bg-[#121214] border border-[#27272A] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              {/* PREVIEW DE DATAS */}
+              <div className="bg-[#121214] border border-[#27272A] rounded-xl p-4 text-xs text-zinc-400">
+                <div className="flex justify-between">
+                  <span>Início:</span>
+                  <span>{new Date().toLocaleDateString("pt-PT")}</span>
+                </div>
+                <div className="flex justify-between mt-2">
+                  <span>Fim previsto:</span>
+                  <span className="text-indigo-400 font-medium">
+                    {(() => {
+                      const end = new Date();
+                      end.setDate(end.getDate() + sprintForm.duration);
+                      return end.toLocaleDateString("pt-PT");
+                    })()}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* FOOTER */}
+            <div className="px-6 py-4 border-t border-[#27272A] bg-[#09090B] flex justify-end gap-3">
+              <button
+                onClick={() => setIsSprintModalOpen(false)}
+                className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors"
+              >
+                Cancelar
+              </button>
+
+              <button
+                onClick={handleCreateSprint}
+                disabled={!sprintForm.name.trim()}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-all shadow-[0_0_15px_rgba(79,70,229,0.4)] disabled:opacity-40"
+              >
+                Criar Sprint
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEpicModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[200] animate-in fade-in duration-200">
+          <div className="bg-[#121214] border border-[#27272A] rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-6 animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div>
+              <h2 className="text-white font-semibold text-lg">
+                Criar Novo Epic
+              </h2>
+              <p className="text-xs text-zinc-500 mt-1">
+                Epics organizam grandes funcionalidades do projeto.
+              </p>
+            </div>
+
+            {/* Nome */}
+            <div>
+              <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 block">
+                Nome do Epic
+              </label>
+              <input
+                value={newEpicName}
+                onChange={(e) => setNewEpicName(e.target.value)}
+                placeholder="Ex: Sistema de Pagamentos"
+                className="w-full bg-[#1A1A1E] border border-[#27272A] rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 transition-all"
+              />
+            </div>
+
+            {/* Cores */}
+            <div>
+              <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3 block">
+                Cor do Epic
+              </label>
+
+              <div className="grid grid-cols-5 gap-3">
+                {epicColors.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setNewEpicColor(color)}
+                    className={`w-10 h-10 rounded-xl transition-all border-2 ${
+                      newEpicColor === color
+                        ? "scale-110 border-white"
+                        : "border-transparent hover:scale-105"
+                    }`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Preview */}
+            {newEpicName && (
+              <div className="pt-2">
+                <span
+                  className="inline-flex px-3 py-1 rounded-full text-xs font-bold"
+                  style={{
+                    backgroundColor: newEpicColor + "20",
+                    color: newEpicColor,
+                    border: `1px solid ${newEpicColor}40`,
+                  }}
+                >
+                  Preview: {newEpicName}
+                </span>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-[#27272A]">
+              <button
+                onClick={() => setIsEpicModalOpen(false)}
+                className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors"
+              >
+                Cancelar
+              </button>
+
+              <button
+                onClick={handleCreateEpic}
+                disabled={!newEpicName.trim()}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm font-semibold rounded-xl transition-all shadow-lg"
+              >
+                Criar Epic
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -854,15 +1264,28 @@ export default function BacklogPage() {
                       <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
                         Épico
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={taskForm.epic}
                         onChange={(e) =>
                           setTaskForm({ ...taskForm, epic: e.target.value })
                         }
                         className="w-full bg-[#1A1A1E] border border-[#27272A] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500"
-                        placeholder="Ex: Core"
-                      />
+                      >
+                        <option value="">Sem Epic</option>
+                        {epics.map((epic) => (
+                          <option key={epic.id} value={epic.id}>
+                            {epic.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsEpicModalOpen(true)}
+                        className="text-xs text-indigo-400 mt-2 hover:underline"
+                      >
+                        + Criar novo Epic
+                      </button>
                     </div>
                   </div>
 
@@ -1158,8 +1581,17 @@ export default function BacklogPage() {
 
 // --- COMPONENTES AUXILIARES ---
 
-function IssueRow({ issue, onClick, onDragStart, onDragEnd }: any) {
+function IssueRow({
+  issue,
+  epics,
+  onClick,
+  onDragStart,
+  onDragEnd,
+}: any) {
   const hasChecklist = issue.checklist && issue.checklist.length > 0;
+  const epicData =
+    epics?.find((e: any) => e.id === issue.epicId) ||
+    epics?.find((e: any) => e.name === issue.epic);
   const checklistCompleted = hasChecklist
     ? issue.checklist.filter((i: any) => i.completed).length
     : 0;
@@ -1172,7 +1604,7 @@ function IssueRow({ issue, onClick, onDragStart, onDragEnd }: any) {
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onClick={onClick}
-      className="group flex items-center gap-3 px-3 py-3 border-b border-[#27272A] last:border-b-0 hover:bg-[#1A1A1E] transition-colors cursor-pointer bg-[#0D0D0F]"
+      className="flex items-center gap-3 px-4 py-3 border-b border-[#27272A] cursor-grab active:cursor-grabbing hover:bg-[#1A1A1E] transition-colors"
     >
       <div
         className="cursor-grab active:cursor-grabbing p-1"
@@ -1194,9 +1626,22 @@ function IssueRow({ issue, onClick, onDragStart, onDragEnd }: any) {
           <span className="text-xs font-bold text-zinc-500">
             {issue.key || issue.id.slice(0, 8)}
           </span>
-          <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#27272A] text-zinc-400 border border-[#3F3F46] truncate max-w-[100px]">
-            {issue.epic || "Geral"}
-          </span>
+          {epicData ? (
+            <span
+              className="hidden sm:inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider truncate max-w-[120px]"
+              style={{
+                backgroundColor: epicData.color + "20",
+                color: epicData.color,
+                border: `1px solid ${epicData.color}40`,
+              }}
+            >
+              {epicData.name}
+            </span>
+          ) : (
+            <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#27272A] text-zinc-500 border border-[#3F3F46]">
+              Geral
+            </span>
+          )}
         </div>
         <span className="text-sm font-medium text-zinc-200 truncate group-hover:text-white transition-colors">
           {issue.title}
