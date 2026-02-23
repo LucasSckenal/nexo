@@ -379,7 +379,7 @@ export default function DashboardPage() {
                 <QuickAction
                   icon={<Settings size={20} />}
                   label="Configurações"
-                  href="#"
+                  href="/configuracoes"
                   color="orange"
                   delay={0.9}
                 />

@@ -31,7 +31,6 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Função para carregar os dados (memoizada para evitar loops)
   const fetchProfileData = useCallback(async () => {
     if (!activeProject?.id || !id) return;
 
@@ -40,7 +39,6 @@ export default function ProfilePage() {
       setError(null);
       const decodedId = decodeURIComponent(id as string);
 
-      // 1. Localizar o membro no array do projeto
       const foundMember = activeProject.members?.find(
         (m: any) => m.email === decodedId || m.name === decodedId,
       );
@@ -53,7 +51,6 @@ export default function ProfilePage() {
 
       setMember(foundMember);
 
-      // 2. Buscar as tarefas reais do Firebase
       const tasksRef = collection(db, "projects", activeProject.id, "tasks");
       const q = query(tasksRef, where("assignee", "==", foundMember.name));
 
@@ -76,7 +73,6 @@ export default function ProfilePage() {
     fetchProfileData();
   }, [fetchProfileData]);
 
-  // Formatação de data (Timestamp ou String)
   const formatDate = (dateValue: any) => {
     if (!dateValue) return "Data não disponível";
     const date = dateValue.seconds
@@ -85,7 +81,6 @@ export default function ProfilePage() {
     return date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   };
 
-  // Função: Dispara evento para abrir o chat global com este membro
   const openChatWithMember = () => {
     if (member) {
       window.dispatchEvent(
@@ -133,12 +128,11 @@ export default function ProfilePage() {
 
   return (
     <main className="flex-1 bg-[#050505] relative overflow-y-auto custom-scrollbar h-full p-6 lg:p-10">
-      {/* Glow Effect */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[300px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-5xl mx-auto relative z-10">
-        {/* HEADER DA PÁGINA (Botão Voltar + Botão de Mensagem) */}
-        <div className="flex items-center justify-between mb-8">
+        {/* HEADER LIMPO (Apenas botão voltar) */}
+        <div className="flex items-center mb-8">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors group"
@@ -150,13 +144,6 @@ export default function ProfilePage() {
             <span className="text-sm font-bold uppercase tracking-widest">
               Voltar
             </span>
-          </button>
-
-          <button
-            onClick={openChatWithMember}
-            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)] hover:shadow-[0_0_30px_rgba(99,102,241,0.4)]"
-          >
-            <MessageCircle size={16} /> Enviar Mensagem
           </button>
         </div>
 
@@ -195,6 +182,17 @@ export default function ProfilePage() {
                 </button>
               </div>
             </motion.div>
+
+            {/* BOTÃO DE MENSAGEM SEPARADO E EM DESTAQUE AQUI 👇 */}
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              onClick={openChatWithMember}
+              className="w-full flex items-center justify-center gap-3 py-4 rounded-3xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)] hover:shadow-[0_0_40px_rgba(99,102,241,0.4)] hover:-translate-y-1"
+            >
+              <MessageCircle size={20} /> Iniciar Conversa
+            </motion.button>
 
             <div className="bg-[#080808]/60 border border-white/[0.05] rounded-[2.5rem] p-6 space-y-4">
               <h3 className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em] px-2">
