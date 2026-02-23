@@ -19,11 +19,18 @@ import {
   Copy,
   Check,
   Link as LinkIcon,
+  Github,
+  KeyRound,
+  ExternalLink,
+  AlertCircle,
 } from "lucide-react";
 
 export default function SettingsPage() {
   const { activeProject } = useData();
-  const [activeTab, setActiveTab] = useState<"general" | "members">("general");
+  // 👇 Adicionada a aba 'integrations'
+  const [activeTab, setActiveTab] = useState<
+    "general" | "members" | "integrations"
+  >("general");
 
   // Estados de Formulário e UI
   const [isSaving, setIsSaving] = useState(false);
@@ -32,10 +39,12 @@ export default function SettingsPage() {
     "synced",
   );
 
-  // Campos - Geral
+  // Campos - Geral & Integrações
   const [projectName, setProjectName] = useState("");
   const [projectKey, setProjectKey] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
+  const [githubRepo, setGithubRepo] = useState("");
+  const [githubToken, setGithubToken] = useState(""); // <-- Novo estado para o token
 
   // Campos - Membros
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -55,19 +64,31 @@ export default function SettingsPage() {
       setProjectName(activeProject.name || "");
       setProjectKey(activeProject.key || "");
       setProjectDescription(activeProject.description || "");
+      setGithubRepo(activeProject.githubRepo || "");
+      setGithubToken(activeProject.githubToken || ""); // <-- Carrega o token
       setIsDirty(false);
     }
   }, [activeProject]);
 
   useEffect(() => {
     if (!activeProject) return;
+    // 👇 Agora o sistema também verifica se o repo ou o token foram alterados
     const hasChanges =
       projectName !== (activeProject.name || "") ||
       projectKey !== (activeProject.key || "") ||
-      projectDescription !== (activeProject.description || "");
+      projectDescription !== (activeProject.description || "") ||
+      githubRepo !== (activeProject.githubRepo || "") ||
+      githubToken !== (activeProject.githubToken || "");
 
     setIsDirty(hasChanges);
-  }, [projectName, projectKey, projectDescription, activeProject]);
+  }, [
+    projectName,
+    projectKey,
+    projectDescription,
+    githubRepo,
+    githubToken,
+    activeProject,
+  ]);
 
   if (!activeProject) {
     return (
@@ -87,20 +108,32 @@ export default function SettingsPage() {
     setProjectName(activeProject.name || "");
     setProjectKey(activeProject.key || "");
     setProjectDescription(activeProject.description || "");
+    setGithubRepo(activeProject.githubRepo || "");
+    setGithubToken(activeProject.githubToken || "");
     setIsDirty(false);
   };
 
-  const handleSaveGeneral = async () => {
+  // Renomeado para handleSave (já que salva tudo agora, incluindo o GitHub)
+  const handleSave = async () => {
     if (!projectName.trim() || !projectKey.trim()) return;
     setIsSaving(true);
     setSyncStatus("saving");
+
+    // Limpa a URL do repo (caso o user tenha colado o link completo)
+    const cleanRepoSlug = githubRepo
+      .replace("https://github.com/", "")
+      .replace(".git", "");
 
     try {
       await updateDoc(doc(db, "projects", activeProject.id), {
         name: projectName.trim(),
         key: projectKey.trim().toUpperCase(),
         description: projectDescription.trim(),
+        githubRepo: cleanRepoSlug,
+        githubToken: githubToken.trim(), // Salva o token também
       });
+      // Atualiza o input para mostrar o slug limpo
+      setGithubRepo(cleanRepoSlug);
       setIsDirty(false);
       setSyncStatus("synced");
     } catch (error) {
@@ -111,7 +144,26 @@ export default function SettingsPage() {
     }
   };
 
-  // --- ACÇÕES: MEMBROS (Com Segurança) ---
+  const handleDisconnectGithub = async () => {
+    if (!activeProject?.id) return;
+    if (!confirm("Tem a certeza que deseja desconectar o GitHub?")) return;
+
+    setIsSaving(true);
+    try {
+      await updateDoc(doc(db, "projects", activeProject.id), {
+        githubRepo: "",
+        githubToken: "",
+      });
+      setGithubRepo("");
+      setGithubToken("");
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // --- ACÇÕES: MEMBROS ---
   const handleInviteMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail.trim() || !inviteName.trim()) return;
@@ -131,7 +183,7 @@ export default function SettingsPage() {
 
       await updateDoc(doc(db, "projects", activeProject.id), {
         members: [...currentMembers, newMember],
-        memberEmails: [...currentMemberEmails, inviteEmail.trim()], // Array de segurança atualizado
+        memberEmails: [...currentMemberEmails, inviteEmail.trim()],
       });
 
       setIsInviteModalOpen(false);
@@ -158,7 +210,7 @@ export default function SettingsPage() {
 
       await updateDoc(doc(db, "projects", activeProject.id), {
         members: updatedMembers,
-        memberEmails: updatedMemberEmails, // Array de segurança atualizado
+        memberEmails: updatedMemberEmails,
       });
     } catch (error) {
       console.error("Erro ao remover:", error);
@@ -179,7 +231,7 @@ export default function SettingsPage() {
             Configurações
           </h1>
           <p className="text-zinc-500 text-sm">
-            Gerencie suas preferências e membros do projeto{" "}
+            Gerencie suas preferências e integrações do projeto{" "}
             <strong className="text-zinc-300">{activeProject.name}</strong>.
           </p>
         </div>
@@ -208,6 +260,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="w-full max-w-[1600px] mx-auto flex flex-col md:flex-row gap-10">
+        {/* MENU LATERAL */}
         <nav className="w-full md:w-64 shrink-0 flex flex-col gap-1">
           <SidebarItem
             icon={<Globe size={18} />}
@@ -221,6 +274,13 @@ export default function SettingsPage() {
             isActive={activeTab === "members"}
             onClick={() => setActiveTab("members")}
           />
+          {/* 👇 Nova Categoria Adicionada */}
+          <SidebarItem
+            icon={<Github size={18} />}
+            label="Integrações"
+            isActive={activeTab === "integrations"}
+            onClick={() => setActiveTab("integrations")}
+          />
           <SidebarItem
             icon={<Shield size={18} />}
             label="Permissões"
@@ -230,6 +290,7 @@ export default function SettingsPage() {
         </nav>
 
         <div className="flex-1 space-y-8 animate-in fade-in duration-300">
+          {/* ABA: GERAL */}
           {activeTab === "general" && (
             <div className="bg-[#121214] border border-[#27272A] rounded-2xl overflow-hidden shadow-xl">
               <div className="p-8 border-b border-[#27272A]/50">
@@ -286,8 +347,10 @@ export default function SettingsPage() {
             </div>
           )}
 
+          {/* ABA: MEMBROS */}
           {activeTab === "members" && (
             <div className="bg-[#121214] border border-[#27272A] rounded-2xl overflow-hidden shadow-xl">
+              {/* ... (O teu código dos membros continua igual aqui) ... */}
               <div className="p-8 border-b border-[#27272A]/50 flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-white mb-1">
@@ -376,17 +439,101 @@ export default function SettingsPage() {
                       </div>
                     ),
                   )}
-                  {(!activeProject.members ||
-                    activeProject.members.length === 0) && (
-                    <div className="text-center py-12 border-2 border-dashed border-[#27272A] rounded-xl">
-                      <Users size={32} className="mx-auto text-zinc-600 mb-3" />
-                      <p className="text-zinc-400 font-medium">
-                        Este projeto ainda não tem membros adicionais.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 👇 ABA: INTEGRAÇÕES (NOVA) 👇 */}
+          {activeTab === "integrations" && (
+            <div className="bg-[#121214] border border-[#27272A] rounded-2xl overflow-hidden shadow-xl animate-in fade-in">
+              <div className="p-8 border-b border-[#27272A]/50">
+                <h2 className="text-xl font-bold text-white mb-1">
+                  Integrações
+                </h2>
+                <p className="text-sm text-zinc-500">
+                  Conecte o seu projeto a ferramentas externas para automatizar
+                  o seu fluxo de trabalho.
+                </p>
+              </div>
+
+              <div className="p-8">
+                {/* Cartão de Integração do GitHub */}
+                <div className="bg-[#09090B] border border-[#27272A] rounded-xl p-6 space-y-6">
+                  <div className="flex items-center justify-between border-b border-[#27272A]/50 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-[#1A1A1E] p-2.5 rounded-lg border border-[#27272A]">
+                        <Github className="text-white" size={24} />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-white">GitHub</h3>
+                        <p className="text-xs text-zinc-500">
+                          Crie branches diretamente a partir das tarefas.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">
+                        URL ou Nome do Repositório
+                      </label>
+                      <input
+                        value={githubRepo}
+                        onChange={(e) => setGithubRepo(e.target.value)}
+                        placeholder="Ex: LucasSckenal/nexo"
+                        className="w-full bg-[#121214] border border-[#27272A] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                        <KeyRound size={16} /> Token de Acesso Pessoal (PAT)
+                      </label>
+                      <input
+                        type="password"
+                        value={githubToken}
+                        onChange={(e) => setGithubToken(e.target.value)}
+                        placeholder="ghp_..."
+                        className="w-full bg-[#121214] border border-[#27272A] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all"
+                      />
+                      <p className="text-xs text-zinc-500 flex items-start gap-1 mt-1">
+                        <AlertCircle size={12} className="shrink-0 mt-0.5" />
+                        Gere no GitHub em Settings &gt; Developer Settings.
+                        Marque a permissão "repo".
                       </p>
-                      <p className="text-zinc-600 text-sm mt-1">
-                        Clique em "Adicionar" ou partilhe o link de convite
-                        acima.
-                      </p>
+                    </div>
+                  </div>
+
+                  {activeProject.githubRepo && (
+                    <div className="pt-4 mt-2 border-t border-[#27272A] flex items-center justify-between bg-[#121214] -mx-6 -mb-6 p-6 rounded-b-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
+                          <Check size={20} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white flex items-center gap-2">
+                            Conectado:{" "}
+                            <span className="text-zinc-400 font-normal">
+                              {activeProject.githubRepo}
+                            </span>
+                          </p>
+                          <a
+                            href={`https://github.com/${activeProject.githubRepo}`}
+                            target="_blank"
+                            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1 mt-1 font-medium"
+                          >
+                            Abrir repositório <ExternalLink size={12} />
+                          </a>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleDisconnectGithub}
+                        className="text-xs text-red-400 hover:text-red-300 font-medium px-4 py-2 rounded-lg hover:bg-red-400/10 transition-colors border border-transparent hover:border-red-500/20"
+                      >
+                        Desconectar
+                      </button>
                     </div>
                   )}
                 </div>
@@ -396,8 +543,9 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* 👇 BARRA FLUTUANTE DE SALVAR (Agora funciona para o GitHub também!) 👇 */}
       {isDirty && (
-        <div className="fixed bottom-8 right-8 bg-[#1A1A1E] border border-[#3F3F46] shadow-2xl rounded-2xl p-2 pr-3 pl-5 flex items-center gap-6 animate-in slide-in-from-bottom-5 fade-in z-50">
+        <div className="fixed bottom-8 right-8 bg-[#1A1A1E] border border-[#3F3F46] shadow-[0_10px_40px_rgba(0,0,0,0.5)] rounded-2xl p-2 pr-3 pl-5 flex items-center gap-6 animate-in slide-in-from-bottom-5 fade-in z-50">
           <div className="flex items-center gap-2 text-amber-400">
             <AlertTriangle size={16} />
             <span className="text-sm font-medium">Alterações não salvas</span>
@@ -410,7 +558,7 @@ export default function SettingsPage() {
               Descartar
             </button>
             <button
-              onClick={handleSaveGeneral}
+              onClick={handleSave}
               disabled={isSaving}
               className="bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-2 rounded-xl text-sm font-semibold shadow-lg transition-all flex items-center gap-2 disabled:opacity-50"
             >

@@ -4,469 +4,533 @@ import { useState, useEffect } from "react";
 import {
   collection,
   query,
-  where,
   onSnapshot,
   orderBy,
+  limit,
 } from "firebase/firestore";
-import { db, auth } from "../lib/firebase"; // Ajuste o caminho se necessário
-import { useData } from "../context/DataContext"; // Ajuste o caminho se necessário
-import { CreateProjectModal } from "../components/CreateProjectModal";
+import { db, auth } from "../lib/firebase";
+import { useData } from "../context/DataContext";
+import { CreateProjectModal } from "../components/modals/CreateProjectModal";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus,
-  FolderOpen,
-  LayoutList,
-  Target,
-  CheckCircle2,
-  CircleDashed,
-  ArrowRightCircle,
-  ArrowUp,
-  ArrowRight,
-  ArrowDown,
-  Bug,
-  Sparkles,
-  FileText,
-  Clock,
-  Activity,
-  Zap,
+  MessageSquare,
+  AlertTriangle,
+  CheckSquare,
+  Calendar,
+  Settings,
+  Users,
   FolderPlus,
+  Activity,
+  LayoutPanelLeft,
+  Plus,
+  Trash2,
+  Circle,
 } from "lucide-react";
 import Link from "next/link";
 
 export default function DashboardPage() {
   const { activeProject } = useData();
   const [tasks, setTasks] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [activities, setActivities] = useState<any[]>([]);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const user = auth.currentUser;
 
-  useEffect(() => {
-    if (!activeProject?.id) {
-      setTasks([]);
-      setIsLoading(false);
-      return;
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Bom dia";
+    if (hour >= 12 && hour < 18) return "Boa tarde";
+    if (hour >= 18 && hour < 22) return "Boa noite";
+    return "Boa madrugada";
+  };
+
+  const currentDate = new Intl.DateTimeFormat("pt-PT", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date());
+
+  const formatTime = (timestamp: any) => {
+    if (!timestamp) return "Agora";
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return new Intl.DateTimeFormat("pt-PT", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(date);
+    } catch (error) {
+      return "Recente";
     }
+  };
 
-    setIsLoading(true);
+  useEffect(() => {
+    if (!activeProject?.id) return;
 
-    const q = query(
-      collection(db, "tasks"),
-      where("projectId", "==", activeProject.id),
+    const qTasks = query(
+      collection(db, "projects", activeProject.id, "tasks"),
       orderBy("createdAt", "desc"),
     );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const tasksData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setTasks(tasksData);
-      setIsLoading(false);
+    const unsubTasks = onSnapshot(qTasks, (snapshot) => {
+      setTasks(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     });
 
-    return () => unsubscribe();
-  }, [activeProject]);
+    const qActivities = query(
+      collection(db, "projects", activeProject.id, "activities"),
+      orderBy("timestamp", "desc"),
+      limit(10),
+    );
+    const unsubActivities = onSnapshot(qActivities, (snapshot) => {
+      setActivities(
+        snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })),
+      );
+    });
 
-  // --- CÁLCULO DE MÉTRICAS ---
-  const totalTasks = tasks.length;
-  const doneTasks = tasks.filter((t) => t.status === "done").length;
-  const inProgressTasks = tasks.filter(
-    (t) => t.status === "in-progress" || t.status === "review",
-  ).length;
-  const totalPoints = tasks.reduce(
-    (acc, task) => acc + (Number(task.points) || 0),
-    0,
+    return () => {
+      unsubTasks();
+      unsubActivities();
+    };
+  }, [activeProject?.id]);
+
+  const activeTasks = tasks.filter((t) => t.status !== "done");
+  const criticalTasks = tasks.filter(
+    (t) => t.priority === "critical" && t.status !== "done",
   );
-  const donePoints = tasks
-    .filter((t) => t.status === "done")
-    .reduce((acc, task) => acc + (Number(task.points) || 0), 0);
-
-  const progressPercentage =
-    totalPoints === 0 ? 0 : Math.round((donePoints / totalPoints) * 100);
-  const recentTasks = tasks.slice(0, 5); // Mostra apenas as 5 mais recentes
 
   return (
-    <main className="flex-1 flex flex-col h-full z-10 relative overflow-hidden bg-[#09090B]">
-      {/* HEADER PRINCIPAL */}
-      <header className="h-24 flex flex-col justify-center px-8 shrink-0 border-b border-[#27272A]/50 bg-[#09090B]/80 backdrop-blur-md sticky top-0 z-20">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-1">
-              <span>
-                {user?.displayName
-                  ? `Olá, ${user.displayName.split(" ")[0]}`
-                  : "Visão Geral"}
-              </span>
-              <span>/</span>
-              <span className="text-indigo-400">
-                {activeProject?.name || "Sem Projeto"}
+    <motion.main
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="flex-1 bg-[#050505] text-zinc-400 overflow-y-auto custom-scrollbar p-10 font-sans"
+    >
+      <div className="max-w-[1600px] mx-auto space-y-10">
+        {/* HEADER */}
+        <section className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-8">
+          <motion.div
+            initial={{ x: -30, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+          >
+            <div className="flex items-center gap-3 text-zinc-600 font-bold text-[10px] uppercase tracking-[0.3em]">
+              <Calendar size={12} />
+              <span>{currentDate}</span>
+              <span className="text-zinc-800">/</span>
+              <span className="text-indigo-500/70">
+                {activeProject?.name || "System Idle"}
               </span>
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
-              Dashboard do Projeto
+            <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter mt-2">
+              {getGreeting()}, {user?.displayName?.split(" ")[0] || "User"}.
             </h1>
-          </div>
+          </motion.div>
 
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setIsProjectModalOpen(true)}
-              className="bg-[#121214] hover:bg-[#1A1A1E] border border-[#27272A] text-zinc-300 hover:text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-all flex items-center gap-2"
+          <motion.button
+            whileHover={{
+              scale: 1.05,
+              backgroundColor: "#ffffff",
+              color: "#000000",
+            }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsProjectModalOpen(true)}
+            className="h-[60px] px-8 border border-white/10 text-white/50 rounded-full text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 transition-all relative overflow-hidden group"
+          >
+            <span className="relative z-10 flex items-center gap-3">
+              <FolderPlus size={16} /> Inicializar Projeto
+            </span>
+            <div className="absolute inset-0 h-full w-full bg-white/20 skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+          </motion.button>
+        </section>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-8 space-y-8">
+            {/* MESA DE TRABALHO - VISOR CENTRAL */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              className="bg-[#080808] border border-white/[0.03] rounded-[2rem] flex flex-col h-[500px] overflow-hidden shadow-[inset_0_2px_20px_rgba(0,0,0,0.5)]"
             >
-              <FolderPlus size={16} /> Novo Projeto
-            </button>
-            <Link
-              href="/backlog"
-              className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-[0_0_15px_rgba(79,70,229,0.3)] transition-all"
-            >
-              <Plus strokeWidth={3} size={16} /> Nova Issue
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <div className="flex-1 p-8 overflow-auto custom-scrollbar">
-        <div className="max-w-7xl mx-auto space-y-8">
-          {/* SKELETON OU CONTEÚDO */}
-          {isLoading ? (
-            <DashboardSkeleton />
-          ) : !activeProject?.id ? (
-            <NoProjectState onOpenModal={() => setIsProjectModalOpen(true)} />
-          ) : (
-            <>
-              {/* 1. CARTÕES DE MÉTRICAS */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard
-                  title="Total de Tarefas"
-                  value={totalTasks.toString()}
-                  icon={<LayoutList size={20} className="text-blue-400" />}
-                  trend="+2 esta semana"
-                />
-                <StatCard
-                  title="Em Progresso"
-                  value={inProgressTasks.toString()}
-                  icon={<Activity size={20} className="text-amber-400" />}
-                  trend="Trabalho ativo"
-                />
-                <StatCard
-                  title="Concluídas"
-                  value={doneTasks.toString()}
-                  icon={<CheckCircle2 size={20} className="text-emerald-400" />}
-                  trend={`${progressPercentage}% do projeto`}
-                />
-                <StatCard
-                  title="Story Points"
-                  value={`${donePoints} / ${totalPoints}`}
-                  icon={<Zap size={20} className="text-purple-400" />}
-                  trend="Velocidade da equipa"
-                />
-              </div>
-
-              {/* 2. BARRA DE PROGRESSO GLOBAL */}
-              <div className="bg-[#121214] border border-[#27272A] rounded-xl p-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
-                <div className="flex items-end justify-between mb-4 relative z-10">
-                  <div>
-                    <h3 className="text-lg font-bold text-white mb-1">
-                      Progresso do Projeto
-                    </h3>
-                    <p className="text-sm text-zinc-500">
-                      Baseado nos Story Points das tarefas concluídas.
-                    </p>
-                  </div>
-                  <div className="text-3xl font-bold text-indigo-400">
-                    {progressPercentage}%
-                  </div>
-                </div>
-                <div className="w-full h-3 bg-[#09090B] rounded-full border border-[#27272A] overflow-hidden relative z-10">
-                  <div
-                    className="h-full bg-gradient-to-r from-indigo-600 to-purple-500 transition-all duration-1000 ease-out relative"
-                    style={{ width: `${progressPercentage}%` }}
-                  >
-                    <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
-                  </div>
+              <div className="p-8 border-b border-white/[0.02] flex items-center justify-between bg-black/20">
+                <h3 className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em]">
+                  Monitor de Tarefas
+                </h3>
+                <div className="flex items-center gap-2">
+                  <motion.div
+                    animate={{ opacity: [0.4, 1, 0.4], scale: [0.9, 1.1, 0.9] }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                    className="w-1.5 h-1.5 rounded-full bg-indigo-500"
+                  />
+                  <span className="text-[9px] font-mono text-indigo-500/50 uppercase italic">
+                    Live Data
+                  </span>
                 </div>
               </div>
 
-              {/* 3. GRID INFERIOR (TAREFAS RECENTES & ATIVIDADE) */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Lista de Tarefas Recentes (Ocupa 2 colunas na lg) */}
-                <div className="lg:col-span-2 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <Clock size={18} className="text-zinc-400" /> Tarefas
-                      Recentes
-                    </h3>
-                    <Link
-                      href="/backlog"
-                      className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
-                    >
-                      Ver todo o backlog &rarr;
-                    </Link>
-                  </div>
+              <div className="p-6 overflow-y-auto flex-1 custom-scrollbar bg-[#050505]/50">
+                <div className="space-y-3">
+                  <AnimatePresence mode="popLayout">
+                    {activeTasks.length > 0 ? (
+                      activeTasks.map((task, idx) => {
+                        const priorityColors: Record<string, string> = {
+                          critical:
+                            "bg-red-500/10 text-red-400 border-red-500/20",
+                          high: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+                          medium:
+                            "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+                          low: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                          default:
+                            "bg-zinc-800/30 text-zinc-400 border-zinc-700/30",
+                        };
+                        const priorityKey = task.priority
+                          ? task.priority.toLowerCase()
+                          : "default";
+                        const pColor =
+                          priorityColors[priorityKey] || priorityColors.default;
 
-                  <div className="bg-[#121214] border border-[#27272A] rounded-xl overflow-hidden divide-y divide-[#27272A]/50">
-                    {recentTasks.length > 0 ? (
-                      recentTasks.map((task) => (
-                        <RecentTaskRow key={task.id} task={task} />
-                      ))
+                        return (
+                          <motion.div
+                            key={task.id}
+                            layout
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.3, delay: idx * 0.05 }} // Efeito Cascata direto
+                            whileHover={{
+                              scale: 1.02,
+                              backgroundColor: "rgba(99, 102, 241, 0.03)",
+                            }}
+                            className="group relative bg-[#0A0A0A] border border-white/[0.04] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors duration-300 hover:border-indigo-500/30 hover:shadow-[0_0_20px_rgba(99,102,241,0.05)] overflow-hidden cursor-pointer z-10"
+                          >
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                            <div className="flex items-start sm:items-center gap-4">
+                              <div className="mt-0.5 sm:mt-0">
+                                <Circle
+                                  size={18}
+                                  className="text-zinc-700 group-hover:text-indigo-400 transition-colors"
+                                />
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <span className="text-sm font-medium text-zinc-300 group-hover:text-zinc-100 transition-colors line-clamp-1">
+                                  {task.title}
+                                </span>
+                                <div className="flex items-center gap-3">
+                                  <span
+                                    className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${pColor}`}
+                                  >
+                                    {task.priority || "Normal"}
+                                  </span>
+                                  {task.assignee && (
+                                    <span className="text-[10px] text-zinc-500 flex items-center gap-1">
+                                      <Users size={10} /> {task.assignee}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto mt-2 sm:mt-0 pl-9 sm:pl-0">
+                              <div className="bg-black/40 border border-white/[0.05] px-3 py-1.5 rounded-lg group-hover:border-indigo-500/20 transition-colors">
+                                <span className="text-[10px] font-mono text-zinc-500 group-hover:text-indigo-300 tracking-widest">
+                                  {task.taskKey}
+                                </span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })
                     ) : (
-                      <div className="p-12 text-center flex flex-col items-center justify-center">
-                        <Target size={32} className="text-zinc-600 mb-3" />
-                        <p className="text-zinc-400 text-sm font-medium">
-                          Nenhuma tarefa criada ainda.
-                        </p>
-                        <p className="text-zinc-600 text-xs mt-1">
-                          Vá ao backlog para criar a sua primeira issue.
-                        </p>
-                      </div>
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="h-full flex flex-col items-center justify-center opacity-50 space-y-4 py-20"
+                      >
+                        <CheckSquare size={32} className="text-zinc-800" />
+                        <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold">
+                          Sem tarefas ativas
+                        </span>
+                      </motion.div>
                     )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* PAINEL DE INSTRUMENTOS */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                whileHover={{ y: -5 }}
+                className="bg-[#080808] border border-red-900/30 rounded-[2rem] p-8 flex flex-col justify-between h-48 group shadow-[0_0_15px_rgba(127,29,29,0.1)] hover:shadow-[0_0_25px_rgba(127,29,29,0.2)] transition-all cursor-pointer relative overflow-hidden"
+              >
+                <motion.div
+                  animate={{ opacity: [0, 0.1, 0] }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="absolute inset-0 bg-red-600/20 blur-3xl -z-10"
+                />
+                <AlertTriangle
+                  size={18}
+                  className="text-red-500 group-hover:text-red-400 transition-colors"
+                />
+                <div>
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 100, delay: 0.6 }}
+                    className="text-4xl font-light text-red-500 group-hover:text-red-400 transition-colors font-mono block"
+                  >
+                    {criticalTasks.length}
+                  </motion.span>
+                  <p className="text-[9px] text-zinc-500 font-bold uppercase mt-2 tracking-widest group-hover:text-zinc-400">
+                    Alerta Crítico
+                  </p>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="col-span-2 bg-[#080808] border border-white/[0.03] rounded-[2rem] p-4 flex items-center justify-around shadow-[inset_0_2px_20px_rgba(255,255,255,0.01)]"
+              >
+                <QuickAction
+                  icon={<Users size={20} />}
+                  label="Equipe"
+                  href="#"
+                  color="cyan"
+                  delay={0.7}
+                />
+                <QuickAction
+                  icon={<LayoutPanelLeft size={20} />}
+                  label="Kanban"
+                  href="/quadros"
+                  color="indigo"
+                  delay={0.8}
+                />
+                <QuickAction
+                  icon={<Settings size={20} />}
+                  label="Configurações"
+                  href="/configuracoes"
+                  color="orange"
+                  delay={0.9}
+                />
+              </motion.div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-4 flex flex-col gap-8">
+            {/* DISCORD BOT CARD */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4, type: "spring" }}
+              whileHover={{ scale: 1.01 }}
+              className="bg-[#080808] border border-[#5865F2]/20 rounded-[2rem] p-6 flex flex-col relative overflow-hidden group shadow-[inset_0_2px_20px_rgba(88,101,242,0.05)]"
+            >
+              <motion.div
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.1, 0.2, 0.1],
+                  rotate: [0, 10, 0],
+                }}
+                transition={{
+                  duration: 8,
+                  repeat: Infinity,
+                  repeatType: "reverse",
+                  ease: "easeInOut",
+                }}
+                className="absolute -top-10 -right-10 w-40 h-40 bg-[#5865F2] rounded-full blur-[80px] pointer-events-none"
+              />
+
+              <div className="flex justify-between items-start mb-4 z-10">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#5865F2]/10 flex items-center justify-center border border-[#5865F2]/30 group-hover:border-[#5865F2]/60 transition-colors">
+                    <MessageSquare size={20} className="text-[#5865F2]" />
+                  </div>
+                  <div>
+                    <h3 className="text-[11px] font-black text-zinc-300 uppercase tracking-[0.1em]">
+                      Bot do Discord
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <motion.div
+                        animate={{
+                          boxShadow: [
+                            "0 0 0px rgba(16,185,129,0.4)",
+                            "0 0 10px rgba(16,185,129,0.8)",
+                            "0 0 0px rgba(16,185,129,0.4)",
+                          ],
+                        }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="w-1.5 h-1.5 rounded-full bg-emerald-500"
+                      />
+                      <span className="text-[9px] font-mono text-emerald-500/90 uppercase tracking-widest">
+                        Online
+                      </span>
+                    </div>
                   </div>
                 </div>
+                <span className="text-[10px] font-mono text-zinc-600">
+                  24ms
+                </span>
+              </div>
+              <p className="text-[12px] text-zinc-400 z-10 leading-relaxed">
+                Sincronização de tarefas e logs de eventos ativas no servidor.
+              </p>
+            </motion.div>
 
-                {/* Resumo Rápido (Ocupa 1 coluna) */}
-                <div className="space-y-4">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <Activity size={18} className="text-zinc-400" /> Detalhes do
-                    Projeto
-                  </h3>
-                  <div className="bg-[#121214] border border-[#27272A] rounded-xl p-5 space-y-4">
-                    <div className="flex items-center justify-between pb-4 border-b border-[#27272A]/50">
-                      <span className="text-sm text-zinc-400">
-                        Chave do Projeto
-                      </span>
-                      <span className="text-sm font-mono font-bold text-zinc-200 bg-[#27272A] px-2 py-0.5 rounded">
-                        {activeProject.key || "NX"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between pb-4 border-b border-[#27272A]/50">
-                      <span className="text-sm text-zinc-400">Membros</span>
-                      <div className="flex -space-x-2">
-                        {activeProject.members
-                          ?.slice(0, 3)
-                          .map((m: any, i: number) => (
-                            <img
-                              key={i}
-                              src={
-                                m.photoURL ||
-                                `https://ui-avatars.com/api/?name=${m.name || "U"}&background=27272A&color=fff`
-                              }
-                              className="w-7 h-7 rounded-full border-2 border-[#121214]"
-                              title={m.name}
-                              alt="Membro"
-                            />
-                          ))}
-                        {(activeProject.members?.length || 0) === 0 && (
-                          <span className="text-xs text-zinc-500">
-                            Sem membros
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between pt-2">
-                      <span className="text-sm text-zinc-400">Criado em</span>
-                      <span className="text-sm font-medium text-zinc-200">
-                        {activeProject.createdAt
-                          ? new Date(
-                              activeProject.createdAt,
-                            ).toLocaleDateString("pt-PT")
-                          : "Recente"}
-                      </span>
-                    </div>
+            {/* RADAR DE EVENTOS (TIMELINE PROFISSIONAL) */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="bg-[#080808] border border-white/[0.03] rounded-[2rem] flex flex-col flex-1 min-h-[500px] overflow-hidden"
+            >
+              <div className="p-8 border-b border-white/[0.02] bg-black/20">
+                <h3 className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em]">
+                  Histórico de Logs
+                </h3>
+              </div>
+
+              <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-[#050505]/30">
+                <div className="relative ml-4 h-full">
+                  <motion.div
+                    initial={{ height: 0 }}
+                    animate={{ height: "100%" }}
+                    transition={{
+                      duration: 1.5,
+                      delay: 0.8,
+                      ease: "easeInOut",
+                    }}
+                    className="absolute left-0 top-0 w-[2px] bg-zinc-800/30"
+                  />
+
+                  <div className="space-y-8 relative z-10">
+                    <AnimatePresence mode="popLayout">
+                      {activities.map((log, idx) => {
+                        const isCreate = log.type === "create";
+                        const isDelete = log.type === "delete";
+
+                        let LogIcon = Activity;
+                        let iconColor = "text-blue-400";
+                        let borderColor = "border-blue-500/20";
+
+                        if (isCreate) {
+                          LogIcon = Plus;
+                          iconColor = "text-emerald-400";
+                          borderColor = "border-emerald-500/20";
+                        } else if (isDelete) {
+                          LogIcon = Trash2;
+                          iconColor = "text-red-400";
+                          borderColor = "border-red-500/20";
+                        }
+
+                        return (
+                          <motion.div
+                            key={log.id}
+                            layout
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.3, delay: idx * 0.1 }} // Efeito cascata corrigido
+                            className="relative pl-8 group"
+                          >
+                            <div
+                              className={`absolute -left-[17px] -top-1 w-8 h-8 rounded-xl border flex items-center justify-center bg-[#050505] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 ${borderColor}`}
+                            >
+                              <LogIcon size={14} className={iconColor} />
+                            </div>
+
+                            <motion.div
+                              whileHover={{ x: 5 }}
+                              className="flex flex-col"
+                            >
+                              <div className="flex items-center gap-3 mb-2">
+                                <span className="text-[12px] text-zinc-200 font-semibold tracking-wide">
+                                  {log.userName}
+                                </span>
+                                <div className="w-1 h-1 rounded-full bg-zinc-700" />
+                                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                                  {formatTime(log.timestamp)}
+                                </span>
+                              </div>
+
+                              <div className="bg-white/[0.01] border border-white/[0.02] rounded-xl p-3 text-[13px] text-zinc-400 leading-relaxed group-hover:bg-white/[0.03] group-hover:border-white/[0.05] transition-colors">
+                                {log.content}
+                              </div>
+                            </motion.div>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
                   </div>
                 </div>
               </div>
-            </>
-          )}
+            </motion.div>
+          </div>
         </div>
       </div>
-
       <CreateProjectModal
         isOpen={isProjectModalOpen}
         onClose={() => setIsProjectModalOpen(false)}
       />
-    </main>
+    </motion.main>
   );
 }
 
-// === COMPONENTES AUXILIARES DO DASHBOARD ===
-
-function StatCard({
-  title,
-  value,
+function QuickAction({
   icon,
-  trend,
+  label,
+  href,
+  color,
+  delay = 0,
 }: {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  trend: string;
+  icon: any;
+  label: string;
+  href: string;
+  color: "cyan" | "indigo" | "orange";
+  delay?: number;
 }) {
-  return (
-    <div className="bg-[#121214] p-5 rounded-xl border border-[#27272A] flex flex-col relative overflow-hidden group hover:border-[#3F3F46] transition-colors">
-      <div className="flex justify-between items-start mb-4 relative z-10">
-        <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
-          {title}
-        </h3>
-        <div className="p-2 bg-[#09090B] border border-[#27272A] rounded-lg shadow-sm">
-          {icon}
-        </div>
-      </div>
-      <div className="relative z-10">
-        <span className="text-3xl font-bold text-white tracking-tight">
-          {value}
-        </span>
-        <p className="text-xs text-zinc-500 mt-1 font-medium">{trend}</p>
-      </div>
-    </div>
-  );
-}
+  const themes = {
+    cyan: "text-cyan-400 border-cyan-400/30 bg-cyan-400/[0.05] shadow-[0_0_15px_rgba(34,211,238,0.05)] group-hover:bg-cyan-400/[0.15] group-hover:border-cyan-400/60 group-hover:shadow-[0_0_25px_rgba(34,211,238,0.2)]",
+    indigo:
+      "text-indigo-400 border-indigo-400/30 bg-indigo-400/[0.05] shadow-[0_0_15px_rgba(99,102,241,0.05)] group-hover:bg-indigo-400/[0.15] group-hover:border-indigo-400/60 group-hover:shadow-[0_0_25px_rgba(99,102,241,0.2)]",
+    orange:
+      "text-orange-400 border-orange-400/30 bg-orange-400/[0.05] shadow-[0_0_15px_rgba(249,115,22,0.05)] group-hover:bg-orange-400/[0.15] group-hover:border-orange-400/60 group-hover:shadow-[0_0_25px_rgba(249,115,22,0.2)]",
+  };
 
-function RecentTaskRow({ task }: { task: any }) {
   return (
-    <Link
-      href="/backlog"
-      className="flex items-center gap-4 p-4 hover:bg-[#1A1A1E] transition-colors group"
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay, type: "spring" }}
     >
-      <div className="flex items-center gap-2 shrink-0">
-        <TypeIcon type={task.type} />
-        <StatusIcon status={task.status} />
-      </div>
-
-      <div className="flex items-center gap-2 shrink-0 w-20">
-        <span className="text-xs font-mono text-zinc-500">
-          {task.key || task.id.slice(0, 8)}
-        </span>
-      </div>
-
-      <div className="flex-1 min-w-0 flex items-center gap-2">
-        <span className="text-sm font-medium text-zinc-200 truncate group-hover:text-indigo-400 transition-colors">
-          {task.title}
-        </span>
-      </div>
-
-      <div className="hidden sm:flex items-center gap-4 shrink-0">
-        <PriorityIcon priority={task.priority} />
-        {task.points > 0 && (
-          <span className="text-xs font-bold flex items-center justify-center w-6 h-6 rounded-full bg-[#09090B] text-zinc-400 border border-[#27272A]">
-            {task.points}
-          </span>
-        )}
-        <img
-          src={
-            task.assigneePhoto ||
-            `https://ui-avatars.com/api/?name=${task.assignee || "U"}&background=27272A&color=fff`
-          }
-          alt="Assignee"
-          title={task.assignee || "Sem Responsável"}
-          className="w-6 h-6 rounded-full border border-[#27272A] object-cover"
-        />
-      </div>
-    </Link>
-  );
-}
-
-function NoProjectState({ onOpenModal }: { onOpenModal: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-32 text-center animate-in fade-in duration-500">
-      <div className="w-20 h-20 bg-[#121214] border border-[#27272A] shadow-lg rounded-full flex items-center justify-center mb-6 relative">
-        <FolderOpen className="text-zinc-500" size={32} />
-      </div>
-      <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">
-        Bem-vindo ao Nexo
-      </h3>
-      <p className="text-zinc-500 text-sm max-w-md mb-8 leading-relaxed">
-        Você ainda não selecionou ou criou nenhum projeto. Crie um novo espaço
-        de trabalho para começar a gerir as suas tarefas.
-      </p>
-      <button
-        onClick={onOpenModal}
-        className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-6 py-3 rounded-lg flex items-center gap-2 shadow-[0_0_20px_-5px_rgba(79,70,229,0.4)] transition-all hover:scale-105 active:scale-95"
+      <Link
+        href={href}
+        className="flex flex-col items-center gap-4 group px-6 py-4 transition-all"
       >
-        <FolderPlus size={18} /> Criar o Primeiro Projeto
-      </button>
-    </div>
+        <motion.div
+          whileHover={{ scale: 1.1, rotate: 5 }}
+          whileTap={{ scale: 0.9 }}
+          className={`
+          w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300
+          border ${themes[color]}
+        `}
+        >
+          <div>{icon}</div>
+        </motion.div>
+        <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] group-hover:text-zinc-200 transition-colors">
+          {label}
+        </span>
+      </Link>
+    </motion.div>
   );
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-8 animate-pulse">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="bg-[#121214] h-32 rounded-xl border border-[#27272A]"
-          ></div>
-        ))}
-      </div>
-      <div className="bg-[#121214] h-32 rounded-xl border border-[#27272A]"></div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-[#121214] h-64 rounded-xl border border-[#27272A]"></div>
-        <div className="bg-[#121214] h-64 rounded-xl border border-[#27272A]"></div>
-      </div>
-    </div>
-  );
-}
-
-// --- ÍCONES (Mesmo padrão visual do Backlog) ---
-function TypeIcon({ type }: { type: string }) {
-  switch (type) {
-    case "bug":
-      return (
-        <div className="text-red-400 bg-red-400/10 p-1 rounded">
-          <Bug size={12} />
-        </div>
-      );
-    case "feature":
-      return (
-        <div className="text-emerald-400 bg-emerald-400/10 p-1 rounded">
-          <Sparkles size={12} />
-        </div>
-      );
-    case "task":
-      return (
-        <div className="text-blue-400 bg-blue-400/10 p-1 rounded">
-          <FileText size={12} />
-        </div>
-      );
-    default:
-      return (
-        <div className="text-zinc-400 bg-zinc-400/10 p-1 rounded">
-          <FileText size={12} />
-        </div>
-      );
-  }
-}
-
-function StatusIcon({ status }: { status: string }) {
-  switch (status) {
-    case "todo":
-      return <CircleDashed size={16} className="text-zinc-500" />;
-    case "in-progress":
-      return <ArrowRightCircle size={16} className="text-amber-500" />;
-    case "review":
-      return <ArrowRightCircle size={16} className="text-purple-500" />;
-    case "done":
-      return <CheckCircle2 size={16} className="text-emerald-500" />;
-    default:
-      return <CircleDashed size={16} className="text-zinc-500" />;
-  }
-}
-
-function PriorityIcon({ priority }: { priority: string }) {
-  switch (priority) {
-    case "low":
-      return <ArrowDown size={14} className="text-zinc-500" />;
-    case "medium":
-      return <ArrowRight size={14} className="text-zinc-400" />;
-    case "high":
-      return <ArrowUp size={14} className="text-amber-500" />;
-    case "critical":
-      return (
-        <div className="bg-red-500/10 text-red-500 p-0.5 rounded">
-          <ArrowUp size={14} />
-        </div>
-      );
-    default:
-      return <ArrowRight size={14} className="text-zinc-500" />;
-  }
 }

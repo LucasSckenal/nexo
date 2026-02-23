@@ -227,13 +227,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             )}
             <nav className="space-y-1">
               <NavItem
-                href="/repositorios"
-                icon={<Github size={20} />}
-                label="Repositórios"
-                active={pathname === "/repositorios"}
-                collapsed={isCollapsed}
-              />
-              <NavItem
                 href="/configuracoes"
                 icon={<Sliders size={20} />}
                 label="Configurações"
@@ -282,7 +275,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             <div
               className={`absolute z-[80] bg-[#121214] border border-[#27272A] rounded-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-2 duration-200 ${isCollapsed ? "left-full ml-4 bottom-0 w-56" : "left-4 right-4 bottom-full mb-2"}`}
             >
-              {/* ... conteúdo do menu da conta ... */}
               <div className="p-1.5 border-t border-[#27272A] bg-[#1A1A1E]/30">
                 <button
                   onClick={() => auth.signOut()}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db, auth } from "../lib/firebase";
+import { db, auth } from "../../lib/firebase";
 import {
   X,
   FolderPlus,

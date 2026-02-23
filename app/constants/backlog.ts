@@ -1,0 +1,16 @@
+export const DEFAULT_TASK = {
+  title: "",
+  description: "",
+  type: "feature",
+  epic: "Geral",
+  status: "todo",
+  priority: "medium",
+  points: 1,
+  assignee: "",
+  assigneePhoto: "",
+  target: "sprint",
+  tags: [] as string[],
+  checklist: [] as { id: string; title: string; completed: boolean }[],
+  attachments: [] as { id: string; name: string; type: string; url: string }[],
+  branch: "",
+};
