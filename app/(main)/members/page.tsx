@@ -121,6 +121,13 @@ export default function MembersPage() {
     setInviteEmail("");
   };
 
+  // Dispara evento para o layout abrir o chat com o membro
+  const openChatWithMember = (member: any) => {
+    window.dispatchEvent(
+      new CustomEvent("open-global-chat", { detail: member }),
+    );
+  };
+
   return (
     <main className="flex-1 p-6 lg:p-10 bg-[#050505] relative overflow-y-auto custom-scrollbar h-full">
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/5 blur-[120px] rounded-full pointer-events-none" />
@@ -271,7 +278,12 @@ export default function MembersPage() {
                     >
                       <ExternalLink size={14} /> Perfil
                     </button>
-                    <button className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold transition-all">
+
+                    {/* BOTÃO MENSAGEM ATUALIZADO AQUI 👇 */}
+                    <button
+                      onClick={() => openChatWithMember(member)}
+                      className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold transition-all"
+                    >
                       <MessageCircle size={14} /> Mensagem
                     </button>
                   </div>

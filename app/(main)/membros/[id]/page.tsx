@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useData } from "../../../context/DataContext";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Mail,
@@ -15,11 +15,10 @@ import {
   Trophy,
   Github,
   Linkedin,
-  Twitter,
   Calendar,
-  ExternalLink,
   Loader2,
   AlertCircle,
+  MessageCircle,
 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -86,6 +85,15 @@ export default function ProfilePage() {
     return date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   };
 
+  // Função: Dispara evento para abrir o chat global com este membro
+  const openChatWithMember = () => {
+    if (member) {
+      window.dispatchEvent(
+        new CustomEvent("open-global-chat", { detail: member }),
+      );
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="h-full flex flex-col items-center justify-center bg-[#050505]">
@@ -129,18 +137,28 @@ export default function ProfilePage() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[300px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-5xl mx-auto relative z-10">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors mb-8 group"
-        >
-          <ArrowLeft
-            size={18}
-            className="group-hover:-translate-x-1 transition-transform"
-          />
-          <span className="text-sm font-bold uppercase tracking-widest">
-            Voltar
-          </span>
-        </button>
+        {/* HEADER DA PÁGINA (Botão Voltar + Botão de Mensagem) */}
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors group"
+          >
+            <ArrowLeft
+              size={18}
+              className="group-hover:-translate-x-1 transition-transform"
+            />
+            <span className="text-sm font-bold uppercase tracking-widest">
+              Voltar
+            </span>
+          </button>
+
+          <button
+            onClick={openChatWithMember}
+            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)] hover:shadow-[0_0_30px_rgba(99,102,241,0.4)]"
+          >
+            <MessageCircle size={16} /> Enviar Mensagem
+          </button>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* LADO ESQUERDO: INFO PESSOAL */}
