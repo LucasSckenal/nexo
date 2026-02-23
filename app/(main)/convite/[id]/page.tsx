@@ -56,7 +56,7 @@ export default function InvitePage() {
           setStatus("not-found");
         }
       } catch (error) {
-        console.error("Erro ao procurar projeto:", error);
+        console.error("Erro ao buscar projeto:", error);
         setStatus("not-found");
       }
     });
@@ -106,7 +106,7 @@ export default function InvitePage() {
     return (
       <div className="min-h-screen bg-[#09090B] flex flex-col items-center justify-center">
         <Loader2 size={40} className="text-indigo-500 animate-spin mb-4" />
-        <p className="text-zinc-500 font-medium">A verificar convite...</p>
+        <p className="text-zinc-500 font-medium">Verificando convite...</p>
       </div>
     );
   }
@@ -136,15 +136,26 @@ export default function InvitePage() {
   return (
     <div className="min-h-screen bg-[#09090B] flex flex-col items-center justify-center p-4">
       <div className="bg-[#121214] border border-[#27272A] p-8 rounded-2xl max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300">
-        <div className="w-16 h-16 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-          <Users size={32} className="text-indigo-400" />
-        </div>
+        {/* AVATAR DO PROJETO - MOSTRA A IMAGEM SE EXISTIR */}
+        {project?.imageUrl ? (
+          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl overflow-hidden border border-white/5 shadow-lg shadow-indigo-500/20">
+            <img
+              src={project.imageUrl}
+              alt={`Logo de ${project.name}`}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : (
+          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-indigo-500 to-purple-600 border border-white/10 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white text-2xl font-black">
+            {project?.key ? project.key.substring(0, 2) : <Users size={32} />}
+          </div>
+        )}
 
         <h1 className="text-2xl font-bold text-white text-center mb-2">
           Convite para Projeto
         </h1>
         <p className="text-zinc-400 text-sm text-center mb-8">
-          Você foi convidado(a) para integrar a equipa do projeto{" "}
+          Você foi convidado(a) para integrar a equipe do projeto{" "}
           <strong className="text-zinc-200">{project?.name}</strong>.
         </p>
 
@@ -159,7 +170,7 @@ export default function InvitePage() {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-zinc-500 uppercase">
-              Equipa
+              Equipe
             </span>
             <span className="text-xs font-medium text-zinc-300">
               {project?.members?.length || 0} membros
@@ -170,13 +181,13 @@ export default function InvitePage() {
         {!user ? (
           <div className="text-center">
             <p className="text-sm text-zinc-500 mb-4">
-              Inicie sessão com a sua conta para aceitar este convite.
+              Faça login com a sua conta para aceitar este convite.
             </p>
             <button
               onClick={() => router.push("/login")}
               className="w-full bg-white hover:bg-zinc-200 text-black px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
             >
-              <LogIn size={18} /> Iniciar Sessão
+              <LogIn size={18} /> Fazer Login
             </button>
           </div>
         ) : status === "already-member" ? (
@@ -191,7 +202,7 @@ export default function InvitePage() {
               onClick={() => router.push("/")}
               className="w-full bg-[#1A1A1E] hover:bg-[#27272A] text-white px-6 py-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 border border-[#3F3F46]"
             >
-              Aceder ao Projeto <ArrowRight size={16} />
+              Acessar o Projeto <ArrowRight size={16} />
             </button>
           </div>
         ) : status === "success" ? (
@@ -200,10 +211,10 @@ export default function InvitePage() {
               <Check size={32} className="text-emerald-500" />
             </div>
             <h3 className="text-lg font-bold text-white mb-2">
-              Bem-vindo à equipa!
+              Bem-vindo à equipe!
             </h3>
             <p className="text-sm text-zinc-500">
-              A redirecionar para o dashboard...
+              Redirecionando para o dashboard...
             </p>
           </div>
         ) : (

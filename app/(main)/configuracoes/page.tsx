@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import { useState, useEffect, useRef } from "react";
+import { doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { db, auth } from "../../lib/firebase";
 import { useData } from "../../context/DataContext";
 import {
   Globe,
   Users,
-  Shield,
   Save,
   AlertTriangle,
   Wifi,
@@ -22,29 +21,41 @@ import {
   Github,
   KeyRound,
   ExternalLink,
-  AlertCircle,
+  Crown,
+  Camera,
+  LogOut,
+  CheckCircle2,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function SettingsPage() {
   const { activeProject } = useData();
-  // 👇 Adicionada a aba 'integrations'
   const [activeTab, setActiveTab] = useState<
     "general" | "members" | "integrations"
   >("general");
 
   // Estados de Formulário e UI
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [syncStatus, setSyncStatus] = useState<"synced" | "saving" | "error">(
     "synced",
   );
+  const [toast, setToast] = useState<{
+    show: boolean;
+    msg: string;
+    type: "success" | "error";
+  }>({ show: false, msg: "", type: "success" });
+
+  // Referência para o input de ficheiro oculto
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Campos - Geral & Integrações
   const [projectName, setProjectName] = useState("");
   const [projectKey, setProjectKey] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [githubRepo, setGithubRepo] = useState("");
-  const [githubToken, setGithubToken] = useState(""); // <-- Novo estado para o token
+  const [githubToken, setGithubToken] = useState("");
 
   // Campos - Membros
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -53,7 +64,6 @@ export default function SettingsPage() {
   const [inviteRole, setInviteRole] = useState("member");
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Link de convite dinâmico
   const inviteLink =
     typeof window !== "undefined" && activeProject
       ? `${window.location.origin}/convite/${activeProject.id}`
@@ -65,14 +75,13 @@ export default function SettingsPage() {
       setProjectKey(activeProject.key || "");
       setProjectDescription(activeProject.description || "");
       setGithubRepo(activeProject.githubRepo || "");
-      setGithubToken(activeProject.githubToken || ""); // <-- Carrega o token
+      setGithubToken(activeProject.githubToken || "");
       setIsDirty(false);
     }
   }, [activeProject]);
 
   useEffect(() => {
     if (!activeProject) return;
-    // 👇 Agora o sistema também verifica se o repo ou o token foram alterados
     const hasChanges =
       projectName !== (activeProject.name || "") ||
       projectKey !== (activeProject.key || "") ||
@@ -90,19 +99,26 @@ export default function SettingsPage() {
     activeProject,
   ]);
 
+  const showToast = (msg: string, type: "success" | "error" = "success") => {
+    setToast({ show: true, msg, type });
+    setTimeout(() => setToast({ show: false, msg: "", type: "success" }), 3000);
+  };
+
   if (!activeProject) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-[#09090B] h-full w-full">
-        <Settings size={48} className="text-zinc-700 mb-4 animate-spin-slow" />
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#050505] h-full w-full">
+        <Settings size={48} className="text-zinc-800 mb-4 animate-spin-slow" />
         <h2 className="text-xl font-bold text-white mb-2">
           Nenhum Projeto Selecionado
         </h2>
         <p className="text-zinc-500 text-sm">
-          Selecione um projeto na barra lateral para ver as configurações.
+          Selecione um projeto na barra lateral para configurar.
         </p>
       </div>
     );
   }
+
+  const isOwner = auth.currentUser?.uid === activeProject.ownerId;
 
   const handleDiscard = () => {
     setProjectName(activeProject.name || "");
@@ -113,13 +129,11 @@ export default function SettingsPage() {
     setIsDirty(false);
   };
 
-  // Renomeado para handleSave (já que salva tudo agora, incluindo o GitHub)
   const handleSave = async () => {
     if (!projectName.trim() || !projectKey.trim()) return;
     setIsSaving(true);
     setSyncStatus("saving");
 
-    // Limpa a URL do repo (caso o user tenha colado o link completo)
     const cleanRepoSlug = githubRepo
       .replace("https://github.com/", "")
       .replace(".git", "");
@@ -130,24 +144,58 @@ export default function SettingsPage() {
         key: projectKey.trim().toUpperCase(),
         description: projectDescription.trim(),
         githubRepo: cleanRepoSlug,
-        githubToken: githubToken.trim(), // Salva o token também
+        githubToken: githubToken.trim(),
       });
-      // Atualiza o input para mostrar o slug limpo
       setGithubRepo(cleanRepoSlug);
       setIsDirty(false);
       setSyncStatus("synced");
+      showToast("Configurações guardadas com sucesso!");
     } catch (error) {
-      console.error("Erro ao guardar:", error);
+      console.error(error);
       setSyncStatus("error");
+      showToast("Erro ao guardar alterações.", "error");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDisconnectGithub = async () => {
-    if (!activeProject?.id) return;
-    if (!confirm("Tem a certeza que deseja desconectar o GitHub?")) return;
+  // --- FUNÇÃO PARA UPLOAD DO AVATAR ---
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
+    // Limitar tamanho a 2MB
+    if (file.size > 2000000) {
+      showToast("O ficheiro é demasiado grande. Máximo de 2MB.", "error");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    const reader = new FileReader();
+
+    reader.onloadend = async () => {
+      const base64String = reader.result as string;
+
+      try {
+        await updateDoc(doc(db, "projects", activeProject.id), {
+          imageUrl: base64String,
+        });
+        showToast("Logótipo atualizado com sucesso!");
+      } catch (error) {
+        console.error("Erro no upload do logótipo:", error);
+        showToast("Erro ao atualizar o logótipo.", "error");
+      } finally {
+        setIsUploadingLogo(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleDisconnectGithub = async () => {
+    if (!confirm("Tem a certeza que deseja desconectar o GitHub?")) return;
     setIsSaving(true);
     try {
       await updateDoc(doc(db, "projects", activeProject.id), {
@@ -156,14 +204,14 @@ export default function SettingsPage() {
       });
       setGithubRepo("");
       setGithubToken("");
+      showToast("Integração do GitHub removida.");
     } catch (error) {
-      console.error(error);
+      showToast("Erro ao desconectar GitHub.", "error");
     } finally {
       setIsSaving(false);
     }
   };
 
-  // --- ACÇÕES: MEMBROS ---
   const handleInviteMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail.trim() || !inviteName.trim()) return;
@@ -173,11 +221,17 @@ export default function SettingsPage() {
       const currentMembers = activeProject.members || [];
       const currentMemberEmails = activeProject.memberEmails || [];
 
+      if (currentMemberEmails.includes(inviteEmail.trim())) {
+        showToast("Este utilizador já faz parte do projeto.", "error");
+        setIsSaving(false);
+        return;
+      }
+
       const newMember = {
         name: inviteName.trim(),
         email: inviteEmail.trim(),
         role: inviteRole,
-        photoURL: `https://ui-avatars.com/api/?name=${inviteName.trim()}&background=27272A&color=fff`,
+        photoURL: `https://ui-avatars.com/api/?name=${inviteName.trim()}&background=0D0D0D&color=fff`,
         addedAt: new Date().toISOString(),
       };
 
@@ -190,15 +244,16 @@ export default function SettingsPage() {
       setInviteName("");
       setInviteEmail("");
       setInviteRole("member");
+      showToast("Membro convidado com sucesso!");
     } catch (error) {
-      console.error("Erro ao convidar:", error);
+      showToast("Erro ao adicionar membro.", "error");
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleRemoveMember = async (emailToRemove: string) => {
-    if (!confirm("Tem a certeza que deseja remover este membro do projeto?"))
+    if (!confirm("Tem certeza que deseja remover este membro da equipe?"))
       return;
     try {
       const updatedMembers = (activeProject.members || []).filter(
@@ -212,8 +267,9 @@ export default function SettingsPage() {
         members: updatedMembers,
         memberEmails: updatedMemberEmails,
       });
+      showToast("Membro removido do projeto.");
     } catch (error) {
-      console.error("Erro ao remover:", error);
+      showToast("Erro ao remover membro.", "error");
     }
   };
 
@@ -224,25 +280,46 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-full bg-[#09090B] text-zinc-200 p-8 pb-32 relative custom-scrollbar w-full">
-      <div className="w-full max-w-[1600px] mx-auto mb-10 pt-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+    <div className="min-h-full bg-[#050505] text-zinc-200 p-8 pb-32 relative custom-scrollbar w-full">
+      {/* TOAST NOTIFICATION */}
+      <AnimatePresence>
+        {toast.show && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-8 left-1/2 -translate-x-1/2 z-[200]"
+          >
+            <div
+              className={`flex items-center gap-3 px-6 py-3 rounded-full border shadow-2xl backdrop-blur-md ${toast.type === "success" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-400"}`}
+            >
+              {toast.type === "success" ? (
+                <CheckCircle2 size={16} />
+              ) : (
+                <AlertTriangle size={16} />
+              )}
+              <span className="text-sm font-bold tracking-wide">
+                {toast.msg}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* HEADER */}
+      <div className="w-full max-w-[1000px] mx-auto mb-10 pt-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight mb-2">
-            Configurações
+          <h1 className="text-3xl font-black text-white tracking-tight mb-2">
+            Configurações do Projeto
           </h1>
           <p className="text-zinc-500 text-sm">
-            Gerencie suas preferências e integrações do projeto{" "}
-            <strong className="text-zinc-300">{activeProject.name}</strong>.
+            Gerencie o projeto{" "}
+            <strong className="text-white">{activeProject.name}</strong> e as
+            suas preferências.
           </p>
         </div>
         <div
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors shrink-0 ${
-            syncStatus === "synced" && !isDirty
-              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-              : syncStatus === "saving"
-                ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                : "bg-zinc-800 border-[#27272A] text-zinc-400"
-          }`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-bold transition-all shadow-sm shrink-0 ${syncStatus === "synced" && !isDirty ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : syncStatus === "saving" ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400" : "bg-white/[0.02] border-white/10 text-zinc-400"}`}
         >
           {syncStatus === "synced" && !isDirty && <Wifi size={14} />}
           {syncStatus === "saving" && (
@@ -252,16 +329,16 @@ export default function SettingsPage() {
             <AlertTriangle size={14} className="text-amber-400" />
           )}
           {syncStatus === "saving"
-            ? "A sincronizar..."
+            ? "A guardar..."
             : isDirty
               ? "Alterações pendentes"
               : "Sincronizado"}
         </div>
       </div>
 
-      <div className="w-full max-w-[1600px] mx-auto flex flex-col md:flex-row gap-10">
+      <div className="w-full max-w-[1000px] mx-auto flex flex-col md:flex-row gap-10">
         {/* MENU LATERAL */}
-        <nav className="w-full md:w-64 shrink-0 flex flex-col gap-1">
+        <nav className="w-full md:w-56 shrink-0 flex flex-col gap-1.5">
           <SidebarItem
             icon={<Globe size={18} />}
             label="Geral"
@@ -270,267 +347,362 @@ export default function SettingsPage() {
           />
           <SidebarItem
             icon={<Users size={18} />}
-            label="Membros da Equipa"
+            label="equipe"
             isActive={activeTab === "members"}
             onClick={() => setActiveTab("members")}
           />
-          {/* 👇 Nova Categoria Adicionada */}
           <SidebarItem
             icon={<Github size={18} />}
             label="Integrações"
             isActive={activeTab === "integrations"}
             onClick={() => setActiveTab("integrations")}
           />
-          <SidebarItem
-            icon={<Shield size={18} />}
-            label="Permissões"
-            isActive={false}
-            onClick={() => {}}
-          />
         </nav>
 
-        <div className="flex-1 space-y-8 animate-in fade-in duration-300">
-          {/* ABA: GERAL */}
+        {/* CONTEÚDO */}
+        <div className="flex-1 space-y-8">
+          {/* ABA GERAL */}
           {activeTab === "general" && (
-            <div className="bg-[#121214] border border-[#27272A] rounded-2xl overflow-hidden shadow-xl">
-              <div className="p-8 border-b border-[#27272A]/50">
-                <h2 className="text-xl font-bold text-white mb-1">Geral</h2>
-                <p className="text-sm text-zinc-500">
-                  Detalhes de identificação do seu projeto.
-                </p>
-              </div>
-              <div className="p-8 space-y-8">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-300">
-                      Nome do Projeto
-                    </label>
-                    <input
-                      type="text"
-                      value={projectName}
-                      onChange={(e) => setProjectName(e.target.value)}
-                      className="w-full bg-[#09090B] border border-[#27272A] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-300 flex items-center justify-between">
-                      Chave do Projeto (ID)
-                    </label>
-                    <input
-                      type="text"
-                      value={projectKey}
-                      onChange={(e) =>
-                        setProjectKey(e.target.value.toUpperCase())
-                      }
-                      maxLength={5}
-                      className="w-full bg-[#09090B] border border-[#27272A] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all uppercase font-mono"
-                    />
-                    <p className="text-xs text-zinc-500 mt-1">
-                      Usado como prefixo nas tarefas (Ex: {projectKey || "NEX"}
-                      -123).
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-zinc-300">
-                    Descrição
-                  </label>
-                  <textarea
-                    value={projectDescription}
-                    onChange={(e) => setProjectDescription(e.target.value)}
-                    rows={4}
-                    className="w-full bg-[#09090B] border border-[#27272A] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all resize-none"
-                    placeholder="Qual é o objetivo principal desta equipa?"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ABA: MEMBROS */}
-          {activeTab === "members" && (
-            <div className="bg-[#121214] border border-[#27272A] rounded-2xl overflow-hidden shadow-xl">
-              {/* ... (O teu código dos membros continua igual aqui) ... */}
-              <div className="p-8 border-b border-[#27272A]/50 flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-white mb-1">
-                    Membros da Equipa
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-8"
+            >
+              <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
+                <div className="p-8 border-b border-white/5">
+                  <h2 className="text-lg font-bold text-white mb-1">
+                    Identidade do Projeto
                   </h2>
                   <p className="text-sm text-zinc-500">
-                    Gerencie quem tem acesso a este projeto.
+                    O nome e a chave são usados para gerar os IDs das tarefas.
+                  </p>
+                </div>
+
+                <div className="p-8 space-y-8">
+                  {/* Avatar Section - COM UPLOAD REAL */}
+                  <div className="flex items-center gap-6">
+                    {/* Input Ficheiro Oculto */}
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                      accept="image/*"
+                    />
+
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-20 h-20 rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-indigo-500/20 relative group cursor-pointer overflow-hidden border border-white/5 bg-gradient-to-br from-indigo-500 to-purple-600"
+                    >
+                      {isUploadingLogo ? (
+                        <Loader2
+                          size={24}
+                          className="animate-spin text-white"
+                        />
+                      ) : activeProject.imageUrl ? (
+                        <img
+                          src={activeProject.imageUrl}
+                          alt="Logo do Projeto"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>{projectKey.substring(0, 2) || "PR"}</span>
+                      )}
+
+                      {!isUploadingLogo && (
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                          <Camera size={24} />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white mb-1">
+                        Logótipo do Projeto
+                      </h3>
+                      <p className="text-xs text-zinc-500 mb-3">
+                        Clique para enviar uma imagem quadrada (Máx: 2MB).
+                      </p>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploadingLogo}
+                        className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20 hover:bg-indigo-500/20 transition-all disabled:opacity-50"
+                      >
+                        {isUploadingLogo ? "A processar..." : "Alterar Avatar"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">
+                        Nome do Projeto
+                      </label>
+                      <input
+                        value={projectName}
+                        onChange={(e) => setProjectName(e.target.value)}
+                        className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:border-indigo-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">
+                        Chave (ID Base)
+                      </label>
+                      <input
+                        value={projectKey}
+                        onChange={(e) =>
+                          setProjectKey(e.target.value.toUpperCase())
+                        }
+                        maxLength={5}
+                        className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-indigo-400 font-mono font-bold focus:border-indigo-500 outline-none transition-all uppercase"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">
+                      Descrição
+                    </label>
+                    <textarea
+                      value={projectDescription}
+                      onChange={(e) => setProjectDescription(e.target.value)}
+                      rows={3}
+                      className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:border-indigo-500 outline-none transition-all resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* DANGER ZONE */}
+              {isOwner && (
+                <div className="bg-red-500/5 border border-red-500/20 rounded-3xl p-8 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/10 blur-[100px] rounded-full pointer-events-none group-hover:bg-red-500/20 transition-all duration-700" />
+                  <h3 className="text-lg font-black text-red-500 mb-2 flex items-center gap-2 relative z-10">
+                    <AlertTriangle size={20} /> Zona de Perigo
+                  </h3>
+                  <p className="text-sm text-red-400/70 mb-6 relative z-10">
+                    Esta ação irá apagar permanentemente o projeto, todas as
+                    tarefas, sprints e anexos. Isto não pode ser revertido.
+                  </p>
+                  <button className="relative z-10 bg-[#050505] text-red-500 hover:bg-red-500 hover:text-white border border-red-500/20 hover:border-red-500 px-6 py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all shadow-lg shadow-red-500/10">
+                    Apagar Projeto
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* ABA MEMBROS */}
+          {activeTab === "members" && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-[#0A0A0A] border border-white/5 rounded-3xl overflow-hidden shadow-2xl"
+            >
+              <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-white mb-1">
+                    Membros do Projeto
+                  </h2>
+                  <p className="text-sm text-zinc-500">
+                    Gerencie acessos e convide novos colaboradores para a
+                    equipe.
                   </p>
                 </div>
                 <button
                   onClick={() => setIsInviteModalOpen(true)}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(79,70,229,0.3)]"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20"
                 >
-                  <Plus size={16} /> Adicionar
+                  <Plus size={16} strokeWidth={3} /> Convidar
                 </button>
               </div>
 
-              <div className="p-8">
-                <div className="bg-[#09090B] border border-[#27272A] rounded-xl mb-8 p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-white mb-1 flex items-center gap-2">
-                      <LinkIcon size={16} className="text-zinc-400" /> Link de
-                      Convite
+              <div className="p-8 space-y-8">
+                {/* Link Rápido */}
+                <div className="bg-[#050505] border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-white mb-1 flex items-center gap-2">
+                      <LinkIcon size={16} className="text-indigo-400" /> Convite
+                      Rápido
                     </h4>
-                    <p className="text-xs text-zinc-500 mb-3">
-                      Envie este link para qualquer pessoa integrar a equipa
-                      imediatamente.
+                    <p className="text-xs text-zinc-500">
+                      Envie este link para convidar membros diretamente.
                     </p>
-                    <div className="flex items-center gap-2 bg-[#121214] border border-[#27272A] rounded-lg p-1.5 w-full">
-                      <input
-                        type="text"
-                        readOnly
-                        value={inviteLink}
-                        className="flex-1 bg-transparent border-none text-xs text-zinc-400 px-2 focus:outline-none truncate"
-                      />
-                      <button
-                        onClick={copyInviteLink}
-                        className={`px-4 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-2 shrink-0 ${copiedLink ? "bg-emerald-500/20 text-emerald-400" : "bg-[#27272A] text-zinc-200 hover:bg-[#3F3F46]"}`}
-                      >
-                        {copiedLink ? <Check size={14} /> : <Copy size={14} />}{" "}
-                        {copiedLink ? "Copiado!" : "Copiar"}
-                      </button>
-                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 bg-[#0A0A0A] border border-white/10 rounded-xl p-1.5 w-full md:w-auto md:min-w-[300px]">
+                    <input
+                      type="text"
+                      readOnly
+                      value={inviteLink}
+                      className="flex-1 bg-transparent text-xs text-zinc-400 px-3 outline-none font-mono truncate"
+                    />
+                    <button
+                      onClick={copyInviteLink}
+                      className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${copiedLink ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-zinc-300 hover:bg-white/10"}`}
+                    >
+                      {copiedLink ? <Check size={14} /> : <Copy size={14} />}{" "}
+                      {copiedLink ? "Copiado" : "Copiar"}
+                    </button>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  {(activeProject.members || []).map(
-                    (member: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between bg-[#09090B] border border-[#27272A] p-4 rounded-xl group hover:border-[#3F3F46] transition-colors gap-4"
-                      >
-                        <div className="flex items-center gap-4">
-                          <img
-                            src={member.photoURL}
-                            alt={member.name}
-                            className="w-12 h-12 rounded-full border border-[#27272A] object-cover"
-                          />
-                          <div>
-                            <p className="text-sm font-bold text-white">
-                              {member.name}
-                            </p>
-                            <p className="text-xs text-zinc-500 mt-0.5">
-                              {member.email}
-                            </p>
+                {/* Lista de Membros */}
+                <div className="border border-white/5 rounded-2xl overflow-hidden">
+                  <div className="bg-white/[0.02] grid grid-cols-12 gap-4 px-6 py-3 border-b border-white/5 text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                    <div className="col-span-6 md:col-span-5">Utilizador</div>
+                    <div className="col-span-3 hidden md:block">Status</div>
+                    <div className="col-span-4 md:col-span-3">Função</div>
+                    <div className="col-span-2 md:col-span-1 text-right">
+                      Ações
+                    </div>
+                  </div>
+                  <div className="divide-y divide-white/5">
+                    {(activeProject.members || []).map(
+                      (member: any, idx: number) => {
+                        const isUserOwner =
+                          member.email === auth.currentUser?.email;
+                        const isAdmin = member.role === "admin";
+                        return (
+                          <div
+                            key={idx}
+                            className="grid grid-cols-12 gap-4 items-center px-6 py-4 hover:bg-white/[0.01] transition-colors"
+                          >
+                            <div className="col-span-6 md:col-span-5 flex items-center gap-3">
+                              <img
+                                src={member.photoURL}
+                                alt=""
+                                className="w-8 h-8 rounded-full border border-white/10"
+                              />
+                              <div className="truncate">
+                                <p className="text-sm font-bold text-white truncate">
+                                  {member.name}
+                                </p>
+                                <p className="text-[11px] text-zinc-500 truncate">
+                                  {member.email}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="col-span-3 hidden md:flex items-center">
+                              <span className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />{" "}
+                                Ativo
+                              </span>
+                            </div>
+                            <div className="col-span-4 md:col-span-3">
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${isAdmin ? "bg-indigo-500/10 text-indigo-400" : "bg-white/5 text-zinc-400"}`}
+                              >
+                                {isAdmin && <Crown size={12} />}{" "}
+                                {isAdmin ? "Administrador" : "Membro"}
+                              </span>
+                            </div>
+                            <div className="col-span-2 md:col-span-1 flex justify-end">
+                              {!isUserOwner ? (
+                                <button
+                                  onClick={() =>
+                                    handleRemoveMember(member.email)
+                                  }
+                                  className="text-zinc-500 hover:text-red-400 hover:bg-red-400/10 p-2 rounded-lg transition-all"
+                                  title="Remover"
+                                >
+                                  <LogOut size={16} />
+                                </button>
+                              ) : (
+                                <div className="w-8" />
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-4 w-full sm:w-auto">
-                          <select
-                            className="flex-1 sm:flex-none bg-[#121214] border border-[#27272A] text-sm text-zinc-300 rounded-lg px-4 py-2 focus:outline-none appearance-none"
-                            defaultValue={member.role}
-                            disabled
-                          >
-                            <option value="admin">Administrador</option>
-                            <option value="member">Membro Padrão</option>
-                          </select>
-                          <button
-                            onClick={() => handleRemoveMember(member.email)}
-                            className="p-2.5 text-zinc-600 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all border border-transparent hover:border-red-500/20 shrink-0"
-                            title="Remover Membro"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </div>
-                    ),
-                  )}
+                        );
+                      },
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
 
-          {/* 👇 ABA: INTEGRAÇÕES (NOVA) 👇 */}
+          {/* ABA INTEGRAÇÕES */}
           {activeTab === "integrations" && (
-            <div className="bg-[#121214] border border-[#27272A] rounded-2xl overflow-hidden shadow-xl animate-in fade-in">
-              <div className="p-8 border-b border-[#27272A]/50">
-                <h2 className="text-xl font-bold text-white mb-1">
-                  Integrações
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-[#0A0A0A] border border-white/5 rounded-3xl overflow-hidden shadow-2xl"
+            >
+              <div className="p-8 border-b border-white/5">
+                <h2 className="text-lg font-bold text-white mb-1">
+                  Integrações de Pipeline
                 </h2>
                 <p className="text-sm text-zinc-500">
-                  Conecte o seu projeto a ferramentas externas para automatizar
-                  o seu fluxo de trabalho.
+                  Conecte repositórios para visualizar commits e pull requests.
                 </p>
               </div>
 
               <div className="p-8">
-                {/* Cartão de Integração do GitHub */}
-                <div className="bg-[#09090B] border border-[#27272A] rounded-xl p-6 space-y-6">
-                  <div className="flex items-center justify-between border-b border-[#27272A]/50 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-[#1A1A1E] p-2.5 rounded-lg border border-[#27272A]">
-                        <Github className="text-white" size={24} />
+                <div
+                  className={`border rounded-3xl p-8 transition-all relative overflow-hidden ${activeProject.githubRepo ? "bg-indigo-500/5 border-indigo-500/20" : "bg-[#050505] border-white/10"}`}
+                >
+                  {activeProject.githubRepo && (
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
+                  )}
+
+                  <div className="flex items-center justify-between border-b border-white/5 pb-6 mb-6 relative z-10">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                        <Github className="text-white" size={32} />
                       </div>
                       <div>
-                        <h3 className="text-lg font-bold text-white">GitHub</h3>
-                        <p className="text-xs text-zinc-500">
-                          Crie branches diretamente a partir das tarefas.
+                        <h3 className="text-xl font-black text-white">
+                          GitHub
+                        </h3>
+                        <p className="text-xs text-zinc-400 mt-0.5">
+                          Sincronização de Código e Branches
                         </p>
                       </div>
                     </div>
+                    {activeProject.githubRepo && (
+                      <span className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/20 text-[10px] font-black uppercase tracking-widest">
+                        <Check size={14} /> Conectado
+                      </span>
+                    )}
                   </div>
 
-                  <div className="space-y-4 pt-2">
+                  <div className="space-y-6 relative z-10">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">
-                        URL ou Nome do Repositório
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                        Repositório GitHub
                       </label>
                       <input
                         value={githubRepo}
                         onChange={(e) => setGithubRepo(e.target.value)}
-                        placeholder="Ex: LucasSckenal/nexo"
-                        className="w-full bg-[#121214] border border-[#27272A] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all"
+                        placeholder="Ex: Utilizador/Nome-do-Repo"
+                        className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:border-indigo-500 outline-none transition-all"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
-                        <KeyRound size={16} /> Token de Acesso Pessoal (PAT)
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                        <KeyRound size={12} /> Personal Access Token (Classic)
                       </label>
                       <input
                         type="password"
                         value={githubToken}
                         onChange={(e) => setGithubToken(e.target.value)}
-                        placeholder="ghp_..."
-                        className="w-full bg-[#121214] border border-[#27272A] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500 transition-all"
+                        placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxx"
+                        className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:border-indigo-500 outline-none transition-all font-mono"
                       />
-                      <p className="text-xs text-zinc-500 flex items-start gap-1 mt-1">
-                        <AlertCircle size={12} className="shrink-0 mt-0.5" />
-                        Gere no GitHub em Settings &gt; Developer Settings.
-                        Marque a permissão "repo".
-                      </p>
                     </div>
                   </div>
 
                   {activeProject.githubRepo && (
-                    <div className="pt-4 mt-2 border-t border-[#27272A] flex items-center justify-between bg-[#121214] -mx-6 -mb-6 p-6 rounded-b-xl">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
-                          <Check size={20} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-white flex items-center gap-2">
-                            Conectado:{" "}
-                            <span className="text-zinc-400 font-normal">
-                              {activeProject.githubRepo}
-                            </span>
-                          </p>
-                          <a
-                            href={`https://github.com/${activeProject.githubRepo}`}
-                            target="_blank"
-                            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1 mt-1 font-medium"
-                          >
-                            Abrir repositório <ExternalLink size={12} />
-                          </a>
-                        </div>
-                      </div>
+                    <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between relative z-10">
+                      <a
+                        href={`https://github.com/${activeProject.githubRepo}`}
+                        target="_blank"
+                        className="text-xs font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-2"
+                      >
+                        Abrir Repositório <ExternalLink size={14} />
+                      </a>
                       <button
                         onClick={handleDisconnectGithub}
-                        className="text-xs text-red-400 hover:text-red-300 font-medium px-4 py-2 rounded-lg hover:bg-red-400/10 transition-colors border border-transparent hover:border-red-500/20"
+                        className="text-[10px] uppercase tracking-widest text-red-500 hover:text-white font-black px-4 py-2 rounded-lg hover:bg-red-500 border border-red-500/20 transition-all"
                       >
                         Desconectar
                       </button>
@@ -538,144 +710,164 @@ export default function SettingsPage() {
                   )}
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
         </div>
       </div>
 
-      {/* 👇 BARRA FLUTUANTE DE SALVAR (Agora funciona para o GitHub também!) 👇 */}
-      {isDirty && (
-        <div className="fixed bottom-8 right-8 bg-[#1A1A1E] border border-[#3F3F46] shadow-[0_10px_40px_rgba(0,0,0,0.5)] rounded-2xl p-2 pr-3 pl-5 flex items-center gap-6 animate-in slide-in-from-bottom-5 fade-in z-50">
-          <div className="flex items-center gap-2 text-amber-400">
-            <AlertTriangle size={16} />
-            <span className="text-sm font-medium">Alterações não salvas</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleDiscard}
-              className="px-4 py-2 text-sm font-medium text-zinc-300 hover:text-white transition-colors"
-            >
-              Descartar
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-2 rounded-xl text-sm font-semibold shadow-lg transition-all flex items-center gap-2 disabled:opacity-50"
-            >
-              {isSaving ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Save size={16} />
-              )}{" "}
-              Salvar
-            </button>
-          </div>
-        </div>
-      )}
-
-      {isInviteModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-[#121214] border border-[#27272A] rounded-2xl w-full max-w-lg shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95">
-            <div className="p-6 border-b border-[#27272A]">
-              <div className="flex justify-between items-center mb-1">
-                <h2 className="text-xl font-bold text-white">
-                  Adicionar Membro
-                </h2>
-                <button
-                  onClick={() => setIsInviteModalOpen(false)}
-                  className="text-zinc-500 hover:text-white p-1.5 rounded-lg hover:bg-[#27272A] transition-colors"
-                >
-                  <X size={20} />
-                </button>
+      {/* FLOAT SAVE BAR */}
+      <AnimatePresence>
+        {isDirty && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-8 right-8 left-8 md:left-auto bg-[#0A0A0A] border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.8)] rounded-2xl p-3 pl-6 flex flex-col sm:flex-row items-center justify-between gap-6 z-50"
+          >
+            <div className="flex items-center gap-3 text-amber-400">
+              <AlertTriangle size={20} />
+              <div className="flex flex-col">
+                <span className="text-sm font-bold">Alterações Pendentes</span>
+                <span className="text-[11px] text-amber-400/70">
+                  Salve para aplicar as configurações.
+                </span>
               </div>
-              <p className="text-sm text-zinc-500">
-                Convide um colega para o projeto {activeProject.name}.
-              </p>
             </div>
-            <form
-              onSubmit={handleInviteMember}
-              className="p-6 space-y-6 bg-[#09090B]"
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={handleDiscard}
+                className="flex-1 sm:flex-none px-4 py-3 text-xs font-black text-zinc-400 hover:text-white uppercase tracking-widest transition-colors"
+              >
+                Reverter
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isSaving ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Save size={16} />
+                )}{" "}
+                Salvar
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE CONVITE */}
+      <AnimatePresence>
+        {isInviteModalOpen && (
+          <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#0A0A0A] border border-white/10 rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden"
             >
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-1">
-                  Nome
-                </label>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  value={inviteName}
-                  onChange={(e) => setInviteName(e.target.value)}
-                  placeholder="Ex: Ana Silva"
-                  className="w-full bg-[#121214] border border-[#27272A] text-white rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-indigo-500 transition-all"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="ana@empresa.com"
-                  className="w-full bg-[#121214] border border-[#27272A] text-white rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-indigo-500 transition-all"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider ml-1">
-                  Nível de Acesso
-                </label>
-                <div className="grid grid-cols-2 gap-4">
+              <div className="p-8 border-b border-white/5">
+                <div className="flex justify-between items-start mb-2">
+                  <h2 className="text-2xl font-black text-white tracking-tight">
+                    Convidar Membro
+                  </h2>
                   <button
-                    type="button"
-                    onClick={() => setInviteRole("member")}
-                    className={`p-4 rounded-xl border text-left transition-all ${inviteRole === "member" ? "bg-indigo-500/10 border-indigo-500 text-indigo-400 shadow-[0_0_15px_rgba(79,70,229,0.1)]" : "bg-[#121214] border-[#27272A] text-zinc-400 hover:border-[#3F3F46]"}`}
+                    onClick={() => setIsInviteModalOpen(false)}
+                    className="text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors"
                   >
-                    <span className="text-sm font-bold block mb-1">Membro</span>
-                    <span className="text-xs leading-tight block opacity-80">
-                      Pode criar e editar tarefas livremente.
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setInviteRole("admin")}
-                    className={`p-4 rounded-xl border text-left transition-all ${inviteRole === "admin" ? "bg-indigo-500/10 border-indigo-500 text-indigo-400 shadow-[0_0_15px_rgba(79,70,229,0.1)]" : "bg-[#121214] border-[#27272A] text-zinc-400 hover:border-[#3F3F46]"}`}
-                  >
-                    <span className="text-sm font-bold block mb-1">
-                      Administrador
-                    </span>
-                    <span className="text-xs leading-tight block opacity-80">
-                      Acesso total às configurações do projeto.
-                    </span>
+                    <X size={20} />
                   </button>
                 </div>
+                <p className="text-sm text-zinc-500">
+                  Adicione novas pessoas ao projeto{" "}
+                  <strong className="text-white">{activeProject.name}</strong>.
+                </p>
               </div>
-              <div className="pt-4 flex justify-end gap-3 border-t border-[#27272A]/50">
-                <button
-                  type="button"
-                  onClick={() => setIsInviteModalOpen(false)}
-                  className="px-5 py-3 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 disabled:opacity-50"
-                >
-                  {isSaving ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    "Enviar Convite"
-                  )}
-                </button>
-              </div>
-            </form>
+
+              <form onSubmit={handleInviteMember} className="p-8 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                    Nome
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={inviteName}
+                    onChange={(e) => setInviteName(e.target.value)}
+                    placeholder="Ex: João Silva"
+                    className="w-full bg-[#050505] border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:border-indigo-500 outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="joao@exemplo.com"
+                    className="w-full bg-[#050505] border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:border-indigo-500 outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-3 pt-2">
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                    Nível de Acesso
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setInviteRole("member")}
+                      className={`p-4 rounded-2xl border text-left transition-all ${inviteRole === "member" ? "bg-indigo-500/10 border-indigo-500 text-indigo-400" : "bg-[#050505] border-white/5 text-zinc-500 hover:border-white/20"}`}
+                    >
+                      <span className="text-sm font-black block mb-1">
+                        Membro
+                      </span>
+                      <span className="text-[10px] leading-relaxed block font-medium">
+                        Ler e edita tarefas.
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInviteRole("admin")}
+                      className={`p-4 rounded-2xl border text-left transition-all ${inviteRole === "admin" ? "bg-indigo-500/10 border-indigo-500 text-indigo-400" : "bg-[#050505] border-white/5 text-zinc-500 hover:border-white/20"}`}
+                    >
+                      <span className="text-sm font-black flex items-center gap-1.5 mb-1">
+                        <Crown size={14} /> Admin
+                      </span>
+                      <span className="text-[10px] leading-relaxed block font-medium">
+                        Acesso total.
+                      </span>
+                    </button>
+                  </div>
+                </div>
+                <div className="pt-4 mt-6 border-t border-white/5 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsInviteModalOpen(false)}
+                    className="px-5 py-3 text-xs font-bold uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {isSaving ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      "Convidar"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -694,7 +886,7 @@ function SidebarItem({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${isActive ? "bg-[#1A1A1E] text-indigo-400 border border-[#27272A] shadow-sm" : "text-zinc-400 hover:text-zinc-200 hover:bg-[#121214] border border-transparent"}`}
+      className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl text-sm font-bold transition-all ${isActive ? "bg-white/10 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.03]"}`}
     >
       <div className={`${isActive ? "text-indigo-400" : "text-zinc-500"}`}>
         {icon}

@@ -365,7 +365,7 @@ export default function DashboardPage() {
                 <QuickAction
                   icon={<Users size={20} />}
                   label="Equipe"
-                  href="#"
+                  href="/members"
                   color="cyan"
                   delay={0.7}
                 />

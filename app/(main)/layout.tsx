@@ -21,6 +21,7 @@ import {
   ListTodo,
   Activity,
   Search,
+  User, // <-- Importamos o ícone de Usuário
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -173,7 +174,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           </AnimatePresence>
         </div>
 
-        {/* BUSCA (RESTAURADA) */}
+        {/* BUSCA */}
         {!isCollapsed && (
           <div className="px-3 mb-6">
             <button className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04] text-zinc-500 hover:bg-white/[0.04] transition-all text-[12px] group">
@@ -219,18 +220,26 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             />
           </nav>
 
+          {/* SESSÃO ADMINISTRAÇÃO E PERFIL */}
           <div>
             {!isCollapsed && (
               <h3 className="text-[10px] font-bold text-zinc-700 px-4 mb-2 tracking-[0.2em] uppercase">
-                Sistema
+                Administração
               </h3>
             )}
             <nav className="space-y-1">
               <NavItem
                 href="/configuracoes"
-                icon={<Sliders size={18} />}
-                label="Configurações"
+                icon={<Settings size={18} />}
+                label="Ajustes do Projeto"
                 active={pathname === "/configuracoes"}
+                collapsed={isCollapsed}
+              />
+              <NavItem
+                href="/perfil"
+                icon={<User size={18} />}
+                label="Meu Perfil"
+                active={pathname === "/perfil"}
                 collapsed={isCollapsed}
               />
             </nav>
@@ -262,6 +271,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             )}
           </button>
 
+          {/* POP-UP DO USUÁRIO NO RODAPÉ */}
           <AnimatePresence>
             {isAccountOpen && (
               <motion.div
@@ -270,6 +280,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 exit={{ opacity: 0, y: -10 }}
                 className={`absolute z-[100] bottom-full mb-2 bg-[#0A0A0A] border border-white/[0.08] rounded-2xl shadow-2xl p-2 w-56 ${isCollapsed ? "left-full ml-4" : "left-3"}`}
               >
+                <Link
+                  href="/perfil"
+                  onClick={() => setIsAccountOpen(false)}
+                  className="w-full flex items-center gap-2.5 p-2.5 rounded-xl text-xs text-zinc-400 hover:text-white hover:bg-white/5 transition-all mb-1"
+                >
+                  <User size={14} /> Acessar Perfil
+                </Link>
                 <button
                   onClick={() => auth.signOut()}
                   className="w-full flex items-center gap-2.5 p-2.5 rounded-xl text-xs text-red-400 hover:bg-red-500/10 transition-all"
