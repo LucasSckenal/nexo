@@ -25,8 +25,11 @@ import {
   Plus,
   Trash2,
   Circle,
+  User,
+  LogOut,
 } from "lucide-react";
 import Link from "next/link";
+import { signOut } from "firebase/auth";
 
 export default function DashboardPage() {
   const { activeProject } = useData();
@@ -43,7 +46,7 @@ export default function DashboardPage() {
     return "Boa madrugada";
   };
 
-  const currentDate = new Intl.DateTimeFormat("pt-PT", {
+  const currentDate = new Intl.DateTimeFormat("pt-BR", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -53,13 +56,19 @@ export default function DashboardPage() {
     if (!timestamp) return "Agora";
     try {
       const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return new Intl.DateTimeFormat("pt-PT", {
+      return new Intl.DateTimeFormat("pt-BR", {
         hour: "2-digit",
         minute: "2-digit",
       }).format(date);
     } catch (error) {
       return "Recente";
     }
+  };
+
+  const handleSignOut = () => {
+    signOut(auth).catch((error) =>
+      console.error("Erro ao terminar sessão", error),
+    );
   };
 
   useEffect(() => {
@@ -104,7 +113,7 @@ export default function DashboardPage() {
     >
       <div className="max-w-[1600px] mx-auto space-y-10">
         {/* HEADER */}
-        <section className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-8">
+        <section className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8">
           <motion.div
             initial={{ x: -30, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -123,21 +132,72 @@ export default function DashboardPage() {
             </h1>
           </motion.div>
 
-          <motion.button
-            whileHover={{
-              scale: 1.05,
-              backgroundColor: "#ffffff",
-              color: "#000000",
-            }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsProjectModalOpen(true)}
-            className="h-[60px] px-8 border border-white/10 text-white/50 rounded-full text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 transition-all relative overflow-hidden group"
-          >
-            <span className="relative z-10 flex items-center gap-3">
-              <FolderPlus size={16} /> Inicializar Projeto
-            </span>
-            <div className="absolute inset-0 h-full w-full bg-white/20 skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
-          </motion.button>
+          <div className="flex flex-col md:flex-row items-center gap-6 w-full xl:w-auto">
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+              whileHover={{
+                scale: 1.05,
+                backgroundColor: "#ffffff",
+                color: "#000000",
+              }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsProjectModalOpen(true)}
+              className="h-[60px] px-8 border border-white/10 text-white/50 rounded-full text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 transition-all relative overflow-hidden group w-full md:w-auto justify-center"
+            >
+              <span className="relative z-10 flex items-center gap-3">
+                <FolderPlus size={16} /> Inicializar Projeto
+              </span>
+              <div className="absolute inset-0 h-full w-full bg-white/20 skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+            </motion.button>
+
+            {/* SEPARADOR VERTICAL */}
+            <div className="hidden md:block w-px h-12 bg-white/[0.05]" />
+
+            {/* WIDGET DE PERFIL DO UTILIZADOR */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4, type: "spring" }}
+              className="bg-[#080808] border border-white/[0.03] p-2 pr-4 rounded-full flex items-center gap-4 w-full md:w-auto shadow-[inset_0_2px_15px_rgba(255,255,255,0.01)] group hover:border-white/[0.1] transition-colors"
+            >
+              <div className="relative">
+                {user?.photoURL ? (
+                  <img
+                    src={user.photoURL}
+                    alt="Perfil"
+                    className="w-12 h-12 rounded-full border-2 border-white/5 object-cover"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-indigo-500/10 border-2 border-indigo-500/20 flex items-center justify-center">
+                    <User size={20} className="text-indigo-400" />
+                  </div>
+                )}
+                {/* Indicador de Status Online */}
+                <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-[3px] border-[#080808] rounded-full" />
+              </div>
+
+              <div className="flex flex-col flex-1 min-w-[120px]">
+                <span className="text-[13px] font-bold text-zinc-200 line-clamp-1">
+                  {user?.displayName || "Agente Desconhecido"}
+                </span>
+                <span className="text-[10px] text-zinc-500 font-mono truncate max-w-[150px]">
+                  {user?.email || "acesso.restrito@sys.com"}
+                </span>
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleSignOut}
+                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/[0.02] hover:bg-red-500/10 hover:text-red-400 text-zinc-500 transition-all ml-2"
+                title="Desconectar do Sistema"
+              >
+                <LogOut size={16} />
+              </motion.button>
+            </motion.div>
+          </div>
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -197,7 +257,7 @@ export default function DashboardPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.3, delay: idx * 0.05 }} // Efeito Cascata direto
+                            transition={{ duration: 0.3, delay: idx * 0.05 }}
                             whileHover={{
                               scale: 1.02,
                               backgroundColor: "rgba(99, 102, 241, 0.03)",
@@ -319,7 +379,7 @@ export default function DashboardPage() {
                 <QuickAction
                   icon={<Settings size={20} />}
                   label="Configurações"
-                  href="/configuracoes"
+                  href="#"
                   color="orange"
                   delay={0.9}
                 />
@@ -387,93 +447,148 @@ export default function DashboardPage() {
               </p>
             </motion.div>
 
-            {/* RADAR DE EVENTOS (TIMELINE PROFISSIONAL) */}
+            {/* RADAR DE EVENTOS (TIMELINE PROFISSIONAL E AESTHETIC) */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="bg-[#080808] border border-white/[0.03] rounded-[2rem] flex flex-col flex-1 min-h-[500px] overflow-hidden"
+              className="bg-[#080808] border border-white/[0.03] rounded-[2rem] flex flex-col flex-1 max-h-[550px] overflow-hidden relative"
             >
-              <div className="p-8 border-b border-white/[0.02] bg-black/20">
+              <div className="p-6 md:p-8 border-b border-white/[0.02] bg-black/40 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md">
                 <h3 className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em]">
                   Histórico de Logs
                 </h3>
+                <div className="flex items-center gap-2 px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/20">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                  <span className="text-[9px] font-mono text-indigo-400 uppercase tracking-widest">
+                    Live
+                  </span>
+                </div>
               </div>
 
-              <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-[#050505]/30">
-                <div className="relative ml-4 h-full">
+              {/* Área do Scroll */}
+              <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1 bg-[#050505]/30 relative z-0">
+                {/* Removido o 'h-full' para permitir que a div cresça com os logs */}
+                <div className="relative">
+                  {/* A LINHA DO TIMELINE QUE CRESCE COM O CONTEÚDO */}
                   <motion.div
                     initial={{ height: 0 }}
                     animate={{ height: "100%" }}
-                    transition={{
-                      duration: 1.5,
-                      delay: 0.8,
-                      ease: "easeInOut",
-                    }}
-                    className="absolute left-0 top-0 w-[2px] bg-zinc-800/30"
-                  />
+                    transition={{ duration: 1.5, ease: "easeInOut" }}
+                    className="absolute top-2 bottom-0 left-[15px] w-[2px] bg-gradient-to-b from-indigo-500/50 via-zinc-800/40 to-transparent"
+                  >
+                    {/* Partícula de Luz Animada "Laser" (Usa % para ir até ao fim) */}
+                    <motion.div
+                      animate={{ top: ["0%", "100%"], opacity: [0, 1, 1, 0] }}
+                      transition={{
+                        duration: 3.5,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
+                      className="absolute left-1/2 -translate-x-1/2 w-[3px] h-16 bg-indigo-400 rounded-full blur-[2px] shadow-[0_0_15px_rgba(99,102,241,0.8)]"
+                    />
+                  </motion.div>
 
-                  <div className="space-y-8 relative z-10">
+                  {/* Conteúdo dos Logs */}
+                  <div className="space-y-6 relative z-10 pb-8">
                     <AnimatePresence mode="popLayout">
-                      {activities.map((log, idx) => {
-                        const isCreate = log.type === "create";
-                        const isDelete = log.type === "delete";
+                      {activities.length > 0 ? (
+                        activities.map((log, idx) => {
+                          const isCreate = log.type === "create";
+                          const isDelete = log.type === "delete";
+                          const isMove = log.type === "move";
 
-                        let LogIcon = Activity;
-                        let iconColor = "text-blue-400";
-                        let borderColor = "border-blue-500/20";
+                          let LogIcon = Activity;
+                          let iconColor = "text-blue-400";
+                          let borderColor = "border-blue-500/20";
+                          let glowColor =
+                            "group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]";
 
-                        if (isCreate) {
-                          LogIcon = Plus;
-                          iconColor = "text-emerald-400";
-                          borderColor = "border-emerald-500/20";
-                        } else if (isDelete) {
-                          LogIcon = Trash2;
-                          iconColor = "text-red-400";
-                          borderColor = "border-red-500/20";
-                        }
+                          if (isCreate) {
+                            LogIcon = Plus;
+                            iconColor = "text-emerald-400";
+                            borderColor = "border-emerald-500/20";
+                            glowColor =
+                              "group-hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]";
+                          } else if (isDelete) {
+                            LogIcon = Trash2;
+                            iconColor = "text-red-400";
+                            borderColor = "border-red-500/20";
+                            glowColor =
+                              "group-hover:shadow-[0_0_15px_rgba(239,68,68,0.2)]";
+                          } else if (isMove) {
+                            LogIcon = LayoutPanelLeft;
+                            iconColor = "text-purple-400";
+                            borderColor = "border-purple-500/20";
+                            glowColor =
+                              "group-hover:shadow-[0_0_15px_rgba(168,85,247,0.2)]";
+                          }
 
-                        return (
-                          <motion.div
-                            key={log.id}
-                            layout
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ duration: 0.3, delay: idx * 0.1 }} // Efeito cascata corrigido
-                            className="relative pl-8 group"
-                          >
-                            <div
-                              className={`absolute -left-[17px] -top-1 w-8 h-8 rounded-xl border flex items-center justify-center bg-[#050505] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 ${borderColor}`}
-                            >
-                              <LogIcon size={14} className={iconColor} />
-                            </div>
-
+                          return (
                             <motion.div
-                              whileHover={{ x: 5 }}
-                              className="flex flex-col"
+                              key={log.id}
+                              layout
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, scale: 0.9 }}
+                              transition={{ duration: 0.3, delay: idx * 0.05 }}
+                              className="relative pl-12 group"
                             >
-                              <div className="flex items-center gap-3 mb-2">
-                                <span className="text-[12px] text-zinc-200 font-semibold tracking-wide">
-                                  {log.userName}
-                                </span>
-                                <div className="w-1 h-1 rounded-full bg-zinc-700" />
-                                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
-                                  {formatTime(log.timestamp)}
-                                </span>
+                              {/* ÍCONE EXATAMENTE NO CENTRO DA LINHA */}
+                              <div
+                                className={`absolute left-0 top-0 w-8 h-8 rounded-xl border flex items-center justify-center bg-[#050505] transition-all duration-300 group-hover:scale-110 ${borderColor} ${glowColor} z-10`}
+                              >
+                                <LogIcon size={14} className={iconColor} />
                               </div>
 
-                              <div className="bg-white/[0.01] border border-white/[0.02] rounded-xl p-3 text-[13px] text-zinc-400 leading-relaxed group-hover:bg-white/[0.03] group-hover:border-white/[0.05] transition-colors">
-                                {log.content}
-                              </div>
+                              {/* CAIXA DE CONTEÚDO */}
+                              <motion.div className="flex flex-col bg-white/[0.01] border border-white/[0.02] rounded-2xl p-4 group-hover:bg-white/[0.03] group-hover:border-white/[0.06] transition-all duration-300">
+                                <div className="flex items-center gap-3 mb-2">
+                                  {log.userPhoto ? (
+                                    <img
+                                      src={log.userPhoto}
+                                      alt=""
+                                      className="w-5 h-5 rounded-full grayscale group-hover:grayscale-0 transition-all border border-white/10"
+                                    />
+                                  ) : (
+                                    <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center border border-white/10">
+                                      <User
+                                        size={10}
+                                        className="text-zinc-400"
+                                      />
+                                    </div>
+                                  )}
+                                  <span className="text-[12px] text-zinc-200 font-bold tracking-wide">
+                                    {log.userName}
+                                  </span>
+                                  <div className="w-1 h-1 rounded-full bg-zinc-700" />
+                                  <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
+                                    {formatTime(log.timestamp)}
+                                  </span>
+                                </div>
+
+                                <div className="text-[13px] text-zinc-400 leading-relaxed pl-3 border-l-2 border-white/5 ml-1 mt-1 group-hover:border-indigo-500/30 transition-colors">
+                                  {log.content}
+                                </div>
+                              </motion.div>
                             </motion.div>
-                          </motion.div>
-                        );
-                      })}
+                          );
+                        })
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-10 opacity-30">
+                          <Activity size={32} className="mb-4 text-zinc-600" />
+                          <span className="text-[10px] uppercase tracking-[0.3em] font-black">
+                            Nenhuma atividade recente
+                          </span>
+                        </div>
+                      )}
                     </AnimatePresence>
                   </div>
                 </div>
               </div>
+
+              {/* Fade out na parte inferior do scroll */}
+              <div className="h-12 bg-gradient-to-t from-[#080808] to-transparent absolute bottom-0 left-0 right-0 pointer-events-none z-10" />
             </motion.div>
           </div>
         </div>

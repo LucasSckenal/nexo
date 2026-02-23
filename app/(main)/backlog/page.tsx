@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   collection,
   query,
@@ -15,12 +15,24 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "../../lib/firebase";
 import { useData } from "../../context/DataContext";
-import { Filter, Plus, Loader2, Search } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Filter,
+  Plus,
+  Loader2,
+  Search,
+  MessageSquare,
+  GitBranch,
+  ChevronRight,
+  GripVertical,
+  CheckCircle2,
+  CircleDashed,
+  Calendar,
+  ArrowRight,
+  AlertCircle,
+} from "lucide-react";
 
-// Componentes
-import { SprintSection } from "../../components/backlog/SprintSection";
-import { BacklogSection } from "../../components/backlog/BacklogSection";
-import { HistorySection } from "../../components/backlog/HistorySection";
+// Componentes e Modais
 import { SprintModal } from "../../components/modals/SprintModal";
 import { EpicModal } from "../../components/modals/EpicModal";
 import { TaskModal } from "../../components/modals/TaskModal";
@@ -32,7 +44,7 @@ export default function BacklogPage() {
   const { activeProject } = useData();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Estados dos Dados
+  // --- Estados dos Dados ---
   const [sprintIssues, setSprintIssues] = useState<any[]>([]);
   const [backlogIssues, setBacklogIssues] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,25 +52,22 @@ export default function BacklogPage() {
   const [activeSprint, setActiveSprint] = useState<any | null>(null);
   const [epics, setEpics] = useState<any[]>([]);
 
-  // Estados da UI
+  // --- Estados da UI ---
   const [searchQuery, setSearchQuery] = useState("");
   const [isSprintOpen, setIsSprintOpen] = useState(true);
   const [isBacklogOpen, setIsBacklogOpen] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
 
-  // Estados dos Modais
+  // --- Estados dos Modais ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [taskForm, setTaskForm] = useState(DEFAULT_TASK);
   const [isSaving, setIsSaving] = useState(false);
   const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
   const [isSprintModalOpen, setIsSprintModalOpen] = useState(false);
-  const [sprintForm, setSprintForm] = useState({ name: "", duration: 14 });
   const [isEpicModalOpen, setIsEpicModalOpen] = useState(false);
-  const [newEpicName, setNewEpicName] = useState("");
-  const [newEpicColor, setNewEpicColor] = useState("#6366F1");
 
-  // Drag state
+  // --- Drag state ---
   const [draggedItem, setDraggedItem] = useState<{
     issue: any;
     source: "sprint" | "backlog";
@@ -97,35 +106,28 @@ export default function BacklogPage() {
 
   useEffect(() => {
     if (!activeProject?.id) return;
-
     const q = query(
       collection(db, "projects", activeProject.id, "epics"),
       orderBy("createdAt", "desc"),
     );
-
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setEpics(data);
+      setEpics(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     });
-
     return () => unsubscribe();
   }, [activeProject]);
 
   useEffect(() => {
     if (!activeProject?.id) return;
-
     const q = query(
       collection(db, "projects", activeProject.id, "sprints"),
       orderBy("createdAt", "desc"),
     );
-
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setSprints(data);
       const active = data.find((s: any) => s.status === "active");
       setActiveSprint(active || null);
     });
-
     return () => unsubscribe();
   }, [activeProject]);
 
@@ -144,8 +146,9 @@ export default function BacklogPage() {
     }
   }, [activeSprint, activeProject]);
 
-  // --- Funções auxiliares ---
+  // --- Funções auxiliares (Lógica Original) ---
   const getSprintCountdown = (endDate: any) => {
+    if (!endDate) return "-- restantes";
     const now = new Date();
     const end = new Date(endDate?.seconds * 1000);
     const diff = end.getTime() - now.getTime();
@@ -153,6 +156,66 @@ export default function BacklogPage() {
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     return `${days}d ${hours}h restantes`;
+  };
+
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return "--/--/----";
+
+    try {
+      // Se for um Timestamp do Firebase
+      if (timestamp.toDate) {
+        const date = timestamp.toDate();
+        return new Intl.DateTimeFormat("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }).format(date);
+      }
+
+      // Se for uma string (como as gravadas pelo toLocaleDateString)
+      if (typeof timestamp === "string") {
+        const testDate = new Date(timestamp);
+        // Se o JavaScript não conseguir converter (ex: "23/02/2026"), devolvemos a própria string já que está formatada
+        if (isNaN(testDate.getTime())) {
+          return timestamp;
+        }
+      }
+
+      // Fallback padrão
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return "--/--/----"; // Previne o erro "not finite"
+
+      return new Intl.DateTimeFormat("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(date);
+    } catch (error) {
+      return "--/--/----";
+    }
+  };
+
+  // --- Funções auxiliares (UI Aesthetic) ---
+  const getPriorityStyles = (priority: string) => {
+    switch (priority?.toLowerCase()) {
+      case "high":
+      case "critical":
+        return "text-red-400 bg-red-400/5 border-red-400/10";
+      case "medium":
+        return "text-yellow-400 bg-yellow-400/5 border-yellow-400/10";
+      case "low":
+        return "text-emerald-400 bg-emerald-400/5 border-emerald-400/10";
+      default:
+        return "text-zinc-500 bg-zinc-500/5 border-zinc-500/10";
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    if (status === "done")
+      return <CheckCircle2 size={12} className="text-emerald-500" />;
+    if (status === "in-progress" || status === "review")
+      return <ArrowRight size={12} className="text-indigo-400" />;
+    return <CircleDashed size={12} className="text-zinc-400" />;
   };
 
   // --- Drag & Drop ---
@@ -174,7 +237,7 @@ export default function BacklogPage() {
     if (e.target instanceof HTMLElement) {
       e.target.style.opacity = "1";
       e.target.style.border = "none";
-      e.target.style.borderBottom = "1px solid #27272A";
+      e.target.style.borderBottom = "1px solid rgba(255,255,255,0.03)";
     }
     setDraggedItem(null);
   };
@@ -214,7 +277,6 @@ export default function BacklogPage() {
     } catch (error) {
       console.error("Erro ao mover tarefa:", error);
     }
-
     setDraggedItem(null);
   };
 
@@ -227,9 +289,9 @@ export default function BacklogPage() {
     setEditingId(null);
     setTaskForm({
       ...DEFAULT_TASK,
-      target: "backlog", 
+      target: "backlog",
       sprintId: null,
-      assignee: activeProject?.members?.[0]?.name || "Alex Dev",
+      assignee: activeProject?.members?.[0]?.name || "Agente",
       assigneePhoto: activeProject?.members?.[0]?.photoURL || "",
     });
     setIsAssigneeDropdownOpen(false);
@@ -259,11 +321,10 @@ export default function BacklogPage() {
     setIsModalOpen(true);
   };
 
-  // --- Handlers de anexos ---
+  // --- Handlers de anexos, checklists, tags (Mantidos iguais) ---
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onloadend = () => {
       const newAttachment = {
@@ -306,7 +367,6 @@ export default function BacklogPage() {
     }));
   };
 
-  // --- Handlers da checklist ---
   const handleAddChecklistItem = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -340,7 +400,6 @@ export default function BacklogPage() {
     });
   };
 
-  // --- Handlers de tags ---
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -359,15 +418,13 @@ export default function BacklogPage() {
     });
   };
 
-  // --- Handlers de criação (Sprint, Epic) ---
+  // --- Handlers de Criação no Firebase ---
   const handleCreateSprint = async (name: string, duration: number) => {
     if (!activeProject?.id || !name.trim()) return;
     if (activeSprint) {
       await updateDoc(
         doc(db, "projects", activeProject.id, "sprints", activeSprint.id),
-        {
-          status: "completed",
-        },
+        { status: "completed" },
       );
     }
     const startDate = new Date();
@@ -392,83 +449,73 @@ export default function BacklogPage() {
     });
   };
 
-  // --- Salvar / Eliminar tarefa ---
- const handleSaveTask = async (e: React.FormEvent) => {
-   e.preventDefault();
-   if (!taskForm.title.trim() || !activeProject?.id) return;
+  const handleSaveTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!taskForm.title.trim() || !activeProject?.id) return;
 
-   setIsSaving(true);
+    setIsSaving(true);
+    try {
+      if (editingId) {
+        const taskRef = doc(
+          db,
+          "projects",
+          activeProject.id,
+          "tasks",
+          editingId,
+        );
+        await updateDoc(taskRef, {
+          ...taskForm,
+          updatedAt: new Date().toLocaleDateString("pt-PT"),
+        });
+      } else {
+        await runTransaction(db, async (transaction) => {
+          const projectRef = doc(db, "projects", activeProject.id);
+          const projectDoc = await transaction.get(projectRef);
+          if (!projectDoc.exists()) throw "Projeto não encontrado!";
 
-   try {
-     if (editingId) {
-       // Lógica de Edição
-       const taskRef = doc(
-         db,
-         "projects",
-         activeProject.id,
-         "tasks",
-         editingId,
-       );
-       await updateDoc(taskRef, {
-         ...taskForm,
-         updatedAt: new Date().toLocaleDateString("pt-PT"),
-       });
-     } else {
-       // Lógica de Criação com Registo de Atividade
-       await runTransaction(db, async (transaction) => {
-         const projectRef = doc(db, "projects", activeProject.id);
-         const projectDoc = await transaction.get(projectRef);
+          const projectData = projectDoc.data();
+          const projectKey = (projectData.name || "TASK").replace(
+            /[^a-zA-Z0-9]/g,
+            "",
+          );
+          const lastNumber = projectData.lastTaskNumber || 0;
+          const nextNumber = lastNumber + 1;
+          const formattedKey = `${projectKey}-${nextNumber}`;
 
-         if (!projectDoc.exists()) throw "Projeto não encontrado!";
+          transaction.update(projectRef, { lastTaskNumber: nextNumber });
 
-         const projectData = projectDoc.data();
-         const projectKey = (projectData.name || "TASK").replace(
-           /[^a-zA-Z0-9]/g,
-           "",
-         );
-         const lastNumber = projectData.lastTaskNumber || 0;
-         const nextNumber = lastNumber + 1;
-         const formattedKey = `${projectKey}-${nextNumber}`;
+          const newTaskRef = doc(
+            collection(db, "projects", activeProject.id, "tasks"),
+          );
+          const taskData = {
+            ...taskForm,
+            taskKey: formattedKey,
+            createdAt: serverTimestamp(),
+            updatedAt: new Date().toLocaleDateString("pt-PT"),
+            projectId: activeProject.id,
+          };
+          transaction.set(newTaskRef, taskData);
 
-         // 1. Atualiza o contador no PROJETO
-         transaction.update(projectRef, { lastTaskNumber: nextNumber });
-
-         // 2. Cria a referência para a nova tarefa
-         const newTaskRef = doc(
-           collection(db, "projects", activeProject.id, "tasks"),
-         );
-
-         const taskData = {
-           ...taskForm,
-           taskKey: formattedKey,
-           createdAt: serverTimestamp(),
-           updatedAt: new Date().toLocaleDateString("pt-PT"),
-           projectId: activeProject.id,
-         };
-
-         transaction.set(newTaskRef, taskData);
-
-         // 3. REGISTAR ATIVIDADE PARA O RADAR (Dashboard)
-         const activityRef = doc(
-           collection(db, "projects", activeProject.id, "activities"),
-         );
-         transaction.set(activityRef, {
-           content: `Criou a issue ${formattedKey}: ${taskForm.title}`,
-           userId: auth.currentUser?.uid,
-           userName: auth.currentUser?.displayName || "Membro",
-           timestamp: serverTimestamp(),
-           type: "create", // 👈 Isso ativa o ícone PlusCircle com animação verde
-           taskKey: formattedKey,
-         });
-       });
-     }
-     setIsModalOpen(false);
-   } catch (error) {
-     console.error("Erro ao salvar tarefa:", error);
-   } finally {
-     setIsSaving(false);
-   }
- };
+          const activityRef = doc(
+            collection(db, "projects", activeProject.id, "activities"),
+          );
+          transaction.set(activityRef, {
+            content: `Criou a issue ${formattedKey}: ${taskForm.title}`,
+            userId: auth.currentUser?.uid,
+            userName: auth.currentUser?.displayName || "Membro",
+            timestamp: serverTimestamp(),
+            type: "create",
+            taskKey: formattedKey,
+          });
+        });
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Erro ao salvar tarefa:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleDeleteTask = async () => {
     if (!editingId || !activeProject?.id) return;
@@ -482,22 +529,22 @@ export default function BacklogPage() {
     }
   };
 
-  // Filtragem
+  // --- Filtragem ---
   const filteredSprint = sprintIssues.filter(
     (issue) =>
       issue.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      issue.id?.toLowerCase().includes(searchQuery.toLowerCase()),
+      issue.taskKey?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
   const filteredBacklog = backlogIssues.filter(
     (issue) =>
       issue.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      issue.id?.toLowerCase().includes(searchQuery.toLowerCase()),
+      issue.taskKey?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const completedSprints = sprints.filter((s: any) => s.status === "completed");
+  if (!activeProject) return null;
 
   return (
-    <div className="p-8 h-full flex flex-col w-full relative">
+    <main className="flex-1 flex flex-col h-full bg-[#050505] relative overflow-hidden">
       <input
         type="file"
         ref={fileInputRef}
@@ -506,181 +553,351 @@ export default function BacklogPage() {
         accept="image/*,.pdf,.doc,.docx,.txt"
       />
 
-      {/* Header */}
-      <div className="flex flex-col gap-6 mb-8 shrink-0">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1.5">
-            {/* Breadcrumb refinado */}
-            <nav className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-zinc-500">
-              <span className="hover:text-zinc-300 cursor-pointer transition-colors">
-                Workspace
-              </span>
-              <span className="text-zinc-700">/</span>
-              <span className="text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-                {activeProject?.name || "Projeto não selecionado"}
-              </span>
-            </nav>
+      {/* Background Glows (Estética Premium) */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/5 blur-[120px] rounded-full pointer-events-none" />
 
-            <div className="flex items-center gap-4">
-              <h1 className="text-3xl font-black text-white tracking-tight">
-                Backlog
-              </h1>
-              {/* Badge de status do projeto ou contador de tarefas */}
-              <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#1A1A1E] border border-[#27272A] text-[10px] font-bold text-zinc-400">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-                {backlogIssues.length + sprintIssues.length} Issues totais
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 z-10">
+        <div className="max-w-[1400px] mx-auto space-y-8">
+          {/* HEADER DO BACKLOG */}
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-zinc-500 font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
+                <span>{activeProject.name}</span> <ChevronRight size={10} />{" "}
+                <span className="text-indigo-400">
+                  {activeSprint?.name || "Planeamento"}
+                </span>
+              </div>
+              <div className="flex items-center gap-4">
+                <h1 className="text-4xl font-black text-white tracking-tighter">
+                  Backlog
+                </h1>
+                <div className="px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/5 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">
+                    {backlogIssues.length + sprintIssues.length} Issues totais
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3">
-            {/* Ações Secundárias */}
-            <div className="flex items-center bg-[#1A1A1E] border border-[#27272A] p-1 rounded-lg mr-2">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowHistory(!showHistory)}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                  showHistory
-                    ? "bg-[#27272A] text-white shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-300"
-                }`}
+                className={`px-4 py-2 rounded-xl border text-[11px] font-bold transition-colors ${showHistory ? "bg-white/10 border-white/20 text-white" : "bg-white/[0.02] border-white/5 text-zinc-400 hover:text-white hover:bg-white/[0.05]"}`}
               >
                 Histórico
               </button>
-              <button className="px-3 py-1.5 rounded-md text-xs font-bold text-zinc-500 hover:text-zinc-300 transition-all">
+              <button className="px-4 py-2 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] font-bold text-zinc-400 hover:text-white hover:bg-white/[0.05] transition-colors">
                 Insights
               </button>
-            </div>
-
-            <div className="h-8 w-px bg-[#27272A] mx-1" />
-
-            {/* Botões de Ação Principal */}
-            <button
-              onClick={() => setIsSprintModalOpen(true)}
-              className="flex items-center gap-2 bg-[#1A1A1E] border border-[#27272A] text-zinc-200 hover:bg-[#27272A] px-4 py-2 rounded-lg text-xs font-bold transition-all group"
-            >
-              <Plus
-                size={14}
-                className="group-hover:rotate-90 transition-transform duration-300"
-              />
-              Nova Sprint
-            </button>
-
-            <button
-              onClick={openCreateModal}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-xs font-black transition-all shadow-[0_0_20px_rgba(79,70,229,0.2)] hover:shadow-[0_0_25px_rgba(79,70,229,0.4)]"
-            >
-              Criar Issue
-            </button>
-          </div>
-        </div>
-
-        {/* Barra de Filtros e Busca Integrada (Enterprise Standard) */}
-        <div className="flex items-center justify-between py-3 border-y border-[#1A1A1E]">
-          <div className="flex items-center gap-4 flex-1">
-            <div className="relative flex-1 max-w-md">
-              <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
-                size={14}
-              />
-              <input
-                type="text"
-                placeholder="Pesquisar por título, ID ou descrição..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent border-none text-sm text-zinc-300 placeholder:text-zinc-600 focus:ring-0 pl-9"
-              />
-            </div>
-
-            <div className="h-4 w-px bg-[#27272A]" />
-
-            <div className="flex items-center gap-2">
-              <button className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 transition-colors">
-                <Filter size={14} />
-                <span className="text-[11px] font-bold uppercase tracking-wider">
-                  Filtros
-                </span>
+              <div className="w-px h-6 bg-white/10 mx-1" />
+              <button
+                onClick={() => setIsSprintModalOpen(true)}
+                className="px-5 py-2 rounded-xl bg-white/[0.05] border border-white/10 text-[11px] font-black text-white hover:bg-white/10 transition-colors flex items-center gap-2"
+              >
+                <Plus size={14} /> Nova Sprint
+              </button>
+              <button
+                onClick={openCreateModal}
+                className="px-5 py-2 rounded-xl bg-indigo-600 text-[11px] font-black text-white hover:bg-indigo-500 transition-colors shadow-[0_0_20px_rgba(79,70,229,0.3)] flex items-center gap-2"
+              >
+                Criar Issue
               </button>
             </div>
-          </div>
+          </header>
 
-          {/* Avatares dos membros do projeto (Stack) */}
-          <div className="flex items-center gap-3 ml-4">
-            <div className="flex -space-x-2">
+          {/* BARRA DE PESQUISA E FILTROS */}
+          <div className="flex items-center justify-between bg-[#080808]/60 border border-white/[0.05] rounded-2xl p-2 backdrop-blur-md shadow-lg">
+            <div className="flex items-center flex-1">
+              <div className="relative flex-1 max-w-md flex items-center group">
+                <Search
+                  size={14}
+                  className="absolute left-4 text-zinc-500 group-focus-within:text-indigo-400 transition-colors"
+                />
+                <input
+                  type="text"
+                  placeholder="Pesquisar por título, ID ou descrição..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-transparent border-none text-[12px] text-zinc-300 pl-10 pr-4 py-2 outline-none placeholder:text-zinc-600 focus:ring-0"
+                />
+              </div>
+              <div className="w-px h-6 bg-white/10 mx-2" />
+              <button className="flex items-center gap-2 px-4 py-2 text-[11px] font-bold text-zinc-500 hover:text-zinc-300 transition-colors uppercase tracking-widest">
+                <Filter size={12} /> Filtros
+              </button>
+            </div>
+
+            {/* Avatares na barra de pesquisa */}
+            <div className="pr-4 flex -space-x-2">
               {activeProject?.members?.slice(0, 4).map((m: any, i: number) => (
                 <img
                   key={i}
                   src={
                     m.photoURL || `https://ui-avatars.com/api/?name=${m.name}`
                   }
-                  className="w-6 h-6 rounded-full border-2 border-[#0C0C0E] grayscale hover:grayscale-0 transition-all cursor-pointer"
+                  className="w-7 h-7 rounded-full border border-white/10 grayscale hover:grayscale-0 transition-all cursor-pointer"
                   title={m.name}
                 />
               ))}
-              {activeProject?.members?.length > 4 && (
-                <div className="w-6 h-6 rounded-full bg-[#1A1A1E] border-2 border-[#0C0C0E] flex items-center justify-center text-[8px] font-bold text-zinc-500">
-                  +{activeProject.members.length - 4}
-                </div>
-              )}
             </div>
           </div>
+
+          {isLoading ? (
+            <div className="py-20 flex flex-col items-center justify-center gap-4 opacity-50">
+              <Loader2 size={32} className="text-indigo-500 animate-spin" />
+              <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
+                A carregar planeamento...
+              </span>
+            </div>
+          ) : (
+            <>
+              {/* CABEÇALHO DA TABELA */}
+              <div className="flex items-center justify-between px-8 py-2 text-[9px] font-black text-zinc-600 uppercase tracking-[0.2em] sticky top-0 z-20 backdrop-blur-md bg-[#050505]/80 rounded-lg">
+                <div className="flex gap-14 pl-6">
+                  <span className="w-16">Tipo / ID</span>
+                  <span>Detalhes da Issue</span>
+                </div>
+                <div className="flex gap-8 text-right pr-6">
+                  <span className="w-20">Interação</span>
+                  <span className="w-20">Atualizado</span>
+                  <span className="w-12 text-center">Prior</span>
+                  <span className="w-10 text-center">Pts</span>
+                  <span className="w-10 text-center">Resp</span>
+                </div>
+              </div>
+
+              {/* BLOCO 1: SPRINT ATUAL */}
+              {activeSprint && (
+                <div
+                  className="bg-[#080808]/80 border border-white/[0.05] rounded-[1.8rem] overflow-hidden shadow-2xl relative mb-8"
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, "sprint")}
+                >
+                  <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-transparent" />
+
+                  <div className="p-5 px-6 flex items-center justify-between bg-white/[0.02] border-b border-white/[0.05]">
+                    <div>
+                      <h3 className="text-[13px] font-bold text-white flex items-center gap-2">
+                        {activeSprint.name}
+                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-400 uppercase tracking-widest">
+                          Active
+                        </span>
+                      </h3>
+                      <p className="text-[11px] text-zinc-500 font-medium mt-1">
+                        {getSprintCountdown(activeSprint.endDate)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4 text-[11px] font-bold text-zinc-500">
+                      <span>{filteredSprint.length} issues</span>
+                      <span className="px-2 py-1 bg-white/[0.03] rounded-md border border-white/5 text-zinc-300">
+                        {filteredSprint.reduce(
+                          (acc, task) => acc + (Number(task.points) || 0),
+                          0,
+                        )}{" "}
+                        pts
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col min-h-[50px]">
+                    <AnimatePresence>
+                      {filteredSprint.map((task) => (
+                        <motion.div
+                          key={task.id}
+                          layout
+                          draggable
+                          onDragStart={(e: any) =>
+                            handleDragStart(e, task, "sprint")
+                          }
+                          onDragEnd={handleDragEnd}
+                          onClick={() => openEditModal(task)}
+                          className="flex items-center justify-between px-6 py-4 hover:bg-white/[0.02] border-b border-white/[0.03] last:border-0 transition-colors group cursor-pointer"
+                        >
+                          <div className="flex items-center gap-4">
+                            <GripVertical
+                              size={14}
+                              className="text-zinc-700 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity"
+                            />
+                            <div
+                              className={`w-6 h-6 rounded-lg ${task.status === "done" ? "bg-emerald-500/10 border-emerald-500/20" : "bg-zinc-800/50 border-zinc-700"} border flex items-center justify-center shrink-0`}
+                            >
+                              {getStatusIcon(task.status)}
+                            </div>
+                            <span className="text-[11px] font-mono text-zinc-500 w-12">
+                              {task.taskKey || "TASK"}
+                            </span>
+                            <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-white/[0.03] text-zinc-400 rounded-md border border-white/5 truncate max-w-[80px]">
+                              {task.epic || "Geral"}
+                            </span>
+                            <span className="text-[13px] font-semibold text-zinc-200 group-hover:text-white transition-colors truncate max-w-[300px]">
+                              {task.title}
+                            </span>
+                            {task.status === "new" && (
+                              <span className="text-[9px] font-bold bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded-md border border-purple-500/20">
+                                NEW
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-8 text-[11px]">
+                            <div className="flex items-center gap-4 w-20">
+                              {task.branch && (
+                                <span className="flex items-center gap-1.5 text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20 truncate">
+                                  <GitBranch size={10} /> {task.branch}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-zinc-600 w-12">
+                              <MessageSquare size={12} />{" "}
+                              {task.commentsCount || 0}
+                            </div>
+                            <div className="text-zinc-600 font-mono text-[10px] w-20 flex items-center gap-1.5 truncate">
+                              <Calendar size={10} />{" "}
+                              {formatDate(task.updatedAt || task.createdAt)}
+                            </div>
+                            <div className="w-12 flex justify-center">
+                              <span
+                                className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase border ${getPriorityStyles(task.priority)}`}
+                              >
+                                {task.priority || "Low"}
+                              </span>
+                            </div>
+                            <div className="w-10 flex justify-center">
+                              <span
+                                className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-bold border ${task.points ? "bg-zinc-800/50 text-zinc-400 border-zinc-700" : "bg-transparent border-dashed border-zinc-700 text-zinc-600"}`}
+                              >
+                                {task.points || "-"}
+                              </span>
+                            </div>
+                            <div className="w-10 flex justify-end">
+                              <img
+                                src={
+                                  task.assigneePhoto ||
+                                  `https://ui-avatars.com/api/?name=${task.assignee || "U"}&background=0D0D0D&color=fff`
+                                }
+                                className="w-7 h-7 rounded-full grayscale group-hover:grayscale-0 transition-all border border-white/10"
+                                alt=""
+                              />
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                      {filteredSprint.length === 0 && (
+                        <div className="py-10 text-center text-zinc-600 text-[11px] font-medium flex flex-col items-center gap-2">
+                          <AlertCircle size={20} className="text-zinc-700" />
+                          Nenhuma tarefa na Sprint (Arraste do backlog ou crie
+                          uma nova).
+                        </div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              )}
+
+              {/* BLOCO 2: BACKLOG DE PRODUTO */}
+              <div
+                className="bg-[#080808]/80 border border-white/[0.05] rounded-[1.8rem] overflow-hidden shadow-2xl"
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, "backlog")}
+              >
+                <div className="p-5 px-6 flex items-center justify-between bg-white/[0.02] border-b border-white/[0.05]">
+                  <h3 className="text-[13px] font-bold text-white">
+                    Backlog de Produto
+                  </h3>
+                  <div className="text-[11px] font-bold text-zinc-500">
+                    <span>{filteredBacklog.length} issues</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col min-h-[50px]">
+                  <AnimatePresence>
+                    {filteredBacklog.map((task) => (
+                      <motion.div
+                        key={task.id}
+                        layout
+                        draggable
+                        onDragStart={(e: any) =>
+                          handleDragStart(e, task, "backlog")
+                        }
+                        onDragEnd={handleDragEnd}
+                        onClick={() => openEditModal(task)}
+                        className="flex items-center justify-between px-6 py-4 hover:bg-white/[0.02] border-b border-white/[0.03] last:border-0 transition-colors group cursor-pointer"
+                      >
+                        <div className="flex items-center gap-4">
+                          <GripVertical
+                            size={14}
+                            className="text-zinc-700 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity"
+                          />
+                          <div
+                            className={`w-6 h-6 rounded-lg ${task.status === "done" ? "bg-emerald-500/10 border-emerald-500/20" : "bg-zinc-800/50 border-zinc-700"} border flex items-center justify-center shrink-0`}
+                          >
+                            {getStatusIcon(task.status)}
+                          </div>
+                          <span className="text-[11px] font-mono text-zinc-500 w-12">
+                            {task.taskKey || "TASK"}
+                          </span>
+                          <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-white/[0.03] text-zinc-400 rounded-md border border-white/5 truncate max-w-[80px]">
+                            {task.epic || "Geral"}
+                          </span>
+                          <span className="text-[13px] font-semibold text-zinc-200 group-hover:text-white transition-colors truncate max-w-[300px]">
+                            {task.title}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-8 text-[11px]">
+                          <div className="w-20"></div>
+                          <div className="flex items-center gap-1.5 text-zinc-600 w-12">
+                            <MessageSquare size={12} />{" "}
+                            {task.commentsCount || 0}
+                          </div>
+                          <div className="text-zinc-600 font-mono text-[10px] w-20 flex items-center gap-1.5 truncate">
+                            <Calendar size={10} />{" "}
+                            {formatDate(task.updatedAt || task.createdAt)}
+                          </div>
+                          <div className="w-12 flex justify-center">
+                            <span
+                              className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase border ${getPriorityStyles(task.priority)}`}
+                            >
+                              {task.priority || "Low"}
+                            </span>
+                          </div>
+                          <div className="w-10 flex justify-center">
+                            <span
+                              className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-bold border ${task.points ? "bg-zinc-800/50 text-zinc-400 border-zinc-700" : "bg-transparent border-dashed border-zinc-700 text-zinc-600"}`}
+                            >
+                              {task.points || "-"}
+                            </span>
+                          </div>
+                          <div className="w-10 flex justify-end">
+                            <img
+                              src={
+                                task.assigneePhoto ||
+                                `https://ui-avatars.com/api/?name=${task.assignee || "U"}&background=0D0D0D&color=fff`
+                              }
+                              className="w-7 h-7 rounded-full grayscale group-hover:grayscale-0 transition-all border border-white/10"
+                              alt=""
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                    {filteredBacklog.length === 0 && (
+                      <div className="py-10 text-center text-zinc-600 text-[11px] font-medium flex flex-col items-center gap-2">
+                        <AlertCircle size={20} className="text-zinc-700" />O seu
+                        backlog está vazio.
+                      </div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Histórico */}
-      <HistorySection
-        show={showHistory}
-        completedSprints={completedSprints}
-        onToggle={() => setShowHistory(!showHistory)}
-      />
-
-      {/* Conteúdo principal */}
-      {isLoading ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 gap-4">
-          <Loader2 size={32} className="animate-spin text-indigo-500" />
-          <p>A carregar o planeamento...</p>
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto pr-2 pb-10 custom-scrollbar">
-          {/* Cabeçalho desktop */}
-          <div className="hidden lg:flex items-center gap-3 px-10 py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
-            <div className="w-16">Tipo / ID</div>
-            <div className="flex-1">Detalhes da Issue</div>
-            <div className="w-16 text-center">Interação</div>
-            <div className="w-20 text-center">Atualizado</div>
-            <div className="w-12 text-center">Prior</div>
-            <div className="w-12 text-center">Pts</div>
-            <div className="w-12 text-center">Resp</div>
-          </div>
-
-          {/* Sprint */}
-          <SprintSection
-            isOpen={isSprintOpen}
-            onToggle={() => setIsSprintOpen(!isSprintOpen)}
-            sprint={activeSprint}
-            issues={filteredSprint}
-            epics={epics}
-            onIssueClick={openEditModal}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDrop={(e) => handleDrop(e, "sprint")}
-            getSprintCountdown={getSprintCountdown}
-          />
-
-          {/* Backlog */}
-          <BacklogSection
-            isOpen={isBacklogOpen}
-            onToggle={() => setIsBacklogOpen(!isBacklogOpen)}
-            issues={filteredBacklog}
-            epics={epics}
-            onIssueClick={openEditModal}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDrop={(e) => handleDrop(e, "backlog")}
-          />
-        </div>
-      )}
-
-      {/* Modais */}
+      {/* MODAIS (MANTIDOS DA ESTRUTURA ORIGINAL) */}
       <SprintModal
         isOpen={isSprintModalOpen}
         onClose={() => setIsSprintModalOpen(false)}
@@ -718,6 +935,6 @@ export default function BacklogPage() {
         setIsAssigneeDropdownOpen={setIsAssigneeDropdownOpen}
         onOpenEpicModal={() => setIsEpicModalOpen(true)}
       />
-    </div>
+    </main>
   );
 }
