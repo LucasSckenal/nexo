@@ -25,11 +25,11 @@ import {
   CheckSquare,
   Target,
   AlertTriangle,
+  ListChecks, // Novo ícone importado
 } from "lucide-react";
 
 import { TaskExecutionModal } from "@/app/components/modals/TaskExecutionModal";
 
-// Colunas Padrão caso o projeto ainda não tenha configurado Emojis/Banners nas Definições
 const DEFAULT_COLUMNS = [
   { id: "todo", title: "A Fazer", color: "zinc", limit: 0, emoji: "📝" },
   {
@@ -84,20 +84,35 @@ const getColumnColorClasses = (colorName: string) => {
   return colors[colorName] || colors.zinc;
 };
 
+// Cores mais vibrantes para as tags
 const getPriorityStyles = (priority: string) => {
   switch (priority) {
     case "urgent":
-      return "bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]";
-    case "critical":
-      return "bg-rose-600 shadow-[0_0_12px_rgba(225,29,72,0.8)]";
+      return "text-red-400 bg-red-500/10 border-red-500/20";
     case "high":
-      return "bg-orange-500 shadow-[0_0_12px_rgba(249,115,22,0.8)]";
+      return "text-rose-400 bg-rose-500/10 border-rose-500/20";
     case "medium":
-      return "bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.8)]";
+      return "text-amber-400 bg-amber-500/10 border-amber-500/20";
     case "low":
-      return "bg-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.8)]";
+      return "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
     default:
-      return "bg-zinc-600 shadow-[0_0_8px_rgba(82,82,91,0.5)]";
+      return "text-zinc-400 bg-zinc-500/10 border-zinc-500/20";
+  }
+};
+
+// Nova função para a linha lateral brilhante do card
+const getPriorityAccent = (priority: string) => {
+  switch (priority) {
+    case "urgent":
+      return "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]";
+    case "high":
+      return "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.8)]";
+    case "medium":
+      return "bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.8)]";
+    case "low":
+      return "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]";
+    default:
+      return "bg-zinc-600";
   }
 };
 
@@ -128,7 +143,6 @@ export default function QuadrosPage() {
   const [editingLimitCol, setEditingLimitCol] = useState<string | null>(null);
   const [tempLimit, setTempLimit] = useState<string>("");
 
-  // Usar as colunas dinâmicas (com banners e emojis) do projeto!
   const boardColumns = activeProject?.boardColumns || DEFAULT_COLUMNS;
 
   useEffect(() => {
@@ -213,7 +227,6 @@ export default function QuadrosPage() {
     const task = tasks.find((t) => t.id === taskId);
     if (!task || task.status === colId) return;
 
-    // Atualização Otimista
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, status: colId } : t)),
     );
@@ -224,7 +237,6 @@ export default function QuadrosPage() {
         updatedAt: new Date().toISOString(),
       });
 
-      // LÓGICA DE REGISTO DE ATIVIDADE QUE MANDASTE
       const statusName =
         boardColumns.find((c: any) => c.id === colId)?.title || colId;
 
@@ -256,11 +268,10 @@ export default function QuadrosPage() {
 
   if (!activeProject) return null;
 
-  // Lógica de Progresso da Sprint
   const totalSprintTasks = tasks.length;
   const completedSprintTasks = tasks.filter(
     (t) => t.status === "done" || t.status === "concluido",
-  ).length; // Garante que apanha as concluídas
+  ).length;
   const sprintProgress =
     totalSprintTasks === 0
       ? 0
@@ -268,11 +279,9 @@ export default function QuadrosPage() {
 
   return (
     <main className="flex-1 flex flex-col h-full bg-[#000000] relative overflow-hidden">
-      {/* Glows de Fundo */}
       <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-indigo-600/10 blur-[140px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-20%] left-[10%] w-[500px] h-[500px] bg-purple-600/10 blur-[150px] rounded-full pointer-events-none" />
 
-      {/* HEADER MISTURADO (Lógica nova + Design Premium) */}
       <header className="shrink-0 px-8 py-6 border-b border-white/[0.05] bg-white/[0.01] backdrop-blur-2xl flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-20">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
@@ -296,7 +305,6 @@ export default function QuadrosPage() {
               {activeSprint?.name || "Quadro Kanban"}
             </h1>
 
-            {/* Barra de Progresso Glassmorphism */}
             <div className="flex items-center gap-4 bg-white/[0.02] border border-white/[0.05] rounded-2xl px-5 py-2.5 backdrop-blur-md">
               <div className="flex flex-col gap-1.5">
                 <div className="flex justify-between items-center w-32">
@@ -349,7 +357,6 @@ export default function QuadrosPage() {
         </div>
       </header>
 
-      {/* QUADRO COM COLUNAS DINÂMICAS E BANNERS */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden flex items-stretch gap-6 px-8 py-6 custom-scrollbar relative z-10 min-h-0">
         {isLoading ? (
           <div className="w-full h-full flex items-center justify-center text-zinc-500">
@@ -371,9 +378,9 @@ export default function QuadrosPage() {
                 onDragOver={(e) => handleDragOver(e, column.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, column.id)}
-                className={`h-full max-h-full flex flex-col flex-shrink-0 w-[340px] bg-white/[0.01] backdrop-blur-[2px] border border-white/[0.05] rounded-3xl transition-all duration-300 ${isDraggedOver ? "bg-white/[0.04] ring-2 ring-indigo-500/30 scale-[1.01]" : ""} ${isOverLimit ? "border-red-500/20 bg-red-500/[0.02]" : ""}`}
+                className={`h-full max-h-full flex flex-col flex-shrink-0 w-[340px] bg-white/[0.01] backdrop-blur-[2px] border border-white/[0.05] rounded-3xl transition-all duration-300 ${isDraggedOver ? "bg-white/[0.03] ring-1 ring-white/20 scale-[1.01]" : ""} ${isOverLimit ? "border-red-500/20 bg-red-500/[0.02]" : ""}`}
               >
-                {/* CABEÇALHO DA COLUNA (COM BANNER E EMOJI) */}
+                {/* CABEÇALHO DA COLUNA */}
                 <div
                   className={`relative flex items-end justify-between border-b border-white/[0.05] shrink-0 bg-white/[0.01] backdrop-blur-md rounded-t-3xl overflow-hidden transition-all duration-300 ${column.bannerUrl ? "h-28 p-5" : "p-5"}`}
                 >
@@ -404,7 +411,6 @@ export default function QuadrosPage() {
                     </h3>
                   </div>
 
-                  {/* LIMITE WIP */}
                   <div className="flex items-center gap-2 relative z-10">
                     {isOverLimit && (
                       <AlertTriangle
@@ -444,8 +450,8 @@ export default function QuadrosPage() {
                   </div>
                 </div>
 
-                {/* LISTA DE CARDS PREMIUM */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar min-h-0">
+                {/* === LISTA DE CARDS PREMIUM === */}
+                <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar min-h-0">
                   <AnimatePresence>
                     {columnTasks.map((task) => {
                       const totalSubtasks = task.checklist?.length || 0;
@@ -479,23 +485,27 @@ export default function QuadrosPage() {
                           onDragStart={(e: any) => handleDragStart(e, task.id)}
                           onDragEnd={() => handleDragEnd(task.id)}
                           onClick={() => setSelectedTask(task)}
-                          className="group relative bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-5 cursor-grab active:cursor-grabbing hover:bg-white/[0.05] hover:border-white/20 hover:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.8)] transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+                          className="group relative bg-[#0D0D0F] border border-white/[0.04] hover:border-indigo-500/30 p-6 rounded-[2rem] cursor-grab active:cursor-grabbing transition-all duration-300 shadow-xl hover:shadow-[0_20px_40px_-10px_rgba(79,70,229,0.15)] hover:-translate-y-1.5 overflow-hidden"
                         >
-                          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
+                          {/* LINHA LATERAL DE PRIORIDADE */}
                           <div
-                            className={`absolute left-0 top-0 bottom-0 w-[3px] opacity-70 group-hover:opacity-100 transition-opacity ${getPriorityStyles(task.priority)}`}
+                            className={`absolute left-0 top-0 bottom-0 w-[3px] opacity-60 group-hover:opacity-100 transition-opacity ${getPriorityAccent(task.priority)}`}
                           />
 
-                          <div className="flex items-center justify-between mb-3 text-[10px] font-black uppercase tracking-widest text-zinc-400 relative z-10">
-                            <div className="flex items-center gap-1.5">
-                              <span className="group-hover:text-indigo-300 transition-colors drop-shadow-md">
+                          {/* EFEITO GLOW INTERNO NO HOVER */}
+                          <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+
+                          {/* CABEÇALHO DO CARD (ID + EPIC + PRIORIDADE) */}
+                          <div className="flex items-center justify-between mb-4 relative z-10">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
                                 {task.key || task.taskKey || "TSK"}
                               </span>
                               {task.epicName && (
                                 <>
-                                  <span className="text-white/20">•</span>
+                                  <span className="w-1 h-1 rounded-full bg-zinc-700" />
                                   <span
-                                    className="truncate max-w-[100px] text-zinc-500"
+                                    className="text-[9px] font-bold text-zinc-400 truncate max-w-[100px] group-hover:text-zinc-300"
                                     title={task.epicName}
                                   >
                                     {task.epicName}
@@ -505,56 +515,72 @@ export default function QuadrosPage() {
                             </div>
 
                             <div
-                              className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border ${
-                                task.priority === "high"
-                                  ? "bg-red-500/10 text-red-500 border-red-500/20"
-                                  : task.priority === "medium"
-                                    ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
-                                    : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                              }`}
+                              className={`px-2.5 py-1 rounded-xl text-[8px] font-black uppercase border backdrop-blur-md ${getPriorityStyles(task.priority)}`}
                             >
                               {task.priority || "Normal"}
                             </div>
                           </div>
 
-                          <h4 className="text-[14px] font-semibold text-zinc-100 mb-4 leading-relaxed group-hover:text-white transition-colors relative z-10 drop-shadow-sm">
+                          {/* TÍTULO DO CARD */}
+                          <h4 className="text-[15px] font-bold text-zinc-100 leading-snug mb-5 group-hover:text-white transition-colors relative z-10">
                             {task.title}
                           </h4>
 
-                          {task.branch && (
-                            <div className="mb-4 relative z-10">
-                              <div className="inline-flex items-center gap-1.5 bg-indigo-500/5 border border-indigo-500/20 px-2 py-1 rounded-md text-indigo-400">
-                                <GitBranch size={10} />
-                                <span className="text-[9px] font-mono font-bold tracking-wider truncate max-w-[150px]">
-                                  {task.branch}
+                          {/* BARRA DE PROGRESSO DE CHECKLISTS (NOVA LÓGICA) */}
+                          {totalSubtasks > 0 && (
+                            <div className="mb-5 relative z-10 bg-white/[0.02] border border-white/[0.03] p-3 rounded-2xl">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="flex items-center gap-1.5 text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+                                  <ListChecks size={12} /> Subtarefas
                                 </span>
+                                <span
+                                  className={`text-[10px] font-black ${isAllCompleted ? "text-emerald-400" : "text-zinc-400"}`}
+                                >
+                                  {completedSubtasks}/{totalSubtasks}
+                                </span>
+                              </div>
+                              <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-700 ${isAllCompleted ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.6)]"}`}
+                                  style={{
+                                    width: `${(completedSubtasks / totalSubtasks) * 100}%`,
+                                  }}
+                                />
                               </div>
                             </div>
                           )}
 
-                          <div className="flex items-center justify-between pt-3 border-t border-white/10 relative z-10 mt-2">
+                          {/* RODAPÉ DO CARD */}
+                          <div className="flex items-center justify-between pt-4 border-t border-white/[0.04] relative z-10">
                             <div className="flex items-center gap-3 text-zinc-500">
                               {task.points && (
-                                <span className="text-[10px] font-black">
-                                  {task.points}pts
-                                </span>
+                                <div className="flex items-center justify-center px-2 py-1 bg-white/[0.03] border border-white/5 rounded-lg text-[10px] font-black text-indigo-300">
+                                  {task.points} pts
+                                </div>
                               )}
-                              {task.attachmentsCount > 0 && (
-                                <Paperclip size={12} />
-                              )}
-                              {totalSubtasks > 0 && (
+
+                              {task.branch && (
                                 <div
-                                  className={`flex items-center gap-1 ${isAllCompleted ? "text-emerald-500" : "text-zinc-500"}`}
+                                  className="flex items-center gap-1.5 px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded-lg text-[10px] font-mono font-bold"
+                                  title={`Branch: ${task.branch}`}
                                 >
-                                  <CheckSquare size={12} />
-                                  <span className="text-[10px] font-black">
-                                    {completedSubtasks}/{totalSubtasks}
+                                  <GitBranch size={10} />{" "}
+                                  <span className="max-w-[60px] truncate">
+                                    {task.branch}
                                   </span>
+                                </div>
+                              )}
+
+                              {task.attachmentsCount > 0 && (
+                                <div className="flex items-center gap-1 text-[11px] font-black text-zinc-400">
+                                  <Paperclip size={12} />{" "}
+                                  {task.attachmentsCount}
                                 </div>
                               )}
                             </div>
 
-                            <div className="flex -space-x-1.5">
+                            {/* AVATARES DA EQUIPA */}
+                            <div className="flex -space-x-2">
                               {assignees.length > 0 ? (
                                 assignees
                                   .slice(0, 3)
@@ -562,14 +588,14 @@ export default function QuadrosPage() {
                                     <img
                                       key={i}
                                       src={a.photo || a.photoURL}
-                                      className="w-6 h-6 rounded-full border border-[#1A1A1E] object-cover grayscale group-hover:grayscale-0 ring-1 ring-white/20 relative z-10 hover:z-20 hover:scale-110 hover:-translate-y-1 transition-all shadow-md"
+                                      className="w-7 h-7 rounded-xl border-2 border-[#0D0D0F] object-cover ring-1 ring-white/[0.05] relative z-10 hover:z-20 hover:scale-110 hover:-translate-y-1 transition-all shadow-lg"
                                       title={a.name}
                                       alt=""
                                     />
                                   ))
                               ) : (
-                                <div className="w-6 h-6 rounded-full border border-white/5 bg-white/5 backdrop-blur-md border-dashed flex items-center justify-center">
-                                  <span className="text-[8px] text-zinc-500">
+                                <div className="w-7 h-7 rounded-xl border-2 border-[#0D0D0F] bg-zinc-800 flex items-center justify-center relative z-10">
+                                  <span className="text-[9px] font-black text-zinc-500">
                                     ?
                                   </span>
                                 </div>
@@ -581,10 +607,14 @@ export default function QuadrosPage() {
                     })}
                   </AnimatePresence>
 
+                  {/* ESPAÇO VAZIO (PLACEHOLDER) */}
                   {columnTasks.length === 0 && (
-                    <div className="h-24 border-2 border-dashed border-white/10 rounded-2xl flex items-center justify-center text-zinc-600 bg-white/[0.01] backdrop-blur-sm transition-colors hover:bg-white/[0.03] hover:border-white/20">
-                      <span className="text-[10px] font-black uppercase tracking-widest drop-shadow-sm">
-                        Soltar aqui
+                    <div className="h-28 border-2 border-dashed border-white/[0.05] rounded-[2rem] flex flex-col items-center justify-center text-zinc-600 bg-white/[0.01] transition-colors">
+                      <div className={`p-2 rounded-xl bg-white/[0.02] mb-2`}>
+                        <Plus size={16} />
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-widest opacity-50">
+                        Mover para aqui
                       </span>
                     </div>
                   )}
