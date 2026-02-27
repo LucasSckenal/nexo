@@ -15,11 +15,11 @@ import {
   FileText,
   CheckSquare,
   GitBranch,
-  AlertCircle,
-  RefreshCw,
+  Sparkles, // Ícone da IA
 } from "lucide-react";
 import { useGitHub } from "../../context/GitHubContext";
 import { DEFAULT_TASK } from "../../constants/backlog";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -70,6 +70,7 @@ export function TaskModal({
   setIsAssigneeDropdownOpen,
   onOpenEpicModal,
 }: TaskModalProps) {
+  // === LÓGICA DO PROGRESSO DA CHECKLIST ===
   const currentChecklist = taskForm.checklist || [];
   const checklistTotal = currentChecklist.length;
   const checklistCompleted = currentChecklist.filter((i) => i.completed).length;
@@ -78,10 +79,13 @@ export function TaskModal({
       ? 0
       : Math.round((checklistCompleted / checklistTotal) * 100);
 
-  if (!isOpen) return null;
-  const { branches, isLoading, fetchBranches, createBranch} = useGitHub();
+  // === LÓGICA DO GITHUB ===
+  const { branches, isLoading, fetchBranches, createBranch } = useGitHub();
   const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState(false);
   const [isCreatingBranch, setIsCreatingBranch] = useState(false);
+
+  // === LÓGICA DA IA ===
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
   useEffect(() => {
     if (activeProject?.githubRepo && isBranchDropdownOpen) {
@@ -93,8 +97,8 @@ export function TaskModal({
     isBranchDropdownOpen,
     fetchBranches,
   ]);
+
   const handleCreateBranch = async () => {
-    // Validação extra de segurança
     if (!activeProject?.githubRepo || !activeProject?.githubToken) {
       alert(
         "Por favor, configura o Token do GitHub (PAT) na página de Repositórios primeiro!",
@@ -118,7 +122,6 @@ export function TaskModal({
 
     setIsCreatingBranch(true);
 
-    // 👇 AQUI ESTÁ A MAGIA: Passamos o token gravado na base de dados! 👇
     const success = await createBranch(
       activeProject.githubRepo,
       newBranchName,
@@ -135,357 +138,728 @@ export function TaskModal({
     setIsCreatingBranch(false);
   };
 
+  // === FUNÇÃO PARA GERAR SUB-TAREFAS COM IA ===
+  const handleGenerateAISubtasks = async () => {
+    if (!taskForm.title) {
+      alert(
+        "Por favor, preencha o título da tarefa para a IA entender o contexto.",
+      );
+      return;
+    }
+
+    setIsGeneratingAI(true);
+
+    // Mock/Simulação de chamada a uma API (ex: OpenAI, Gemini)
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    const generatedItems = [
+      {
+        id: `ai-${Date.now()}-1`,
+        title: `Análise técnica de: ${taskForm.title}`,
+        completed: false,
+      },
+      {
+        id: `ai-${Date.now()}-2`,
+        title: "Mapeamento dos requisitos e dependências",
+        completed: false,
+      },
+      {
+        id: `ai-${Date.now()}-3`,
+        title: "Implementação da lógica principal",
+        completed: false,
+      },
+      {
+        id: `ai-${Date.now()}-4`,
+        title: "Validação e testes",
+        completed: false,
+      },
+    ];
+
+    setTaskForm((prev: any) => ({
+      ...prev,
+      checklist: [...(prev.checklist || []), ...generatedItems],
+    }));
+
+    setIsGeneratingAI(false);
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-[#121214] border border-[#27272A] rounded-xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#27272A] bg-[#121214] shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="bg-indigo-500/20 text-indigo-400 p-1.5 rounded-md">
-              <LayoutList size={18} />
-            </div>
-            <h2 className="text-base font-semibold text-zinc-100">
-              {editingId
-                ? `A Editar Issue: ${editingId.slice(0, 8)}`
-                : "Criar Nova Issue"}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-zinc-500 hover:text-white transition-colors p-1 rounded-md hover:bg-[#27272A]"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <form
-          onSubmit={onSave}
-          className="flex flex-col flex-1 overflow-hidden"
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+      >
+        <motion.div
+          initial={{ scale: 0.95, y: 20 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.95, y: 20 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="bg-[#050505] border border-white/10 w-full max-w-5xl rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative"
         >
-          <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
-            {/* --- Coluna Esquerda --- */}
-            <div className="flex-1 p-6 overflow-y-auto space-y-6 custom-scrollbar">
-              <div>
-                <input
-                  type="text"
-                  autoFocus
-                  required
-                  value={taskForm.title}
-                  onChange={(e) =>
-                    setTaskForm({ ...taskForm, title: e.target.value })
-                  }
-                  className="w-full bg-transparent text-2xl font-semibold text-white placeholder:text-zinc-600 focus:outline-none focus:ring-0"
-                  placeholder="Título da tarefa..."
-                />
+          {/* Brilho decorativo no topo */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-[200px] bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
+
+          {/* HEADER DO MODAL */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/[0.02] shrink-0 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="bg-indigo-500/20 text-indigo-400 p-2 rounded-xl">
+                <LayoutList size={18} />
               </div>
+              <div>
+                <h2 className="text-sm font-bold text-white">
+                  {editingId
+                    ? `A Editar Issue: ${editingId.slice(0, 8)}`
+                    : "Criar Nova Issue"}
+                </h2>
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-0.5">
+                  {activeProject?.key || "PROJ"} • Workspace
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-zinc-500 hover:text-white p-2 rounded-xl hover:bg-white/5 transition-all"
+            >
+              <X size={20} />
+            </button>
+          </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-zinc-400">
-                  <AlignLeft size={16} />
-                  <span className="text-sm font-medium">
-                    Descrição detalhada
-                  </span>
-                </div>
-
-                <div className="border border-[#27272A] bg-[#0D0D0F] rounded-xl overflow-hidden focus-within:border-indigo-500 transition-colors flex flex-col">
-                  <textarea
-                    value={taskForm.description}
+          <form
+            onSubmit={onSave}
+            className="flex flex-col flex-1 overflow-hidden relative z-10"
+          >
+            <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
+              {/* === COLUNA ESQUERDA (Conteúdo Principal) === */}
+              <div className="flex-1 p-6 overflow-y-auto space-y-8 custom-scrollbar">
+                {/* Título */}
+                <div>
+                  <input
+                    type="text"
+                    autoFocus
+                    required
+                    value={taskForm.title}
                     onChange={(e) =>
-                      setTaskForm({
-                        ...taskForm,
-                        description: e.target.value,
-                      })
+                      setTaskForm({ ...taskForm, title: e.target.value })
                     }
-                    placeholder="Adicione o contexto, referências técnicas..."
-                    className="w-full bg-transparent px-4 py-3 text-sm text-zinc-300 focus:outline-none resize-none min-h-[240px]"
+                    className="w-full bg-transparent text-3xl font-black text-white placeholder:text-zinc-700 focus:outline-none focus:ring-0"
+                    placeholder="Título da tarefa..."
                   />
-
-                  {/* ZONA DOS ANEXOS NA DESCRIÇÃO */}
-                  <div className="bg-[#121214] border-t border-[#27272A] px-3 py-2 flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="p-1.5 text-zinc-400 hover:text-white hover:bg-[#27272A] rounded-md transition-colors"
-                        title="Anexar Ficheiro"
-                      >
-                        <Paperclip size={16} />
-                      </button>
-                      <div className="w-px h-4 bg-[#27272A] mx-1"></div>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="p-1.5 text-zinc-400 hover:text-white hover:bg-[#27272A] rounded-md transition-colors"
-                        title="Anexar Imagem"
-                      >
-                        <ImageIcon size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleAddLink}
-                        className="p-1.5 text-zinc-400 hover:text-white hover:bg-[#27272A] rounded-md transition-colors"
-                        title="Adicionar Link"
-                      >
-                        <LinkIcon size={16} />
-                      </button>
-                    </div>
-                  </div>
                 </div>
 
-                {/* VISTA DOS ANEXOS ADICIONADOS */}
-                {taskForm.attachments && taskForm.attachments.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {taskForm.attachments.map((att) => (
-                      <div
-                        key={att.id}
-                        className="flex items-center gap-2 bg-[#1A1A1E] border border-[#27272A] px-2.5 py-1.5 rounded-lg max-w-xs"
-                      >
-                        {att.type === "link" ? (
-                          <LinkIcon size={14} className="text-blue-400" />
-                        ) : att.type === "image" ? (
-                          <ImageIcon size={14} className="text-emerald-400" />
-                        ) : (
-                          <FileText size={14} className="text-zinc-400" />
-                        )}
-                        <a
-                          href={att.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs text-zinc-300 hover:text-indigo-400 truncate flex-1"
-                        >
-                          {att.name}
-                        </a>
+                {/* Descrição e Anexos (Estilo Editor) */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-bold text-zinc-300 uppercase tracking-widest">
+                    <AlignLeft size={16} className="text-indigo-400" />{" "}
+                    Descrição
+                  </div>
+
+                  <div className="border border-white/5 bg-[#0A0A0A] rounded-2xl overflow-hidden focus-within:border-indigo-500/50 transition-colors flex flex-col">
+                    <textarea
+                      value={taskForm.description}
+                      onChange={(e) =>
+                        setTaskForm({
+                          ...taskForm,
+                          description: e.target.value,
+                        })
+                      }
+                      placeholder="Adicione o contexto, referências técnicas..."
+                      className="w-full bg-transparent px-4 py-4 text-sm text-zinc-300 focus:outline-none resize-y min-h-[200px] placeholder:text-zinc-600 custom-scrollbar"
+                    />
+
+                    {/* Toolbar de Anexos Embutida */}
+                    <div className="bg-white/[0.02] border-t border-white/5 px-4 py-2.5 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
-                          onClick={() => removeAttachment(att.id)}
-                          className="text-zinc-500 hover:text-red-400 transition-colors ml-1"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                          title="Anexar Ficheiro"
+                        >
+                          <Paperclip size={16} />
+                        </button>
+                        <div className="w-px h-4 bg-white/10 mx-1"></div>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                          title="Anexar Imagem"
+                        >
+                          <ImageIcon size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleAddLink}
+                          className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                          title="Adicionar Link"
+                        >
+                          <LinkIcon size={16} />
+                        </button>
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          multiple
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fila de Anexos Adicionados */}
+                  {taskForm.attachments && taskForm.attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {taskForm.attachments.map((att: any) => (
+                        <div
+                          key={att.id}
+                          className="flex items-center gap-2 bg-[#0A0A0A] border border-white/5 px-3 py-2 rounded-xl group max-w-xs"
+                        >
+                          {att.type === "link" ? (
+                            <LinkIcon
+                              size={14}
+                              className="text-blue-400 shrink-0"
+                            />
+                          ) : att.type === "image" ? (
+                            <ImageIcon
+                              size={14}
+                              className="text-emerald-400 shrink-0"
+                            />
+                          ) : (
+                            <FileText
+                              size={14}
+                              className="text-zinc-400 shrink-0"
+                            />
+                          )}
+                          <a
+                            href={att.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-zinc-300 hover:text-indigo-400 truncate flex-1"
+                          >
+                            {att.name}
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => removeAttachment(att.id)}
+                            className="text-zinc-600 hover:text-red-400 transition-colors ml-1 shrink-0"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Checklist e Botão IA */}
+                <div className="space-y-4 pt-4 border-t border-white/5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-bold text-zinc-300 uppercase tracking-widest">
+                      <CheckSquare size={16} className="text-emerald-400" />{" "}
+                      Subtarefas
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      {/* Botão de IA */}
+                      <button
+                        type="button"
+                        onClick={handleGenerateAISubtasks}
+                        disabled={isGeneratingAI}
+                        className="group flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-500/20 transition-all disabled:opacity-50"
+                      >
+                        {isGeneratingAI ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Sparkles
+                            size={14}
+                            className="group-hover:scale-110 transition-transform"
+                          />
+                        )}
+                        <span>
+                          {isGeneratingAI ? "A gerar..." : "Gerar com IA"}
+                        </span>
+                      </button>
+
+                      {checklistTotal > 0 && (
+                        <div className="flex items-center gap-2 w-24">
+                          <span className="text-xs font-bold text-zinc-500">
+                            {checklistProgress}%
+                          </span>
+                          <div className="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-500 transition-all duration-500"
+                              style={{ width: `${checklistProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 bg-[#0A0A0A] border border-white/5 p-4 rounded-2xl">
+                    {currentChecklist.map((item: any) => (
+                      <div
+                        key={item.id}
+                        className="flex items-start gap-3 group px-2 py-1"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleChecklistItem(item.id)}
+                          className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                            item.completed
+                              ? "bg-emerald-500 border-emerald-500 text-black"
+                              : "border-zinc-600 hover:border-zinc-400"
+                          }`}
+                        >
+                          {item.completed && (
+                            <Check size={12} strokeWidth={3} />
+                          )}
+                        </button>
+                        <span
+                          className={`text-sm flex-1 transition-all ${item.completed ? "text-zinc-500 line-through" : "text-zinc-200"}`}
+                        >
+                          {item.title}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeChecklistItem(item.id)}
+                          className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-400 transition-all p-1"
                         >
                           <X size={14} />
                         </button>
                       </div>
                     ))}
+
+                    <div className="flex items-center gap-3 px-2 pt-2 mt-2 border-t border-white/5">
+                      <Plus size={16} className="text-zinc-600" />
+                      <input
+                        type="text"
+                        placeholder="Adicionar nova subtarefa... (Prima Enter)"
+                        onKeyDown={handleAddChecklistItem}
+                        className="bg-transparent border-none text-sm text-zinc-300 focus:ring-0 flex-1 placeholder:text-zinc-600 outline-none"
+                      />
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* CHECKLIST */}
-              <div className="space-y-4 pt-2 border-t border-[#27272A]">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-zinc-400">
-                    <CheckSquare size={16} />
-                    <span className="text-sm font-medium">
-                      Subtarefas (Checklist)
-                    </span>
-                  </div>
-                  {checklistTotal > 0 && (
-                    <div className="flex items-center gap-3 w-32">
-                      <span className="text-xs font-medium text-zinc-500 w-8 text-right">
-                        {checklistProgress}%
-                      </span>
-                      <div className="h-1.5 flex-1 bg-[#1A1A1E] rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-indigo-500 transition-all duration-500"
-                          style={{ width: `${checklistProgress}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  {currentChecklist.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-3 group bg-[#121214] border border-[#27272A] px-3 py-2 rounded-lg hover:border-[#3F3F46] transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={item.completed}
-                        onChange={() => toggleChecklistItem(item.id)}
-                        className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1E] checked:bg-indigo-500 checked:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 focus:ring-offset-0 cursor-pointer appearance-none flex items-center justify-center after:content-['✓'] after:text-white after:text-[10px] after:opacity-0 checked:after:opacity-100 transition-all"
-                      />
-                      <span
-                        className={`text-sm flex-1 transition-all ${
-                          item.completed
-                            ? "text-zinc-500 line-through"
-                            : "text-zinc-200"
-                        }`}
+              {/* === COLUNA DIREITA (Propriedades) === */}
+              <div className="w-full lg:w-80 bg-[#0A0A0A] border-l border-white/5 p-6 overflow-y-auto shrink-0 space-y-6 custom-scrollbar">
+                {/* Tipo e Epic */}
+                <div className="flex gap-4">
+                  <div className="flex-1 relative">
+                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                      Tipo
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={taskForm.type}
+                        onChange={(e) =>
+                          setTaskForm({ ...taskForm, type: e.target.value })
+                        }
+                        className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 appearance-none hover:bg-white/[0.04] transition-colors"
                       >
-                        {item.title}
-                      </span>
+                        <option value="feature" className="bg-[#0A0A0A]">
+                          ✨ Feature
+                        </option>
+                        <option value="bug" className="bg-[#0A0A0A]">
+                          🐛 Bug
+                        </option>
+                        <option value="task" className="bg-[#0A0A0A]">
+                          📝 Tarefa
+                        </option>
+                      </select>
+                      <ChevronDown
+                        size={14}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1 relative">
+                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                      Épico
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={taskForm.epic}
+                        onChange={(e) =>
+                          setTaskForm({ ...taskForm, epic: e.target.value })
+                        }
+                        className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 appearance-none hover:bg-white/[0.04] transition-colors"
+                      >
+                        <option value="" className="bg-[#0A0A0A]">
+                          Sem Epic
+                        </option>
+                        {epics.map((epic) => (
+                          <option
+                            key={epic.id}
+                            value={epic.id}
+                            className="bg-[#0A0A0A]"
+                          >
+                            {epic.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown
+                        size={14}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
+                      />
+                    </div>
+                    {onOpenEpicModal && (
                       <button
                         type="button"
-                        onClick={() => removeChecklistItem(item.id)}
-                        className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-400 transition-all p-1"
+                        onClick={onOpenEpicModal}
+                        className="text-[10px] font-bold text-indigo-400 mt-2 hover:text-indigo-300 transition-colors"
                       >
-                        <X size={14} />
+                        + NOVO ÉPICO
                       </button>
-                    </div>
-                  ))}
+                    )}
+                  </div>
+                </div>
 
-                  <div className="flex items-center gap-3 px-3 py-2 border border-transparent">
-                    <Plus size={16} className="text-zinc-500" />
-                    <input
-                      type="text"
-                      placeholder="Adicionar nova subtarefa... (Prima Enter)"
-                      onKeyDown={handleAddChecklistItem}
-                      className="bg-transparent border-none text-sm text-zinc-300 focus:ring-0 flex-1 placeholder:text-zinc-600 outline-none"
+                {/* Destino */}
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                    Destino
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={taskForm.target}
+                      onChange={(e) =>
+                        setTaskForm({ ...taskForm, target: e.target.value })
+                      }
+                      className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 appearance-none hover:bg-white/[0.04] transition-colors"
+                    >
+                      <option value="backlog" className="bg-[#0A0A0A]">
+                        📦 Backlog
+                      </option>
+                      <option value="sprint" className="bg-[#0A0A0A]">
+                        🚀 Sprint Atual
+                      </option>
+                    </select>
+                    <ChevronDown
+                      size={14}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
                     />
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* --- Coluna Direita: Propriedades --- */}
-            <div className="w-full md:w-80 bg-[#09090B] border-l border-[#27272A] p-6 overflow-y-auto shrink-0 space-y-5 custom-scrollbar">
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
-                    Tipo
+                {/* Responsável (Custom Dropdown) */}
+                <div className="relative">
+                  <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                    Responsável
                   </label>
-                  <select
-                    value={taskForm.type}
-                    onChange={(e) =>
-                      setTaskForm({ ...taskForm, type: e.target.value })
-                    }
-                    className="w-full bg-[#1A1A1E] border border-[#27272A] rounded-lg px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 appearance-none"
-                  >
-                    <option value="feature">✨ Feature</option>
-                    <option value="bug">🐛 Bug</option>
-                    <option value="task">📝 Tarefa</option>
-                  </select>
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
-                    Épico
-                  </label>
-                  <select
-                    value={taskForm.epic}
-                    onChange={(e) =>
-                      setTaskForm({ ...taskForm, epic: e.target.value })
-                    }
-                    className="w-full bg-[#1A1A1E] border border-[#27272A] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="">Sem Epic</option>
-                    {epics.map((epic) => (
-                      <option key={epic.id} value={epic.id}>
-                        {epic.name}
-                      </option>
-                    ))}
-                  </select>
-
                   <button
                     type="button"
-                    onClick={onOpenEpicModal}
-                    className="text-xs text-indigo-400 mt-2 hover:underline"
-                  >
-                    + Criar novo Epic
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
-                    Destino
-                  </label>
-                  <select
-                    value={taskForm.target}
-                    onChange={(e) =>
-                      setTaskForm({ ...taskForm, target: e.target.value })
+                    onClick={() =>
+                      setIsAssigneeDropdownOpen(!isAssigneeDropdownOpen)
                     }
-                    className="w-full bg-[#1A1A1E] border border-[#27272A] rounded-lg px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 appearance-none hover:border-[#3F3F46]"
+                    className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5 text-sm text-zinc-200 hover:bg-white/[0.04] focus:border-indigo-500/50 flex items-center justify-between transition-colors"
                   >
-                    <option value="backlog">📦 Backlog</option>
-                    <option value="sprint">🚀 Sprint Atual</option>
-                  </select>
-                </div>
-              </div>
+                    <div className="flex items-center gap-2 truncate">
+                      {taskForm.assignee ? (
+                        <>
+                          <img
+                            src={
+                              taskForm.assigneePhoto ||
+                              `https://ui-avatars.com/api/?name=${taskForm.assignee}&background=1A1A1E&color=fff`
+                            }
+                            className="w-5 h-5 rounded-full object-cover"
+                            alt="Avatar"
+                          />
+                          <span className="truncate">{taskForm.assignee}</span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-5 h-5 rounded-full border border-dashed border-zinc-600 flex items-center justify-center shrink-0">
+                            <X size={10} className="text-zinc-500" />
+                          </div>
+                          <span className="text-zinc-500">Não atribuído</span>
+                        </>
+                      )}
+                    </div>
+                    <ChevronDown size={14} className="text-zinc-500 shrink-0" />
+                  </button>
 
-              {/* DROPDOWN RESPONSÁVEL */}
-              <div className="relative">
-                <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
-                  Responsável
-                </label>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setIsAssigneeDropdownOpen(!isAssigneeDropdownOpen)
-                  }
-                  className="w-full bg-[#1A1A1E] border border-[#27272A] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 hover:border-[#3F3F46] flex items-center justify-between transition-colors"
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    {taskForm.assignee ? (
-                      <>
-                        <img
-                          src={
-                            taskForm.assigneePhoto ||
-                            `https://ui-avatars.com/api/?name=${taskForm.assignee}&background=27272A&color=fff`
-                          }
-                          className="w-5 h-5 rounded-full object-cover border border-[#27272A]"
-                          alt="Avatar"
-                        />
-                        <span className="truncate">{taskForm.assignee}</span>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-5 h-5 rounded-full border border-dashed border-zinc-600 flex items-center justify-center shrink-0">
-                          <X size={10} className="text-zinc-500" />
-                        </div>
-                        <span className="text-zinc-500">Sem Responsável</span>
-                      </>
+                  <AnimatePresence>
+                    {isAssigneeDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute z-50 left-0 right-0 mt-2 bg-[#141414] border border-white/10 rounded-xl shadow-2xl overflow-hidden py-1 max-h-48 overflow-y-auto custom-scrollbar"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTaskForm({
+                              ...taskForm,
+                              assignee: "",
+                              assigneePhoto: "",
+                            });
+                            setIsAssigneeDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-zinc-400 hover:bg-white/5 transition-colors text-left"
+                        >
+                          <div className="w-5 h-5 rounded-full border border-dashed border-zinc-600 flex items-center justify-center shrink-0">
+                            <X size={10} />
+                          </div>
+                          <span className="truncate">Sem Responsável</span>
+                        </button>
+                        {activeProject?.members &&
+                        activeProject.members.length > 0
+                          ? activeProject.members.map(
+                              (member: any, index: number) => {
+                                const name = member.name || member.email;
+                                const photo =
+                                  member.photoURL ||
+                                  `https://ui-avatars.com/api/?name=${name}&background=1A1A1E&color=fff`;
+                                return (
+                                  <button
+                                    key={index}
+                                    type="button"
+                                    onClick={() => {
+                                      setTaskForm({
+                                        ...taskForm,
+                                        assignee: name,
+                                        assigneePhoto: photo,
+                                      });
+                                      setIsAssigneeDropdownOpen(false);
+                                    }}
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-200 hover:bg-white/5 transition-colors text-left"
+                                  >
+                                    <img
+                                      src={photo}
+                                      className="w-6 h-6 rounded-full object-cover shrink-0"
+                                      alt="Avatar"
+                                    />
+                                    <span className="truncate flex-1">
+                                      {name}
+                                    </span>
+                                    {taskForm.assignee === name && (
+                                      <Check
+                                        size={14}
+                                        className="text-indigo-500 shrink-0"
+                                      />
+                                    )}
+                                  </button>
+                                );
+                              },
+                            )
+                          : ["Alex Dev", "Maria Silva", "João Santos"].map(
+                              (name, index) => (
+                                <button
+                                  key={index}
+                                  type="button"
+                                  onClick={() => {
+                                    setTaskForm({
+                                      ...taskForm,
+                                      assignee: name,
+                                      assigneePhoto: "",
+                                    });
+                                    setIsAssigneeDropdownOpen(false);
+                                  }}
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-200 hover:bg-white/5 transition-colors text-left"
+                                >
+                                  <img
+                                    src={`https://ui-avatars.com/api/?name=${name}&background=1A1A1E&color=fff`}
+                                    className="w-6 h-6 rounded-full object-cover shrink-0"
+                                    alt="Avatar"
+                                  />
+                                  <span className="truncate flex-1">
+                                    {name}
+                                  </span>
+                                  {taskForm.assignee === name && (
+                                    <Check
+                                      size={14}
+                                      className="text-indigo-500 shrink-0"
+                                    />
+                                  )}
+                                </button>
+                              ),
+                            )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Status e Prioridade */}
+                <div className="flex gap-4">
+                  <div className="flex-1 relative">
+                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                      Status
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={taskForm.status}
+                        onChange={(e) =>
+                          setTaskForm({ ...taskForm, status: e.target.value })
+                        }
+                        className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 appearance-none hover:bg-white/[0.04] transition-colors"
+                      >
+                        <option value="todo" className="bg-[#0A0A0A]">
+                          ⚪ Todo
+                        </option>
+                        <option value="in-progress" className="bg-[#0A0A0A]">
+                          🟡 In Dev
+                        </option>
+                        <option value="review" className="bg-[#0A0A0A]">
+                          🟣 Review
+                        </option>
+                        {editingId && (
+                          <option value="done" className="bg-[#0A0A0A]">
+                            🟢 Done
+                          </option>
+                        )}
+                      </select>
+                      <ChevronDown
+                        size={14}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1 relative">
+                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                      Prioridade
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={taskForm.priority}
+                        onChange={(e) =>
+                          setTaskForm({ ...taskForm, priority: e.target.value })
+                        }
+                        className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 appearance-none hover:bg-white/[0.04] transition-colors"
+                      >
+                        <option value="low" className="bg-[#0A0A0A]">
+                          Baixa
+                        </option>
+                        <option value="medium" className="bg-[#0A0A0A]">
+                          Média
+                        </option>
+                        <option value="high" className="bg-[#0A0A0A]">
+                          Alta
+                        </option>
+                        <option value="critical" className="bg-[#0A0A0A]">
+                          Crítica
+                        </option>
+                      </select>
+                      <ChevronDown
+                        size={14}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Story Points */}
+                <div>
+                  <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                    Story Points
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[1, 2, 3, 5, 8].map((point) => (
+                      <button
+                        key={point}
+                        type="button"
+                        onClick={() =>
+                          setTaskForm({ ...taskForm, points: point })
+                        }
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all border ${
+                          taskForm.points === point
+                            ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]"
+                            : "bg-white/[0.02] border-white/5 text-zinc-400 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        {point}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* GitHub Branch */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                      Branch do GitHub
+                    </label>
+                    {activeProject?.githubRepo && (
+                      <button
+                        type="button"
+                        onClick={handleCreateBranch}
+                        disabled={isCreatingBranch || !taskForm.title}
+                        className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 disabled:opacity-50 transition-colors bg-indigo-500/10 px-2 py-1 rounded-md"
+                      >
+                        {isCreatingBranch ? (
+                          <Loader2 size={10} className="animate-spin" />
+                        ) : (
+                          <Plus size={10} />
+                        )}
+                        CRIAR BRANCH
+                      </button>
                     )}
                   </div>
-                  <ChevronDown size={14} className="text-zinc-500 shrink-0" />
-                </button>
-
-                {isAssigneeDropdownOpen && (
-                  <div className="absolute z-50 left-0 right-0 mt-1 bg-[#121214] border border-[#27272A] rounded-lg shadow-xl overflow-hidden py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                  <div className="relative">
                     <button
                       type="button"
-                      onClick={() => {
-                        setTaskForm({
-                          ...taskForm,
-                          assignee: "",
-                          assigneePhoto: "",
-                        });
-                        setIsAssigneeDropdownOpen(false);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:bg-[#1A1A1E] transition-colors text-left"
+                      onClick={() =>
+                        setIsBranchDropdownOpen(!isBranchDropdownOpen)
+                      }
+                      className="w-full bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] rounded-xl px-4 py-2.5 text-sm text-zinc-300 flex items-center justify-between transition-colors"
                     >
-                      <div className="w-5 h-5 rounded-full border border-dashed border-zinc-600 flex items-center justify-center shrink-0">
-                        <X size={10} />
+                      <div className="flex items-center gap-2 truncate">
+                        <GitBranch
+                          size={14}
+                          className="text-indigo-400 shrink-0"
+                        />
+                        <span className="truncate">
+                          {taskForm.branch || "Selecionar branch..."}
+                        </span>
                       </div>
-                      <span className="truncate">Sem Responsável</span>
+                      {isLoading ? (
+                        <Loader2
+                          size={14}
+                          className="animate-spin text-zinc-500"
+                        />
+                      ) : (
+                        <ChevronDown
+                          size={14}
+                          className="text-zinc-500 shrink-0"
+                        />
+                      )}
                     </button>
 
-                    {activeProject?.members && activeProject.members.length > 0
-                      ? activeProject.members.map(
-                          (member: any, index: number) => {
-                            const name = member.name || member.email;
-                            const photo =
-                              member.photoURL ||
-                              `https://ui-avatars.com/api/?name=${name}&background=27272A&color=fff`;
+                    <AnimatePresence>
+                      {isBranchDropdownOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute top-full left-0 w-full mt-2 bg-[#141414] border border-white/10 rounded-xl shadow-2xl z-[100] max-h-48 overflow-y-auto custom-scrollbar py-1"
+                        >
+                          {branches.map((branch: any) => {
+                            // Suporta branches que vêm como objeto ou string (dependendo de como o useGitHub funciona)
+                            const branchName =
+                              typeof branch === "string" ? branch : branch.name;
                             return (
                               <button
-                                key={index}
+                                key={branchName}
                                 type="button"
                                 onClick={() => {
                                   setTaskForm({
                                     ...taskForm,
-                                    assignee: name,
-                                    assigneePhoto: photo,
+                                    branch: branchName,
                                   });
-                                  setIsAssigneeDropdownOpen(false);
+                                  setIsBranchDropdownOpen(false);
                                 }}
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-200 hover:bg-[#1A1A1E] transition-colors text-left"
+                                className="w-full px-4 py-2.5 text-left text-sm hover:bg-white/5 flex items-center justify-between text-zinc-300 transition-colors"
                               >
-                                <img
-                                  src={photo}
-                                  className="w-5 h-5 rounded-full border border-[#27272A] object-cover shrink-0"
-                                  alt="Avatar"
-                                />
-                                <span className="truncate flex-1">{name}</span>
-                                {taskForm.assignee === name && (
+                                <span className="truncate pr-2">
+                                  {branchName}
+                                </span>
+                                {taskForm.branch === branchName && (
                                   <Check
                                     size={14}
                                     className="text-indigo-500 shrink-0"
@@ -493,237 +867,83 @@ export function TaskModal({
                                 )}
                               </button>
                             );
-                          },
-                        )
-                      : ["Alex Dev", "Maria Silva", "João Santos"].map(
-                          (name, index) => (
-                            <button
-                              key={index}
-                              type="button"
-                              onClick={() => {
-                                setTaskForm({
-                                  ...taskForm,
-                                  assignee: name,
-                                  assigneePhoto: "",
-                                });
-                                setIsAssigneeDropdownOpen(false);
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-200 hover:bg-[#1A1A1E] transition-colors text-left"
-                            >
-                              <img
-                                src={`https://ui-avatars.com/api/?name=${name}&background=27272A&color=fff`}
-                                className="w-5 h-5 rounded-full border border-[#27272A] object-cover shrink-0"
-                                alt="Avatar"
-                              />
-                              <span className="truncate flex-1">{name}</span>
-                              {taskForm.assignee === name && (
-                                <Check
-                                  size={14}
-                                  className="text-indigo-500 shrink-0"
-                                />
-                              )}
-                            </button>
-                          ),
-                        )}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
-                    Status
-                  </label>
-                  <select
-                    value={taskForm.status}
-                    onChange={(e) =>
-                      setTaskForm({ ...taskForm, status: e.target.value })
-                    }
-                    className="w-full bg-[#1A1A1E] border border-[#27272A] rounded-lg px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 appearance-none"
-                  >
-                    <option value="todo">⚪ Todo</option>
-                    <option value="in-progress">🟡 In Dev</option>
-                    <option value="review">🟣 Review</option>
-                    {editingId && <option value="done">🟢 Done</option>}
-                  </select>
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
-                    Prioridade
-                  </label>
-                  <select
-                    value={taskForm.priority}
-                    onChange={(e) =>
-                      setTaskForm({ ...taskForm, priority: e.target.value })
-                    }
-                    className="w-full bg-[#1A1A1E] border border-[#27272A] rounded-lg px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 appearance-none"
-                  >
-                    <option value="low">Baixa</option>
-                    <option value="medium">Média</option>
-                    <option value="high">Alta</option>
-                    <option value="critical">Crítica</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
-                  Story Points
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {[1, 2, 3, 5, 8].map((point) => (
-                    <button
-                      key={point}
-                      type="button"
-                      onClick={() =>
-                        setTaskForm({ ...taskForm, points: point })
-                      }
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm font-semibold transition-all border ${
-                        taskForm.points === point
-                          ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_10px_rgba(79,70,229,0.3)]"
-                          : "bg-[#1A1A1E] border-[#27272A] text-zinc-400 hover:bg-[#27272A] hover:text-zinc-200"
-                      }`}
-                    >
-                      {point}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                    Branch do GitHub
-                  </label>
-
-                  {/* Botão mágico para criar a branch - Só aparece se houver um repositório configurado */}
-                  {activeProject?.githubRepo && (
-                    <button
-                      type="button"
-                      onClick={handleCreateBranch}
-                      disabled={isCreatingBranch || !taskForm.title}
-                      className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 disabled:opacity-50 transition-colors"
-                    >
-                      {isCreatingBranch ? (
-                        <Loader2 size={10} className="animate-spin" />
-                      ) : (
-                        <Plus size={10} />
+                          })}
+                        </motion.div>
                       )}
-                      CRIAR BRANCH
-                    </button>
-                  )}
+                    </AnimatePresence>
+                  </div>
                 </div>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setIsBranchDropdownOpen(!isBranchDropdownOpen)
-                    }
-                    className="w-full bg-[#1A1A1E] border border-[#27272A] rounded-xl px-4 py-2.5 text-sm text-white flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <GitBranch size={14} className="text-indigo-400" />
-                      <span>
-                        {/* MUDOU AQUI: taskForm.branch */}
-                        {taskForm.branch || "Selecionar branch..."}
-                      </span>
-                    </div>
-                    {isLoading ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <ChevronDown size={14} />
-                    )}
-                  </button>
 
-                  {isBranchDropdownOpen && (
-                    <div className="absolute top-full left-0 w-full mt-2 bg-[#1A1A1E] border border-[#27272A] rounded-xl shadow-2xl z-[100] max-h-48 overflow-y-auto custom-scrollbar">
-                      {branches.map((branch) => (
-                        <button
-                          key={branch}
-                          type="button"
-                          onClick={() => {
-                            setTaskForm({ ...taskForm, branch: branch });
-                            setIsBranchDropdownOpen(false);
-                          }}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-white/5 flex items-center justify-between"
-                        >
-                          {branch}
-                          {/* MUDOU AQUI: taskForm.branch */}
-                          {taskForm.branch === branch && (
-                            <Check size={14} className="text-indigo-400" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">
-                  <Tag size={12} /> Etiquetas (Tags)
-                </label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {(taskForm.tags || []).map((tag) => (
-                    <span
-                      key={tag}
-                      className="flex items-center gap-1 bg-[#27272A] text-zinc-300 text-[10px] font-medium px-2 py-1 rounded-md border border-[#3F3F46]"
-                    >
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        className="hover:text-red-400 ml-1"
+                {/* Tags */}
+                <div>
+                  <label className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                    <Tag size={12} /> Etiquetas (Tags)
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {(taskForm.tags || []).map((tag: string) => (
+                      <span
+                        key={tag}
+                        className="flex items-center gap-1.5 bg-white/5 text-zinc-300 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-white/10"
                       >
-                        <X size={10} />
-                      </button>
-                    </span>
-                  ))}
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(tag)}
+                          className="text-zinc-500 hover:text-red-400 transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Adicionar tag e prima Enter..."
+                    onKeyDown={handleAddTag}
+                    className="w-full bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] focus:border-indigo-500/50 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 outline-none transition-colors"
+                  />
                 </div>
-                <input
-                  type="text"
-                  placeholder="Adicionar tag... (Enter)"
-                  onKeyDown={handleAddTag}
-                  className="w-full bg-[#1A1A1E] border border-[#27272A] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 placeholder:text-zinc-600"
-                />
               </div>
             </div>
-          </div>
 
-          {/* Rodapé do Modal */}
-          <div className="p-4 border-t border-[#27272A] bg-[#121214] flex items-center justify-between shrink-0">
-            {editingId ? (
-              <button
-                type="button"
-                onClick={onDelete}
-                className="flex items-center gap-2 text-red-500 hover:bg-red-500/10 hover:text-red-400 px-3 py-2 rounded-lg transition-colors text-sm font-medium"
-              >
-                <Trash2 size={16} /> Eliminar
-              </button>
-            ) : (
-              <div></div>
-            )}
+            {/* RODAPÉ DO MODAL (Botões) */}
+            <div className="px-6 py-4 border-t border-white/5 bg-[#050505] flex items-center justify-between shrink-0 relative z-10">
+              {editingId ? (
+                <button
+                  type="button"
+                  onClick={onDelete}
+                  className="flex items-center gap-2 text-red-400 hover:bg-red-500/10 hover:text-red-300 px-4 py-2.5 rounded-xl transition-all text-sm font-bold"
+                >
+                  <Trash2 size={16} /> Excluir
+                </button>
+              ) : (
+                <div />
+              )}
 
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="flex items-center gap-2 bg-white text-black hover:bg-zinc-200 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-lg disabled:opacity-50"
-              >
-                {isSaving && (
-                  <Loader2 size={16} className="animate-spin text-black" />
-                )}
-                {editingId ? "Guardar Alterações" : "Criar Tarefa"}
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-6 py-2.5 text-sm font-bold text-zinc-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="group relative flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_40px_rgba(99,102,241,0.5)] disabled:opacity-50 overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+                  {isSaving && (
+                    <Loader2 size={16} className="animate-spin text-white" />
+                  )}
+                  <span>{editingId ? "Salvar" : "Criar Tarefa"}</span>
+                </button>
+              </div>
             </div>
-          </div>
-        </form>
-      </div>
-    </div>
+          </form>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
