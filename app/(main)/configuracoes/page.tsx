@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "../../lib/firebase";
 import { useData } from "../../context/DataContext";
 import {
@@ -25,16 +25,64 @@ import {
   Camera,
   LogOut,
   CheckCircle2,
+  Columns,
+  ChevronUp,
+  ChevronDown,
+  Image as ImageIcon,
+  Smile,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Emojis Curados para o Kanban
+const KANBAN_EMOJIS = [
+  "📝",
+  "📌",
+  "🚀",
+  "⏳",
+  "👀",
+  "✅",
+  "🎉",
+  "🛑",
+  "🐛",
+  "🔥",
+  "📦",
+  "🛠️",
+  "🎯",
+  "🧠",
+  "💡",
+  "⚡",
+];
+
+// Colunas padrão com Emojis
+const DEFAULT_COLUMNS = [
+  { id: "todo", title: "A Fazer", color: "zinc", limit: 0, emoji: "📝" },
+  {
+    id: "in-progress",
+    title: "Em Curso",
+    color: "indigo",
+    limit: 4,
+    emoji: "🚀",
+  },
+  { id: "review", title: "Revisão", color: "purple", limit: 3, emoji: "👀" },
+  { id: "done", title: "Concluído", color: "emerald", limit: 0, emoji: "✅" },
+];
+
+const AVAILABLE_COLORS = [
+  { name: "zinc", bg: "bg-zinc-500", label: "Cinza" },
+  { name: "indigo", bg: "bg-indigo-500", label: "Índigo" },
+  { name: "purple", bg: "bg-purple-500", label: "Roxo" },
+  { name: "emerald", bg: "bg-emerald-500", label: "Verde" },
+  { name: "red", bg: "bg-red-500", label: "Vermelho" },
+  { name: "amber", bg: "bg-amber-500", label: "Amarelo" },
+  { name: "blue", bg: "bg-blue-500", label: "Azul" },
+];
 
 export default function SettingsPage() {
   const { activeProject } = useData();
   const [activeTab, setActiveTab] = useState<
-    "general" | "members" | "integrations"
+    "general" | "members" | "integrations" | "board"
   >("general");
 
-  // Estados de Formulário e UI
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -47,17 +95,32 @@ export default function SettingsPage() {
     type: "success" | "error";
   }>({ show: false, msg: "", type: "success" });
 
-  // Referência para o input de ficheiro oculto
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
-  // Campos - Geral & Integrações
+  // Campos - Identidade do Projeto
   const [projectName, setProjectName] = useState("");
   const [projectKey, setProjectKey] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
+
+  // Ícone Figma-like (Emoji ou Imagem)
+  const [iconType, setIconType] = useState<"image" | "emoji">("image");
+  const [projectEmoji, setProjectEmoji] = useState("✨");
+
+  // Integrações e Quadro
   const [githubRepo, setGithubRepo] = useState("");
   const [githubToken, setGithubToken] = useState("");
+  const [boardColumns, setBoardColumns] = useState<any[]>([]);
 
-  // Campos - Membros
+  // Estados de UI do Quadro
+  const [activeEmojiDropdown, setActiveEmojiDropdown] = useState<number | null>(
+    null,
+  );
+  const [uploadingBannerIndex, setUploadingBannerIndex] = useState<
+    number | null
+  >(null);
+
+  // Membros
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
@@ -69,6 +132,13 @@ export default function SettingsPage() {
       ? `${window.location.origin}/convite/${activeProject.id}`
       : "";
 
+  // Fechar dropdown de emojis ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = () => setActiveEmojiDropdown(null);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
+
   useEffect(() => {
     if (activeProject) {
       setProjectName(activeProject.name || "");
@@ -76,19 +146,32 @@ export default function SettingsPage() {
       setProjectDescription(activeProject.description || "");
       setGithubRepo(activeProject.githubRepo || "");
       setGithubToken(activeProject.githubToken || "");
+      setBoardColumns(activeProject.boardColumns || DEFAULT_COLUMNS);
+      setIconType(
+        activeProject.iconType || (activeProject.imageUrl ? "image" : "emoji"),
+      );
+      setProjectEmoji(activeProject.projectEmoji || "✨");
       setIsDirty(false);
     }
   }, [activeProject]);
 
   useEffect(() => {
     if (!activeProject) return;
+    const currentColsStr = JSON.stringify(boardColumns);
+    const savedColsStr = JSON.stringify(
+      activeProject.boardColumns || DEFAULT_COLUMNS,
+    );
     const hasChanges =
       projectName !== (activeProject.name || "") ||
       projectKey !== (activeProject.key || "") ||
       projectDescription !== (activeProject.description || "") ||
       githubRepo !== (activeProject.githubRepo || "") ||
-      githubToken !== (activeProject.githubToken || "");
-
+      githubToken !== (activeProject.githubToken || "") ||
+      iconType !==
+        (activeProject.iconType ||
+          (activeProject.imageUrl ? "image" : "emoji")) ||
+      projectEmoji !== (activeProject.projectEmoji || "✨") ||
+      currentColsStr !== savedColsStr;
     setIsDirty(hasChanges);
   }, [
     projectName,
@@ -96,6 +179,9 @@ export default function SettingsPage() {
     projectDescription,
     githubRepo,
     githubToken,
+    boardColumns,
+    iconType,
+    projectEmoji,
     activeProject,
   ]);
 
@@ -104,28 +190,17 @@ export default function SettingsPage() {
     setTimeout(() => setToast({ show: false, msg: "", type: "success" }), 3000);
   };
 
-  if (!activeProject) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-[#050505] h-full w-full">
-        <Settings size={48} className="text-zinc-800 mb-4 animate-spin-slow" />
-        <h2 className="text-xl font-bold text-white mb-2">
-          Nenhum Projeto Selecionado
-        </h2>
-        <p className="text-zinc-500 text-sm">
-          Selecione um projeto na barra lateral para configurar.
-        </p>
-      </div>
-    );
-  }
-
-  const isOwner = auth.currentUser?.uid === activeProject.ownerId;
-
   const handleDiscard = () => {
     setProjectName(activeProject.name || "");
     setProjectKey(activeProject.key || "");
     setProjectDescription(activeProject.description || "");
     setGithubRepo(activeProject.githubRepo || "");
     setGithubToken(activeProject.githubToken || "");
+    setBoardColumns(activeProject.boardColumns || DEFAULT_COLUMNS);
+    setIconType(
+      activeProject.iconType || (activeProject.imageUrl ? "image" : "emoji"),
+    );
+    setProjectEmoji(activeProject.projectEmoji || "✨");
     setIsDirty(false);
   };
 
@@ -133,11 +208,9 @@ export default function SettingsPage() {
     if (!projectName.trim() || !projectKey.trim()) return;
     setIsSaving(true);
     setSyncStatus("saving");
-
     const cleanRepoSlug = githubRepo
       .replace("https://github.com/", "")
       .replace(".git", "");
-
     try {
       await updateDoc(doc(db, "projects", activeProject.id), {
         name: projectName.trim(),
@@ -145,13 +218,15 @@ export default function SettingsPage() {
         description: projectDescription.trim(),
         githubRepo: cleanRepoSlug,
         githubToken: githubToken.trim(),
+        boardColumns: boardColumns,
+        iconType: iconType,
+        projectEmoji: projectEmoji,
       });
       setGithubRepo(cleanRepoSlug);
       setIsDirty(false);
       setSyncStatus("synced");
       showToast("Configurações guardadas com sucesso!");
     } catch (error) {
-      console.error(error);
       setSyncStatus("error");
       showToast("Erro ao guardar alterações.", "error");
     } finally {
@@ -159,38 +234,51 @@ export default function SettingsPage() {
     }
   };
 
-  // --- FUNÇÃO PARA UPLOAD DO AVATAR ---
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Limitar tamanho a 2MB
     if (file.size > 2000000) {
-      showToast("O ficheiro é demasiado grande. Máximo de 2MB.", "error");
+      showToast("Máximo de 2MB para a imagem.", "error");
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
-
     setIsUploadingLogo(true);
     const reader = new FileReader();
-
     reader.onloadend = async () => {
-      const base64String = reader.result as string;
-
       try {
         await updateDoc(doc(db, "projects", activeProject.id), {
-          imageUrl: base64String,
+          imageUrl: reader.result as string,
+          iconType: "image",
         });
+        setIconType("image");
         showToast("Logótipo atualizado com sucesso!");
       } catch (error) {
-        console.error("Erro no upload do logótipo:", error);
         showToast("Erro ao atualizar o logótipo.", "error");
       } finally {
         setIsUploadingLogo(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     };
+    reader.readAsDataURL(file);
+  };
 
+  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || uploadingBannerIndex === null) return;
+    if (file.size > 2000000) {
+      showToast("Máximo de 2MB para o banner.", "error");
+      if (bannerInputRef.current) bannerInputRef.current.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const newCols = [...boardColumns];
+      newCols[uploadingBannerIndex].bannerUrl = reader.result as string;
+      setBoardColumns(newCols);
+      setUploadingBannerIndex(null);
+      if (bannerInputRef.current) bannerInputRef.current.value = "";
+    };
     reader.readAsDataURL(file);
   };
 
@@ -215,18 +303,15 @@ export default function SettingsPage() {
   const handleInviteMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteEmail.trim() || !inviteName.trim()) return;
-
     setIsSaving(true);
     try {
       const currentMembers = activeProject.members || [];
       const currentMemberEmails = activeProject.memberEmails || [];
-
       if (currentMemberEmails.includes(inviteEmail.trim())) {
         showToast("Este utilizador já faz parte do projeto.", "error");
         setIsSaving(false);
         return;
       }
-
       const newMember = {
         name: inviteName.trim(),
         email: inviteEmail.trim(),
@@ -234,12 +319,10 @@ export default function SettingsPage() {
         photoURL: `https://ui-avatars.com/api/?name=${inviteName.trim()}&background=0D0D0D&color=fff`,
         addedAt: new Date().toISOString(),
       };
-
       await updateDoc(doc(db, "projects", activeProject.id), {
         members: [...currentMembers, newMember],
         memberEmails: [...currentMemberEmails, inviteEmail.trim()],
       });
-
       setIsInviteModalOpen(false);
       setInviteName("");
       setInviteEmail("");
@@ -262,7 +345,6 @@ export default function SettingsPage() {
       const updatedMemberEmails = (activeProject.memberEmails || []).filter(
         (email: string) => email !== emailToRemove,
       );
-
       await updateDoc(doc(db, "projects", activeProject.id), {
         members: updatedMembers,
         memberEmails: updatedMemberEmails,
@@ -279,9 +361,52 @@ export default function SettingsPage() {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
+  // Funções do Quadro Kanban
+  const addColumn = () => {
+    const newCol = {
+      id: `col-${Date.now()}`,
+      title: "Nova Coluna",
+      color: "zinc",
+      limit: 0,
+      emoji: "✨",
+      bannerUrl: "",
+    };
+    setBoardColumns([...boardColumns, newCol]);
+  };
+
+  const updateColumn = (index: number, field: string, value: string) => {
+    const newCols = [...boardColumns];
+    newCols[index] = { ...newCols[index], [field]: value };
+    setBoardColumns(newCols);
+  };
+
+  const removeColumn = (index: number) => {
+    if (
+      confirm(
+        "Tem a certeza que deseja remover esta coluna? As tarefas não serão apagadas, mas deixarão de aparecer.",
+      )
+    ) {
+      const newCols = [...boardColumns];
+      newCols.splice(index, 1);
+      setBoardColumns(newCols);
+    }
+  };
+
+  const moveColumn = (index: number, direction: "up" | "down") => {
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === boardColumns.length - 1) return;
+    const newCols = [...boardColumns];
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    const temp = newCols[index];
+    newCols[index] = newCols[targetIndex];
+    newCols[targetIndex] = temp;
+    setBoardColumns(newCols);
+  };
+
+  if (!activeProject) return null;
+
   return (
     <div className="min-h-full bg-[#050505] text-zinc-200 p-8 pb-32 relative custom-scrollbar w-full">
-      {/* TOAST NOTIFICATION */}
       <AnimatePresence>
         {toast.show && (
           <motion.div
@@ -306,7 +431,6 @@ export default function SettingsPage() {
         )}
       </AnimatePresence>
 
-      {/* HEADER */}
       <div className="w-full max-w-[1000px] mx-auto mb-10 pt-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-white tracking-tight mb-2">
@@ -337,7 +461,6 @@ export default function SettingsPage() {
       </div>
 
       <div className="w-full max-w-[1000px] mx-auto flex flex-col md:flex-row gap-10">
-        {/* MENU LATERAL */}
         <nav className="w-full md:w-56 shrink-0 flex flex-col gap-1.5">
           <SidebarItem
             icon={<Globe size={18} />}
@@ -346,8 +469,14 @@ export default function SettingsPage() {
             onClick={() => setActiveTab("general")}
           />
           <SidebarItem
+            icon={<Columns size={18} />}
+            label="Quadro Kanban"
+            isActive={activeTab === "board"}
+            onClick={() => setActiveTab("board")}
+          />
+          <SidebarItem
             icon={<Users size={18} />}
-            label="equipe"
+            label="Equipa"
             isActive={activeTab === "members"}
             onClick={() => setActiveTab("members")}
           />
@@ -359,7 +488,6 @@ export default function SettingsPage() {
           />
         </nav>
 
-        {/* CONTEÚDO */}
         <div className="flex-1 space-y-8">
           {/* ABA GERAL */}
           {activeTab === "general" && (
@@ -374,14 +502,13 @@ export default function SettingsPage() {
                     Identidade do Projeto
                   </h2>
                   <p className="text-sm text-zinc-500">
-                    O nome e a chave são usados para gerar os IDs das tarefas.
+                    O nome, a chave e o ícone são usados em toda a sua área de
+                    trabalho.
                   </p>
                 </div>
-
-                <div className="p-8 space-y-8">
-                  {/* Avatar Section - COM UPLOAD REAL */}
-                  <div className="flex items-center gap-6">
-                    {/* Input Ficheiro Oculto */}
+                <div className="p-8 space-y-10">
+                  {/* SEÇÃO FIGMA-LIKE DO ÍCONE */}
+                  <div className="flex items-center gap-8">
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -390,49 +517,102 @@ export default function SettingsPage() {
                       accept="image/*"
                     />
 
-                    <div
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-20 h-20 rounded-2xl flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-indigo-500/20 relative group cursor-pointer overflow-hidden border border-white/5 bg-gradient-to-br from-indigo-500 to-purple-600"
-                    >
+                    {/* Visualização do Avatar/Ícone */}
+                    <div className="w-28 h-28 shrink-0 rounded-[2rem] flex items-center justify-center text-5xl font-black shadow-2xl relative overflow-hidden border-2 border-white/10 bg-[#121212]">
                       {isUploadingLogo ? (
                         <Loader2
-                          size={24}
-                          className="animate-spin text-white"
+                          size={32}
+                          className="animate-spin text-zinc-500"
                         />
+                      ) : iconType === "emoji" ? (
+                        <div className="w-full h-full bg-gradient-to-br from-white/5 to-white/[0.02] flex items-center justify-center">
+                          <span className="drop-shadow-xl scale-125 transform transition-transform hover:scale-150">
+                            {projectEmoji || "✨"}
+                          </span>
+                        </div>
                       ) : activeProject.imageUrl ? (
                         <img
                           src={activeProject.imageUrl}
-                          alt="Logo do Projeto"
-                          className="w-full h-full object-cover"
+                          alt="Logo"
+                          className="w-full h-full object-cover transition-transform hover:scale-110 duration-500"
                         />
                       ) : (
-                        <span>{projectKey.substring(0, 2) || "PR"}</span>
-                      )}
-
-                      {!isUploadingLogo && (
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                          <Camera size={24} />
+                        <div className="w-full h-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
+                          <span className="text-indigo-400 drop-shadow-md">
+                            {projectKey.substring(0, 2) || "PR"}
+                          </span>
                         </div>
                       )}
                     </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-white mb-1">
-                        Logótipo do Projeto
-                      </h3>
-                      <p className="text-xs text-zinc-500 mb-3">
-                        Clique para enviar uma imagem quadrada (Máx: 2MB).
-                      </p>
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploadingLogo}
-                        className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20 hover:bg-indigo-500/20 transition-all disabled:opacity-50"
-                      >
-                        {isUploadingLogo ? "A processar..." : "Alterar Avatar"}
-                      </button>
+
+                    {/* Controlos do Ícone (Imagem vs Emoji) */}
+                    <div className="space-y-3 flex-1">
+                      <div>
+                        <h3 className="text-sm font-bold text-white mb-1">
+                          Ícone Personalizado
+                        </h3>
+                        <p className="text-xs text-zinc-500 leading-relaxed max-w-sm">
+                          Escolha entre fazer upload de uma imagem quadrada
+                          (Máx. 2MB) ou usar um emoji elegante (Estilo Figma).
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3 bg-white/[0.02] p-1.5 rounded-xl border border-white/5 w-fit">
+                        {/* Botão de Imagem */}
+                        <button
+                          onClick={() => {
+                            if (!activeProject.imageUrl) {
+                              fileInputRef.current?.click();
+                            } else {
+                              setIconType("image");
+                            }
+                          }}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${iconType === "image" ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shadow-sm" : "text-zinc-400 hover:bg-white/5 border border-transparent"}`}
+                        >
+                          <ImageIcon size={14} /> Imagem
+                        </button>
+
+                        <div className="w-px h-5 bg-white/10" />
+
+                        {/* Input de Emoji */}
+                        <div
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all border ${iconType === "emoji" ? "bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-sm" : "text-zinc-400 border-transparent hover:bg-white/5 focus-within:border-white/20"}`}
+                        >
+                          <Smile
+                            size={14}
+                            className={
+                              iconType === "emoji"
+                                ? "text-amber-400"
+                                : "text-zinc-500"
+                            }
+                          />
+                          <input
+                            type="text"
+                            value={projectEmoji}
+                            onChange={(e) => {
+                              setProjectEmoji(e.target.value);
+                              setIconType("emoji");
+                            }}
+                            onFocus={() => setIconType("emoji")}
+                            maxLength={2}
+                            className="bg-transparent w-10 text-center outline-none placeholder:text-zinc-600 focus:w-12 transition-all"
+                            placeholder="😀"
+                          />
+                        </div>
+                      </div>
+
+                      {iconType === "image" && (
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="text-[10px] uppercase tracking-widest font-bold text-zinc-500 hover:text-white transition-colors"
+                        >
+                          Fazer upload de nova imagem
+                        </button>
+                      )}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
                     <div className="space-y-2">
                       <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">
                         Nome do Projeto
@@ -465,28 +645,198 @@ export default function SettingsPage() {
                       value={projectDescription}
                       onChange={(e) => setProjectDescription(e.target.value)}
                       rows={3}
-                      className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:border-indigo-500 outline-none transition-all resize-none"
+                      className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:border-indigo-500 outline-none transition-all resize-none custom-scrollbar"
                     />
                   </div>
                 </div>
               </div>
+            </motion.div>
+          )}
 
-              {/* DANGER ZONE */}
-              {isOwner && (
-                <div className="bg-red-500/5 border border-red-500/20 rounded-3xl p-8 relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/10 blur-[100px] rounded-full pointer-events-none group-hover:bg-red-500/20 transition-all duration-700" />
-                  <h3 className="text-lg font-black text-red-500 mb-2 flex items-center gap-2 relative z-10">
-                    <AlertTriangle size={20} /> Zona de Perigo
-                  </h3>
-                  <p className="text-sm text-red-400/70 mb-6 relative z-10">
-                    Esta ação irá apagar permanentemente o projeto, todas as
-                    tarefas, sprints e anexos. Isto não pode ser revertido.
+          {/* ABA QUADRO KANBAN (COM BANNERS DESTACADOS) */}
+          {activeTab === "board" && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-[#0A0A0A] border border-white/5 rounded-3xl overflow-hidden shadow-2xl"
+            >
+              <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-white mb-1">
+                    Capa das Colunas
+                  </h2>
+                  <p className="text-sm text-zinc-500">
+                    Faça o upload de banners ou selecione Emojis para o topo das
+                    colunas.
                   </p>
-                  <button className="relative z-10 bg-[#050505] text-red-500 hover:bg-red-500 hover:text-white border border-red-500/20 hover:border-red-500 px-6 py-3 rounded-xl text-sm font-black uppercase tracking-widest transition-all shadow-lg shadow-red-500/10">
-                    Apagar Projeto
-                  </button>
                 </div>
-              )}
+                <button
+                  onClick={addColumn}
+                  className="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                >
+                  <Plus size={16} /> Nova Coluna
+                </button>
+              </div>
+
+              {/* Input escondido para Banners */}
+              <input
+                type="file"
+                ref={bannerInputRef}
+                onChange={handleBannerUpload}
+                className="hidden"
+                accept="image/*"
+              />
+
+              <div className="p-8 space-y-6">
+                {boardColumns.map((col, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-[#050505] border border-white/5 rounded-2xl overflow-hidden group transition-all hover:border-white/20"
+                  >
+                    {/* ÁREA DE CAPA (BANNER) */}
+                    <div className="h-20 w-full relative bg-white/[0.02] border-b border-white/5 flex items-center justify-center overflow-hidden">
+                      {col.bannerUrl ? (
+                        <>
+                          <div
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: `url(${col.bannerUrl})` }}
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-sm">
+                            <button
+                              onClick={() => {
+                                setUploadingBannerIndex(idx);
+                                bannerInputRef.current?.click();
+                              }}
+                              className="bg-white text-black px-4 py-2 rounded-lg text-xs font-bold shadow-lg"
+                            >
+                              Alterar Capa
+                            </button>
+                            <button
+                              onClick={() => updateColumn(idx, "bannerUrl", "")}
+                              className="bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg"
+                            >
+                              Remover
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setUploadingBannerIndex(idx);
+                            bannerInputRef.current?.click();
+                          }}
+                          className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors text-xs font-bold"
+                        >
+                          <ImageIcon size={16} /> Adicionar Banner de Capa
+                        </button>
+                      )}
+                    </div>
+
+                    {/* CONTROLOS INFERIORES */}
+                    <div className="p-4 flex items-center gap-4">
+                      <div className="flex flex-col gap-1 text-zinc-600">
+                        <button
+                          type="button"
+                          onClick={() => moveColumn(idx, "up")}
+                          disabled={idx === 0}
+                          className="hover:text-white disabled:opacity-30 transition-colors"
+                        >
+                          <ChevronUp size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveColumn(idx, "down")}
+                          disabled={idx === boardColumns.length - 1}
+                          className="hover:text-white disabled:opacity-30 transition-colors"
+                        >
+                          <ChevronDown size={16} />
+                        </button>
+                      </div>
+
+                      {/* EMOJI PICKER (Figma Style) */}
+                      <div className="shrink-0 relative">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveEmojiDropdown(
+                              activeEmojiDropdown === idx ? null : idx,
+                            );
+                          }}
+                          className="w-12 h-10 bg-white/5 rounded-xl text-center text-lg hover:bg-white/10 transition-colors border border-white/5"
+                        >
+                          {col.emoji || "✨"}
+                        </button>
+
+                        <AnimatePresence>
+                          {activeEmojiDropdown === idx && (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute top-full left-0 mt-2 bg-[#1A1A1E] border border-white/10 rounded-2xl p-3 shadow-2xl z-50 w-64 grid grid-cols-4 gap-2"
+                            >
+                              {KANBAN_EMOJIS.map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  type="button"
+                                  onClick={() => {
+                                    updateColumn(idx, "emoji", emoji);
+                                    setActiveEmojiDropdown(null);
+                                  }}
+                                  className="w-12 h-12 flex items-center justify-center text-2xl hover:bg-white/10 rounded-xl transition-all hover:scale-110"
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      {/* NOME DA COLUNA */}
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={col.title}
+                          onChange={(e) =>
+                            updateColumn(idx, "title", e.target.value)
+                          }
+                          className="w-full bg-transparent text-sm text-white font-bold border-b border-transparent focus:border-indigo-500 outline-none transition-colors pb-1 h-10"
+                        />
+                      </div>
+
+                      {/* COR */}
+                      <div className="w-36 shrink-0 hidden md:block">
+                        <div className="flex items-center gap-1.5 h-10">
+                          {AVAILABLE_COLORS.slice(0, 5).map((colorOption) => (
+                            <button
+                              key={colorOption.name}
+                              type="button"
+                              title={colorOption.label}
+                              onClick={() =>
+                                updateColumn(idx, "color", colorOption.name)
+                              }
+                              className={`w-4 h-4 rounded-full ${colorOption.bg} border-2 transition-all ${col.color === colorOption.name ? "border-white scale-125 shadow-[0_0_8px_currentColor]" : "border-transparent opacity-40 hover:opacity-100"}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="pl-4 border-l border-white/5 h-10 flex items-center">
+                        <button
+                          onClick={() => removeColumn(idx)}
+                          className="text-zinc-600 hover:text-red-400 p-2 rounded-lg hover:bg-red-400/10 transition-all"
+                          title="Apagar Coluna"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </motion.div>
           )}
 
@@ -516,7 +866,6 @@ export default function SettingsPage() {
               </div>
 
               <div className="p-8 space-y-8">
-                {/* Link Rápido */}
                 <div className="bg-[#050505] border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <h4 className="text-sm font-bold text-white mb-1 flex items-center gap-2">
@@ -544,7 +893,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Lista de Membros */}
                 <div className="border border-white/5 rounded-2xl overflow-hidden">
                   <div className="bg-white/[0.02] grid grid-cols-12 gap-4 px-6 py-3 border-b border-white/5 text-[10px] font-black text-zinc-500 uppercase tracking-widest">
                     <div className="col-span-6 md:col-span-5">Utilizador</div>
@@ -569,7 +917,7 @@ export default function SettingsPage() {
                               <img
                                 src={member.photoURL}
                                 alt=""
-                                className="w-8 h-8 rounded-full border border-white/10"
+                                className="w-8 h-8 rounded-full border border-white/10 object-cover"
                               />
                               <div className="truncate">
                                 <p className="text-sm font-bold text-white truncate">
@@ -634,7 +982,6 @@ export default function SettingsPage() {
                   Conecte repositórios para visualizar commits e pull requests.
                 </p>
               </div>
-
               <div className="p-8">
                 <div
                   className={`border rounded-3xl p-8 transition-all relative overflow-hidden ${activeProject.githubRepo ? "bg-indigo-500/5 border-indigo-500/20" : "bg-[#050505] border-white/10"}`}
@@ -642,7 +989,6 @@ export default function SettingsPage() {
                   {activeProject.githubRepo && (
                     <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
                   )}
-
                   <div className="flex items-center justify-between border-b border-white/5 pb-6 mb-6 relative z-10">
                     <div className="flex items-center gap-4">
                       <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
@@ -663,7 +1009,6 @@ export default function SettingsPage() {
                       </span>
                     )}
                   </div>
-
                   <div className="space-y-6 relative z-10">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
@@ -676,7 +1021,6 @@ export default function SettingsPage() {
                         className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:border-indigo-500 outline-none transition-all"
                       />
                     </div>
-
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
                         <KeyRound size={12} /> Personal Access Token (Classic)
@@ -690,7 +1034,6 @@ export default function SettingsPage() {
                       />
                     </div>
                   </div>
-
                   {activeProject.githubRepo && (
                     <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between relative z-10">
                       <a
@@ -758,109 +1101,154 @@ export default function SettingsPage() {
       </AnimatePresence>
 
       {/* MODAL DE CONVITE */}
+      {/* MODAL DE CONVITE PREMIUM */}
       <AnimatePresence>
         {isInviteModalOpen && (
-          <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#0A0A0A] border border-white/10 rounded-[2rem] w-full max-w-lg shadow-2xl overflow-hidden"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-[#0D0D0F] border border-white/10 rounded-[2.5rem] w-full max-w-lg shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden relative"
             >
-              <div className="p-8 border-b border-white/5">
+              {/* Efeito de Brilho de Fundo */}
+              <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" />
+
+              <div className="p-10 border-b border-white/[0.05] relative">
                 <div className="flex justify-between items-start mb-2">
-                  <h2 className="text-2xl font-black text-white tracking-tight">
-                    Convidar Membro
-                  </h2>
+                  <div>
+                    <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-3">
+                      <Users size={14} />
+                      <span>Colaboração</span>
+                    </div>
+                    <h2 className="text-3xl font-black text-white tracking-tight">
+                      Novo Membro
+                    </h2>
+                  </div>
                   <button
                     onClick={() => setIsInviteModalOpen(false)}
-                    className="text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-colors"
+                    className="text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 p-2.5 rounded-full transition-all"
                   >
                     <X size={20} />
                   </button>
                 </div>
-                <p className="text-sm text-zinc-500">
-                  Adicione novas pessoas ao projeto{" "}
-                  <strong className="text-white">{activeProject.name}</strong>.
+                <p className="text-sm text-zinc-400 leading-relaxed">
+                  Adicione um novo talento ao projeto{" "}
+                  <span className="text-white font-semibold">
+                    {activeProject.name}
+                  </span>
+                  .
                 </p>
               </div>
 
-              <form onSubmit={handleInviteMember} className="p-8 space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
-                    Nome
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={inviteName}
-                    onChange={(e) => setInviteName(e.target.value)}
-                    placeholder="Ex: João Silva"
-                    className="w-full bg-[#050505] border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:border-indigo-500 outline-none transition-all"
-                  />
+              <form
+                onSubmit={handleInviteMember}
+                className="p-10 space-y-8 relative"
+              >
+                <div className="grid grid-cols-1 gap-6">
+                  {/* Campo Nome */}
+                  <div className="space-y-2.5">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                      Nome Completo
+                    </label>
+                    <div className="relative group">
+                      <input
+                        type="text"
+                        required
+                        value={inviteName}
+                        onChange={(e) => setInviteName(e.target.value)}
+                        placeholder="Ex: João Silva"
+                        className="w-full bg-white/[0.03] border border-white/10 text-white rounded-2xl px-5 py-4 text-sm focus:border-indigo-500/50 focus:bg-white/[0.05] outline-none transition-all placeholder:text-zinc-600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Campo Email */}
+                  <div className="space-y-2.5">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                      Endereço de Email
+                    </label>
+                    <div className="relative group">
+                      <input
+                        type="email"
+                        required
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        placeholder="joao@empresa.com"
+                        className="w-full bg-white/[0.03] border border-white/10 text-white rounded-2xl px-5 py-4 text-sm focus:border-indigo-500/50 focus:bg-white/[0.05] outline-none transition-all placeholder:text-zinc-600"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="joao@exemplo.com"
-                    className="w-full bg-[#050505] border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:border-indigo-500 outline-none transition-all"
-                  />
-                </div>
-                <div className="space-y-3 pt-2">
+
+                {/* Seleção de Role - Estilo Cards */}
+                <div className="space-y-3">
                   <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
                     Nível de Acesso
                   </label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     <button
                       type="button"
                       onClick={() => setInviteRole("member")}
-                      className={`p-4 rounded-2xl border text-left transition-all ${inviteRole === "member" ? "bg-indigo-500/10 border-indigo-500 text-indigo-400" : "bg-[#050505] border-white/5 text-zinc-500 hover:border-white/20"}`}
+                      className={`group p-5 rounded-[1.5rem] border text-left transition-all relative overflow-hidden ${inviteRole === "member" ? "bg-indigo-500/10 border-indigo-500/50 ring-1 ring-indigo-500/50" : "bg-white/[0.02] border-white/5 text-zinc-500 hover:bg-white/[0.04]"}`}
                     >
-                      <span className="text-sm font-black block mb-1">
+                      <div
+                        className={`mb-3 p-2 rounded-lg w-fit transition-colors ${inviteRole === "member" ? "bg-indigo-500 text-white" : "bg-white/5 text-zinc-500 group-hover:text-zinc-300"}`}
+                      >
+                        <Users size={16} />
+                      </div>
+                      <span
+                        className={`text-sm font-bold block mb-1 ${inviteRole === "member" ? "text-white" : "group-hover:text-zinc-300"}`}
+                      >
                         Membro
                       </span>
-                      <span className="text-[10px] leading-relaxed block font-medium">
-                        Ler e edita tarefas.
+                      <span className="text-[10px] leading-snug block opacity-60 font-medium">
+                        Pode criar e editar tarefas no quadro.
                       </span>
                     </button>
+
                     <button
                       type="button"
                       onClick={() => setInviteRole("admin")}
-                      className={`p-4 rounded-2xl border text-left transition-all ${inviteRole === "admin" ? "bg-indigo-500/10 border-indigo-500 text-indigo-400" : "bg-[#050505] border-white/5 text-zinc-500 hover:border-white/20"}`}
+                      className={`group p-5 rounded-[1.5rem] border text-left transition-all relative overflow-hidden ${inviteRole === "admin" ? "bg-purple-500/10 border-purple-500/50 ring-1 ring-purple-500/50" : "bg-white/[0.02] border-white/5 text-zinc-500 hover:bg-white/[0.04]"}`}
                     >
-                      <span className="text-sm font-black flex items-center gap-1.5 mb-1">
-                        <Crown size={14} /> Admin
+                      <div
+                        className={`mb-3 p-2 rounded-lg w-fit transition-colors ${inviteRole === "admin" ? "bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]" : "bg-white/5 text-zinc-500 group-hover:text-zinc-300"}`}
+                      >
+                        <Crown size={16} />
+                      </div>
+                      <span
+                        className={`text-sm font-bold block mb-1 ${inviteRole === "admin" ? "text-white" : "group-hover:text-zinc-300"}`}
+                      >
+                        Admin
                       </span>
-                      <span className="text-[10px] leading-relaxed block font-medium">
-                        Acesso total.
+                      <span className="text-[10px] leading-snug block opacity-60 font-medium">
+                        Controlo total sobre o projeto e equipa.
                       </span>
                     </button>
                   </div>
                 </div>
-                <div className="pt-4 mt-6 border-t border-white/5 flex justify-end gap-3">
+
+                {/* Rodapé do Modal */}
+                <div className="pt-6 mt-4 border-t border-white/[0.05] flex items-center justify-between">
                   <button
                     type="button"
                     onClick={() => setIsInviteModalOpen(false)}
-                    className="px-5 py-3 text-xs font-bold uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+                    className="text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 disabled:opacity-50"
+                    className="bg-white text-black hover:bg-zinc-200 px-10 py-4 rounded-2xl text-xs font-black uppercase tracking-[0.15em] transition-all flex items-center gap-3 disabled:opacity-50 shadow-[0_10px_20px_rgba(255,255,255,0.1)] active:scale-95"
                   >
                     {isSaving ? (
                       <Loader2 size={16} className="animate-spin" />
                     ) : (
-                      "Convidar"
+                      <Plus size={16} strokeWidth={3} />
                     )}
+                    Enviar Convite
                   </button>
                 </div>
               </form>

@@ -9,387 +9,496 @@ import {
   orderBy,
   doc,
   updateDoc,
-  addDoc,
-  serverTimestamp,
 } from "firebase/firestore";
-import { db, auth } from "../../lib/firebase";
+import { db } from "../../lib/firebase";
 import { useData } from "../../context/DataContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
-  Plus,
-  CheckCircle2,
-  CircleDashed,
-  ArrowRightCircle,
-  Clock,
-  Ban,
   Loader2,
   GitBranch,
-  Sparkles,
   Paperclip,
+  AlignLeft,
+  LayoutList,
+  AlertTriangle,
   CheckSquare,
-  Target,
 } from "lucide-react";
 
 import { TaskExecutionModal } from "@/app/components/modals/TaskExecutionModal";
 
-const KANBAN_COLUMNS = [
-  {
-    id: "todo",
-    title: "A Fazer",
-    icon: <CircleDashed size={14} />,
-    color: "zinc",
-  },
+const DEFAULT_COLUMNS = [
+  { id: "todo", title: "A Fazer", color: "zinc", limit: 0, emoji: "📝" },
   {
     id: "in-progress",
     title: "Em Curso",
-    icon: <ArrowRightCircle size={14} />,
     color: "indigo",
+    limit: 4,
+    emoji: "🚀",
   },
-  { id: "blocked", title: "Bloqueados", icon: <Ban size={14} />, color: "red" },
-  {
-    id: "review",
-    title: "Revisão",
-    icon: <Search size={14} />,
-    color: "yellow",
-  },
-  {
-    id: "done",
-    title: "Concluído",
-    icon: <CheckCircle2 size={14} />,
-    color: "emerald",
-  },
+  { id: "review", title: "Revisão", color: "purple", limit: 3, emoji: "👀" },
+  { id: "done", title: "Concluído", color: "emerald", limit: 0, emoji: "✅" },
 ];
 
-// Helper para calcular dias restantes da Sprint
-const getDaysRemaining = (endDate: any) => {
-  if (!endDate) return null;
-  const end = endDate.seconds
-    ? new Date(endDate.seconds * 1000)
-    : new Date(endDate);
-  const today = new Date();
-  const diffTime = end.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays < 0) return "Sprint Atrasada";
-  if (diffDays === 0) return "Termina Hoje";
-  if (diffDays === 1) return "Falta 1 dia";
-  return `Faltam ${diffDays} dias`;
+const getColumnColorClasses = (colorName: string) => {
+  const colors: Record<string, { border: string; bg: string; text: string }> = {
+    zinc: {
+      border: "border-zinc-500/30",
+      bg: "bg-zinc-500/10",
+      text: "text-zinc-400",
+    },
+    indigo: {
+      border: "border-indigo-500/30",
+      bg: "bg-indigo-500/10",
+      text: "text-indigo-400",
+    },
+    purple: {
+      border: "border-purple-500/30",
+      bg: "bg-purple-500/10",
+      text: "text-purple-400",
+    },
+    emerald: {
+      border: "border-emerald-500/30",
+      bg: "bg-emerald-500/10",
+      text: "text-emerald-400",
+    },
+    red: {
+      border: "border-red-500/30",
+      bg: "bg-red-500/10",
+      text: "text-red-400",
+    },
+    amber: {
+      border: "border-amber-500/30",
+      bg: "bg-amber-500/10",
+      text: "text-amber-400",
+    },
+    blue: {
+      border: "border-blue-500/30",
+      bg: "bg-blue-500/10",
+      text: "text-blue-400",
+    },
+  };
+  return colors[colorName] || colors.zinc;
 };
 
-export default function QuadrosPage() {
+const getPriorityStyles = (priority: string) => {
+  switch (priority) {
+    case "urgent":
+      return "bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]";
+    case "critical":
+      return "bg-rose-600 shadow-[0_0_12px_rgba(225,29,72,0.8)]";
+    case "high":
+      return "bg-orange-500 shadow-[0_0_12px_rgba(249,115,22,0.8)]";
+    case "medium":
+      return "bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.8)]";
+    case "low":
+      return "bg-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.8)]";
+    default:
+      return "bg-zinc-600 shadow-[0_0_8px_rgba(82,82,91,0.5)]";
+  }
+};
+
+export default function KanbanPage() {
   const { activeProject } = useData();
   const [tasks, setTasks] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isOverColumn, setIsOverColumn] = useState<string | null>(null);
-  const [activeSprint, setActiveSprint] = useState<any>(null);
-  const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [draggedOverCol, setDraggedOverCol] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+
+  const [editingLimitCol, setEditingLimitCol] = useState<string | null>(null);
+  const [tempLimit, setTempLimit] = useState<string>("");
+
+  const boardColumns = activeProject?.boardColumns || DEFAULT_COLUMNS;
 
   useEffect(() => {
     if (!activeProject?.id) return;
-    setIsLoading(true);
-
-    const qTasks = query(
+    setLoading(true);
+    const q = query(
       collection(db, "projects", activeProject.id, "tasks"),
       where("target", "==", "sprint"),
       orderBy("createdAt", "desc"),
     );
-
-    const unsubscribeTasks = onSnapshot(qTasks, (snapshot) => {
-      const tasksData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setTasks(tasksData);
-      setIsLoading(false);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setTasks(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+      setLoading(false);
     });
+    return () => unsubscribe();
+  }, [activeProject?.id]);
 
-    const qSprint = query(
-      collection(db, "projects", activeProject.id, "sprints"),
-      where("status", "==", "active"),
-    );
-    const unsubscribeSprint = onSnapshot(qSprint, (snapshot) => {
-      if (!snapshot.empty) {
-        const sprintDoc = snapshot.docs[0];
-        setActiveSprint({ id: sprintDoc.id, ...sprintDoc.data() });
-      } else {
-        setActiveSprint(null);
-      }
-    });
+  const filteredTasks = tasks.filter(
+    (task) =>
+      task.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      task.key?.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
-    return () => {
-      unsubscribeTasks();
-      unsubscribeSprint();
-    };
-  }, [activeProject]);
-
-  const onDrop = async (e: React.DragEvent, newStatus: string) => {
-    e.preventDefault();
-    const taskId = e.dataTransfer.getData("taskId");
-    if (!taskId || !activeProject?.id) return;
-
-    const task = tasks.find((t) => t.id === taskId);
-    if (task && task.status !== newStatus) {
-      try {
-        await updateDoc(
-          doc(db, "projects", activeProject.id, "tasks", taskId),
-          {
-            status: newStatus,
-            updatedAt: new Date().toISOString(),
-          },
-        );
-
-        const statusName =
-          KANBAN_COLUMNS.find((c) => c.id === newStatus)?.title || newStatus;
-        await addDoc(
-          collection(db, "projects", activeProject.id, "activities"),
-          {
-            content: `Moveu a tarefa "${task.title}" para ${statusName}`,
-            userId: auth.currentUser?.uid || "unknown",
-            userName: auth.currentUser?.displayName || "Membro",
-            userPhoto: auth.currentUser?.photoURL || "",
-            timestamp: serverTimestamp(),
-            type: "move",
-            taskId: taskId,
-          },
-        );
-      } catch (error) {
-        console.error(error);
-      }
-    }
-    setIsOverColumn(null);
+  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    e.dataTransfer.setData("taskId", taskId);
+    e.dataTransfer.effectAllowed = "move";
+    setTimeout(() => {
+      const el = document.getElementById(`card-${taskId}`);
+      if (el) el.style.opacity = "0.3";
+    }, 0);
   };
 
-  const getPriorityStyles = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "text-red-400 bg-red-400/5 border-red-400/10";
-      case "medium":
-        return "text-yellow-400 bg-yellow-400/5 border-yellow-400/10";
-      case "low":
-        return "text-emerald-400 bg-emerald-400/5 border-emerald-400/10";
-      default:
-        return "text-zinc-500 bg-zinc-500/5 border-zinc-500/10";
-    }
+  const handleDragEnd = (taskId: string) => {
+    setDraggedOverCol(null);
+    const el = document.getElementById(`card-${taskId}`);
+    if (el) el.style.opacity = "1";
+  };
+
+  const handleDragOver = (e: React.DragEvent, colId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (draggedOverCol !== colId) setDraggedOverCol(colId);
+  };
+
+  // FUNÇÃO QUE ESTAVA EM FALTA!
+  const handleDragLeave = () => {
+    setDraggedOverCol(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, colId: string) => {
+    e.preventDefault();
+    setDraggedOverCol(null);
+    const taskId = e.dataTransfer.getData("taskId");
+    const el = document.getElementById(`card-${taskId}`);
+    if (el) el.style.opacity = "1";
+
+    if (!taskId || !activeProject?.id) return;
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task || task.status === colId) return;
+
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: colId } : t)),
+    );
+    await updateDoc(doc(db, "projects", activeProject.id, "tasks", taskId), {
+      status: colId,
+    });
+  };
+
+  const handleSaveLimit = async (colId: string) => {
+    if (!activeProject?.id) return;
+    const newLimit = parseInt(tempLimit, 10) || 0;
+    const updatedCols = (activeProject.boardColumns || DEFAULT_COLUMNS).map(
+      (c: any) => (c.id === colId ? { ...c, limit: newLimit } : c),
+    );
+    await updateDoc(doc(db, "projects", activeProject.id), {
+      boardColumns: updatedCols,
+    });
+    setEditingLimitCol(null);
   };
 
   if (!activeProject) return null;
 
-  // Cálculos de Progresso da Sprint
-  const totalSprintTasks = tasks.length;
-  const completedSprintTasks = tasks.filter((t) => t.status === "done").length;
-  const sprintProgress =
-    totalSprintTasks === 0
-      ? 0
-      : Math.round((completedSprintTasks / totalSprintTasks) * 100);
-
   return (
-    <main className="flex-1 flex flex-col h-full bg-[#050505] relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/5 blur-[120px] rounded-full pointer-events-none" />
+    <main className="flex-1 flex flex-col bg-[#000000] overflow-hidden relative h-full">
+      <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-indigo-600/10 blur-[140px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-[-20%] left-[10%] w-[500px] h-[500px] bg-purple-600/10 blur-[150px] rounded-full pointer-events-none" />
 
-      {/* --- HEADER MELHORADO --- */}
-      <header className="h-28 shrink-0 border-b border-white/[0.04] bg-[#050505]/80 backdrop-blur-xl px-10 flex items-center justify-between z-20">
-        <div className="flex items-center gap-10">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] uppercase tracking-[0.4em]">
-                <Target size={12} />
-                <span>Sprint Ativa</span>
-              </div>
-
-              {activeSprint?.endDate && (
-                <div
-                  className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.02] border ${getDaysRemaining(activeSprint.endDate)?.includes("Atrasada") ? "border-red-500/30 text-red-400" : "border-white/[0.05] text-zinc-400"} text-[9px] font-black uppercase tracking-widest`}
-                >
-                  <Clock size={10} />
-                  <span>{getDaysRemaining(activeSprint.endDate)}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-end gap-6">
-              <h1 className="text-2xl font-black text-white tracking-tighter leading-none">
-                {activeSprint?.name || "Quadro Kanban"}
-              </h1>
-
-              {/* Barra de Progresso da Sprint */}
-              <div className="flex items-center gap-3 bg-white/[0.02] border border-white/[0.05] rounded-xl px-4 py-1.5">
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center w-32">
-                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-                      Progresso
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-400">
-                      {sprintProgress}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-black/50 rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="bg-emerald-500 h-full rounded-full transition-all duration-1000 ease-out"
-                      style={{ width: `${sprintProgress}%` }}
-                    />
-                  </div>
-                </div>
-                <div className="text-[10px] font-bold text-zinc-600 border-l border-white/10 pl-3">
-                  <span className="text-white">{completedSprintTasks}</span> /{" "}
-                  {totalSprintTasks}{" "}
-                  <span className="text-zinc-500">Tarefas</span>
-                </div>
-              </div>
-            </div>
+      <header className="shrink-0 px-8 py-6 border-b border-white/[0.05] bg-white/[0.01] backdrop-blur-2xl flex items-center justify-between relative z-10">
+        <div>
+          <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-2">
+            <LayoutList size={14} />
+            <span>Sprint Ativa</span>
           </div>
+          <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+            Quadro Kanban
+            <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs font-medium text-zinc-300">
+              {tasks.length} issues
+            </span>
+          </h1>
         </div>
-
-        <button className="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black px-6 py-3 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20">
-          <Plus size={16} strokeWidth={3} />
-          NOVA TAREFA
-        </button>
+        <div className="relative group">
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-indigo-400 transition-colors"
+          />
+          <input
+            type="text"
+            placeholder="Buscar tarefas..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-64 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-zinc-500 focus:border-indigo-500/50 outline-none transition-all"
+          />
+        </div>
       </header>
 
-      {/* --- KANBAN BOARD --- */}
-      <div className="flex-1 overflow-x-auto flex p-8 gap-0 w-full justify-between custom-scrollbar relative z-10">
-        {isLoading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="animate-spin text-indigo-500" />
+      <div className="flex-1 overflow-x-auto overflow-y-hidden flex items-stretch gap-6 px-8 py-6 custom-scrollbar relative z-10 min-h-0">
+        {loading ? (
+          <div className="w-full h-full flex items-center justify-center text-zinc-500">
+            <Loader2 size={24} className="animate-spin text-indigo-500" />
           </div>
         ) : (
-          KANBAN_COLUMNS.map((column, idx) => (
-            <React.Fragment key={column.id}>
+          boardColumns.map((column: any) => {
+            const columnTasks = filteredTasks.filter(
+              (t) => t.status === column.id,
+            );
+            const isDraggedOver = draggedOverCol === column.id;
+            const style = getColumnColorClasses(column.color || "zinc");
+            const hasLimit = column.limit && column.limit > 0;
+            const isOverLimit = hasLimit && columnTasks.length > column.limit;
+
+            return (
               <div
-                className={`flex flex-col flex-1 min-w-[280px] max-w-[320px] px-4 transition-all duration-500 ${isOverColumn === column.id ? "bg-white/[0.01]" : ""}`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsOverColumn(column.id);
-                }}
-                onDragLeave={() => setIsOverColumn(null)}
-                onDrop={(e) => onDrop(e, column.id)}
+                key={column.id}
+                onDragOver={(e) => handleDragOver(e, column.id)}
+                onDragLeave={handleDragLeave} // Agora definido corretamente!
+                onDrop={(e) => handleDrop(e, column.id)}
+                className={`h-full max-h-full flex flex-col flex-shrink-0 w-[340px] bg-white/[0.01] backdrop-blur-[2px] border border-white/[0.05] rounded-3xl transition-all duration-300 ${isDraggedOver ? "bg-white/[0.04] ring-2 ring-indigo-500/30 scale-[1.01]" : ""} ${isOverLimit ? "border-red-500/20 bg-red-500/[0.02]" : ""}`}
               >
-                <div className="flex items-center justify-between mb-8 px-2">
-                  <div className="flex items-center gap-3">
-                    <span className={`text-${column.color}-400 opacity-80`}>
-                      {column.icon}
-                    </span>
-                    <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">
+                {/* CABEÇALHO DA COLUNA (AGORA COM BANNER) */}
+                <div
+                  className={`relative flex items-end justify-between border-b border-white/[0.05] shrink-0 bg-white/[0.01] backdrop-blur-md rounded-t-3xl overflow-hidden transition-all duration-300 ${column.bannerUrl ? "h-28 p-5" : "p-5"}`}
+                >
+                  {/* Banner Background */}
+                  {column.bannerUrl && (
+                    <>
+                      <div
+                        className="absolute inset-0 bg-cover bg-center z-0 transition-transform duration-700 hover:scale-110"
+                        style={{ backgroundImage: `url(${column.bannerUrl})` }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/60 to-transparent z-0" />
+                    </>
+                  )}
+
+                  {/* Título e Ícone */}
+                  <div className="flex items-center gap-2.5 relative z-10">
+                    {column.emoji ? (
+                      <span className="text-xl drop-shadow-lg">
+                        {column.emoji}
+                      </span>
+                    ) : (
+                      <div
+                        className={`w-2 h-2 rounded-full ${style.bg} border ${style.border} shadow-[0_0_12px_currentColor] ${style.text}`}
+                      />
+                    )}
+                    <h3
+                      className={`text-[13px] font-black uppercase tracking-widest drop-shadow-md ${column.bannerUrl ? "text-white" : "text-zinc-200"}`}
+                    >
                       {column.title}
                     </h3>
                   </div>
-                  <span className="text-[10px] font-bold text-zinc-700 bg-white/[0.02] border border-white/[0.05] px-2 py-0.5 rounded-md">
-                    {tasks.filter((t) => t.status === column.id).length}
-                  </span>
+
+                  {/* WIP Limit */}
+                  <div className="flex items-center gap-2 relative z-10">
+                    {isOverLimit && (
+                      <AlertTriangle
+                        size={14}
+                        className="text-red-400 animate-pulse"
+                      />
+                    )}
+                    {editingLimitCol === column.id ? (
+                      <input
+                        autoFocus
+                        type="number"
+                        min="0"
+                        value={tempLimit}
+                        onChange={(e) => setTempLimit(e.target.value)}
+                        onBlur={() => handleSaveLimit(column.id)}
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && handleSaveLimit(column.id)
+                        }
+                        className="w-14 bg-[#1A1A1E] border border-indigo-500/50 rounded-md py-0.5 px-1.5 text-[11px] text-center font-bold text-white outline-none focus:ring-1"
+                      />
+                    ) : (
+                      <div
+                        onClick={() => {
+                          setEditingLimitCol(column.id);
+                          setTempLimit(column.limit?.toString() || "0");
+                        }}
+                        className={`cursor-pointer hover:scale-105 px-2.5 py-0.5 rounded-lg text-[11px] font-black tracking-wider transition-all backdrop-blur-md ${isOverLimit ? "bg-red-500/20 text-red-300 border border-red-500/30" : `bg-black/40 text-white border border-white/10 hover:bg-black/60`}`}
+                      >
+                        {columnTasks.length}{" "}
+                        {hasLimit ? (
+                          <span className="opacity-50">/ {column.limit}</span>
+                        ) : (
+                          <span className="opacity-50">/ ∞</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-4 custom-scrollbar pb-10">
-                  <AnimatePresence mode="popLayout">
-                    {tasks
-                      .filter((t) => t.status === column.id)
-                      .map((task) => {
-                        const totalSubtasks = task.checklist?.length || 0;
-                        const completedSubtasks =
-                          task.checklist?.filter((c: any) => c.completed)
-                            .length || 0;
-                        const isAllCompleted =
-                          totalSubtasks > 0 &&
-                          totalSubtasks === completedSubtasks;
+                {/* LISTA DE CARDS */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar min-h-0">
+                  <AnimatePresence>
+                    {columnTasks.map((task) => {
+                      const checklistTotal = task.checklist?.length || 0;
+                      const checklistDone =
+                        task.checklist?.filter((c: any) => c.completed)
+                          .length || 0;
+                      const progress =
+                        checklistTotal > 0
+                          ? (checklistDone / checklistTotal) * 100
+                          : 0;
+                      const assignees = Array.isArray(task.assignees)
+                        ? task.assignees
+                        : task.assignee
+                          ? [
+                              {
+                                name: task.assignee,
+                                photoURL: task.assigneePhoto,
+                              },
+                            ]
+                          : [];
 
-                        return (
-                          <motion.div
-                            key={task.id}
-                            layout
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            draggable
-                            onDragStart={(e) =>
-                              e.dataTransfer.setData("taskId", task.id)
-                            }
-                            onClick={() => setSelectedTask(task)}
-                            className="group bg-[#080808]/80 border border-white/[0.05] hover:border-indigo-500/30 p-5 rounded-[1.8rem] cursor-grab active:cursor-grabbing transition-all duration-300 shadow-sm hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
-                          >
-                            <div className="flex items-center justify-between mb-4">
-                              <span className="text-[9px] font-bold text-zinc-600 tracking-widest">
-                                {task.taskKey || "TASK"}
+                      return (
+                        <motion.div
+                          layout
+                          layoutId={task.id}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          key={task.id}
+                          id={`card-${task.id}`}
+                          draggable
+                          onDragStart={(e: any) => handleDragStart(e, task.id)}
+                          onDragEnd={() => handleDragEnd(task.id)}
+                          onClick={() => setSelectedTask(task)}
+                          className="group relative bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl p-5 cursor-grab active:cursor-grabbing hover:bg-white/[0.05] hover:border-white/20 hover:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.8)] transition-all duration-300 hover:-translate-y-1 overflow-hidden"
+                        >
+                          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
+                          <div
+                            className={`absolute left-0 top-0 bottom-0 w-[3px] opacity-70 group-hover:opacity-100 transition-opacity ${getPriorityStyles(task.priority)}`}
+                          />
+
+                          <div className="flex items-center justify-between mb-3 text-[10px] font-black uppercase tracking-widest text-zinc-400 relative z-10">
+                            <div className="flex items-center gap-1.5">
+                              <span className="group-hover:text-indigo-300 transition-colors drop-shadow-md">
+                                {task.key || "TSK"}
                               </span>
-                              <div
-                                className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border ${getPriorityStyles(task.priority)}`}
-                              >
-                                {task.priority}
-                              </div>
-                            </div>
-
-                            <h4 className="text-[13px] font-bold text-zinc-300 leading-snug mb-4 group-hover:text-white transition-colors">
-                              {task.title}
-                            </h4>
-
-                            {/* --- BADGE DE BRANCH --- */}
-                            {task.branch && (
-                              <div className="mb-4">
-                                <div className="inline-flex items-center gap-1.5 bg-indigo-500/5 border border-indigo-500/20 px-2 py-1 rounded-md text-indigo-400">
-                                  <GitBranch size={10} />
-                                  <span className="text-[9px] font-mono font-bold tracking-wider truncate max-w-[150px]">
-                                    {task.branch}
+                              {task.epicName && (
+                                <>
+                                  <span className="text-white/20">•</span>
+                                  <span
+                                    className="truncate max-w-[100px] text-zinc-500"
+                                    title={task.epicName}
+                                  >
+                                    {task.epicName}
                                   </span>
-                                </div>
+                                </>
+                              )}
+                            </div>
+                            {task.type && (
+                              <div
+                                className={`px-1.5 py-0.5 rounded backdrop-blur-md border border-white/5 ${task.type === "bug" ? "bg-red-500/10 text-red-400" : task.type === "feature" ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-zinc-300"}`}
+                              >
+                                {task.type === "bug"
+                                  ? "Bug"
+                                  : task.type === "feature"
+                                    ? "Feat"
+                                    : "Task"}
                               </div>
                             )}
+                          </div>
 
-                            <div className="flex items-center justify-between pt-4 border-t border-white/[0.03]">
-                              <div className="flex items-center gap-3 text-zinc-600">
-                                {task.points && (
-                                  <span className="text-[10px] font-black">
-                                    {task.points}pts
-                                  </span>
-                                )}
+                          <h4 className="text-[14px] font-semibold text-zinc-100 mb-4 leading-relaxed group-hover:text-white transition-colors relative z-10 drop-shadow-sm">
+                            {task.title}
+                          </h4>
 
-                                {task.attachmentsCount > 0 && (
-                                  <Paperclip size={12} />
-                                )}
+                          {checklistTotal > 0 && (
+                            <div className="mb-4 relative z-10">
+                              <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400 mb-1.5">
+                                <span className="flex items-center gap-1">
+                                  <CheckSquare size={12} /> Tarefas
+                                </span>
+                                <span
+                                  className={
+                                    progress === 100
+                                      ? "text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]"
+                                      : ""
+                                  }
+                                >
+                                  {checklistDone}/{checklistTotal}
+                                </span>
+                              </div>
+                              <div className="h-1 w-full bg-white/5 backdrop-blur-sm rounded-full overflow-hidden border border-white/5">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${progress === 100 ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-indigo-500"}`}
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                            </div>
+                          )}
 
-                                {totalSubtasks > 0 && (
+                          <div className="flex items-center justify-between pt-3 border-t border-white/10 relative z-10 mt-2">
+                            <div className="flex items-center gap-3 text-zinc-500">
+                              {task.description && (
+                                <div title="Possui descrição">
+                                  <AlignLeft
+                                    size={14}
+                                    className="group-hover:text-zinc-300"
+                                  />
+                                </div>
+                              )}
+                              {task.attachments?.length > 0 && (
+                                <div
+                                  className="flex items-center gap-1 text-[11px] font-medium group-hover:text-zinc-300"
+                                  title={`${task.attachments.length} anexos`}
+                                >
+                                  <Paperclip size={12} />{" "}
+                                  {task.attachments.length}
+                                </div>
+                              )}
+                              {task.githubBranch && (
+                                <div title={`Branch: ${task.githubBranch}`}>
+                                  <GitBranch
+                                    size={13}
+                                    className="text-indigo-400/80 group-hover:text-indigo-300"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              {task.points && (
+                                <div className="w-5 h-5 rounded-md bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center text-[10px] font-bold text-zinc-300 shadow-sm">
+                                  {task.points}
+                                </div>
+                              )}
+                              <div className="flex -space-x-1.5">
+                                {assignees.length > 0 ? (
+                                  assignees
+                                    .slice(0, 3)
+                                    .map((a: any, i: number) => (
+                                      <img
+                                        key={i}
+                                        src={
+                                          a.photoURL ||
+                                          `https://ui-avatars.com/api/?name=${a.name || "User"}&background=1A1A1E&color=fff`
+                                        }
+                                        className="w-6 h-6 rounded-full border border-[#1A1A1E] object-cover ring-1 ring-white/20 relative z-10 hover:z-20 hover:scale-110 hover:-translate-y-1 transition-all shadow-md"
+                                        title={a.name}
+                                      />
+                                    ))
+                                ) : (
                                   <div
-                                    className={`flex items-center gap-1 ${isAllCompleted ? "text-emerald-500" : "text-zinc-500"}`}
+                                    className="w-6 h-6 rounded-full border border-white/5 bg-white/5 backdrop-blur-md border-dashed flex items-center justify-center"
+                                    title="Sem responsável"
                                   >
-                                    <CheckSquare size={12} />
-                                    <span className="text-[10px] font-black">
-                                      {completedSubtasks}/{totalSubtasks}
+                                    <span className="text-[8px] text-zinc-500">
+                                      ?
                                     </span>
                                   </div>
                                 )}
                               </div>
-
-                              <div className="flex -space-x-2">
-                                {task.assignees ? (
-                                  task.assignees.map((a: any, i: number) => (
-                                    <img
-                                      key={i}
-                                      src={a.photo}
-                                      className="w-6 h-6 rounded-full border border-[#080808] grayscale group-hover:grayscale-0 transition-all duration-500 object-cover"
-                                      alt=""
-                                      title={a.name}
-                                    />
-                                  ))
-                                ) : (
-                                  <img
-                                    src={
-                                      task.assigneePhoto ||
-                                      `https://ui-avatars.com/api/?name=${task.assignee}&background=0D0D0D&color=fff`
-                                    }
-                                    className="w-6 h-6 rounded-full border border-[#080808] grayscale group-hover:grayscale-0 transition-all duration-500"
-                                    alt=""
-                                  />
-                                )}
-                              </div>
                             </div>
-                          </motion.div>
-                        );
-                      })}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </AnimatePresence>
+
+                  {columnTasks.length === 0 && (
+                    <div className="h-24 border-2 border-dashed border-white/10 rounded-2xl flex items-center justify-center text-zinc-600 bg-white/[0.01] backdrop-blur-sm transition-colors hover:bg-white/[0.03] hover:border-white/20">
+                      <span className="text-[10px] font-black uppercase tracking-widest drop-shadow-sm">
+                        Soltar aqui
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {idx < KANBAN_COLUMNS.length - 1 && (
-                <div className="w-px h-full bg-gradient-to-b from-transparent via-white/[0.03] to-transparent shrink-0" />
-              )}
-            </React.Fragment>
-          ))
+            );
+          })
         )}
       </div>
 
