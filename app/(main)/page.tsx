@@ -17,7 +17,6 @@ import {
   AlertTriangle,
   CheckSquare,
   Calendar,
-  Settings,
   Users,
   FolderPlus,
   Activity,
@@ -27,6 +26,11 @@ import {
   Circle,
   User,
   LogOut,
+  ChevronRight,
+  Search,
+  Filter,
+  Check,
+  MoreHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "firebase/auth";
@@ -37,6 +41,19 @@ export default function DashboardPage() {
   const [activities, setActivities] = useState<any[]>([]);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const user = auth.currentUser;
+
+  // Estados de Filtro
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+
+  // Fechar o menu de filtros ao clicar fora
+  useEffect(() => {
+    const handleClick = () => setIsFilterOpen(false);
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, []);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -104,492 +121,595 @@ export default function DashboardPage() {
     (t) => t.priority === "critical" && t.status !== "done",
   );
 
+  // Lógica de Filtragem
+  const togglePriorityFilter = (p: string) => {
+    setSelectedPriorities((prev) =>
+      prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p],
+    );
+  };
+
+  const toggleAssigneeFilter = (a: string) => {
+    setSelectedAssignees((prev) =>
+      prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a],
+    );
+  };
+
+  const clearFilters = () => {
+    setSelectedPriorities([]);
+    setSelectedAssignees([]);
+    setSearchQuery("");
+  };
+
+  const hasActiveFilters =
+    selectedPriorities.length > 0 ||
+    selectedAssignees.length > 0 ||
+    searchQuery.trim() !== "";
+
+  const filteredTasks = activeTasks.filter((task) => {
+    const matchesSearch =
+      task.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.taskKey?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesPriority =
+      selectedPriorities.length === 0 ||
+      selectedPriorities.includes(task.priority?.toLowerCase());
+    const matchesAssignee =
+      selectedAssignees.length === 0 ||
+      selectedAssignees.includes(task.assignee);
+    return matchesSearch && matchesPriority && matchesAssignee;
+  });
+
   return (
     <motion.main
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="flex-1 bg-[#050505] text-zinc-400 overflow-y-auto custom-scrollbar p-10 font-sans"
+      className="flex-1 flex flex-col h-full bg-[#050505] relative overflow-hidden font-sans"
     >
-      <div className="max-w-[1600px] mx-auto space-y-10">
-        {/* HEADER */}
-        <section className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8">
-          <motion.div
-            initial={{ x: -30, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-          >
-            <div className="flex items-center gap-3 text-zinc-600 font-bold text-[10px] uppercase tracking-[0.3em]">
-              <Calendar size={12} />
-              <span>{currentDate}</span>
-              <span className="text-zinc-800">/</span>
-              <span className="text-indigo-500/70">
-                {activeProject?.name || "System Idle"}
-              </span>
-            </div>
-            <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter mt-2">
-              {getGreeting()}, {user?.displayName?.split(" ")[0] || "User"}.
-            </h1>
-          </motion.div>
-
-          <div className="flex flex-col md:flex-row items-center gap-6 w-full xl:w-auto">
-            <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-              whileHover={{
-                scale: 1.05,
-                backgroundColor: "#ffffff",
-                color: "#000000",
-              }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsProjectModalOpen(true)}
-              className="h-[60px] px-8 border border-white/10 text-white/50 rounded-full text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 transition-all relative overflow-hidden group w-full md:w-auto justify-center"
-            >
-              <span className="relative z-10 flex items-center gap-3">
-                <FolderPlus size={16} /> Inicializar Projeto
-              </span>
-              <div className="absolute inset-0 h-full w-full bg-white/20 skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
-            </motion.button>
-
-            {/* SEPARADOR VERTICAL */}
-            <div className="hidden md:block w-px h-12 bg-white/[0.05]" />
-
-            {/* WIDGET DE PERFIL DO UTILIZADOR */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 z-10">
+        <div className="max-w-[1400px] mx-auto space-y-8">
+          <section className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8">
             <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4, type: "spring" }}
-              className="bg-[#080808] border border-white/[0.03] p-2 pr-4 rounded-full flex items-center gap-4 w-full md:w-auto shadow-[inset_0_2px_15px_rgba(255,255,255,0.01)] group hover:border-white/[0.1] transition-colors"
+              initial={{ x: -30, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
             >
-              <div className="relative">
-                {user?.photoURL ? (
-                  <img
-                    src={user.photoURL}
-                    alt="Perfil"
-                    className="w-12 h-12 rounded-full border-2 border-white/5 object-cover"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-indigo-500/10 border-2 border-indigo-500/20 flex items-center justify-center">
-                    <User size={20} className="text-indigo-400" />
-                  </div>
-                )}
-                {/* Indicador de Status Online */}
-                <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-[3px] border-[#080808] rounded-full" />
-              </div>
-
-              <div className="flex flex-col flex-1 min-w-[120px]">
-                <span className="text-[13px] font-bold text-zinc-200 line-clamp-1">
-                  {user?.displayName || "Agente Desconhecido"}
-                </span>
-                <span className="text-[10px] text-zinc-500 font-mono truncate max-w-[150px]">
-                  {user?.email || "acesso.restrito@sys.com"}
+              <div className="flex items-center gap-3 text-zinc-600 font-bold text-[10px] uppercase tracking-[0.3em]">
+                <Calendar size={12} />
+                <span>{currentDate}</span>
+                <span className="text-zinc-800">/</span>
+                <span className="text-indigo-500/70">
+                  {activeProject?.name || "System Idle"}
                 </span>
               </div>
+              <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter mt-2">
+                {getGreeting()}, {user?.displayName?.split(" ")[0] || "User"}.
+              </h1>
+            </motion.div>
 
+            <div className="flex flex-col md:flex-row items-center gap-6 w-full xl:w-auto">
               <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleSignOut}
-                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/[0.02] hover:bg-red-500/10 hover:text-red-400 text-zinc-500 transition-all ml-2"
-                title="Desconectar do Sistema"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3 }}
+                whileHover={{
+                  scale: 1.05,
+                  backgroundColor: "#ffffff",
+                  color: "#000000",
+                }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsProjectModalOpen(true)}
+                className="h-[60px] px-8 border border-white/10 text-white/50 rounded-full text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 transition-all relative overflow-hidden group w-full md:w-auto justify-center"
               >
-                <LogOut size={16} />
+                <span className="relative z-10 flex items-center gap-3">
+                  <FolderPlus size={16} /> Inicializar Projeto
+                </span>
+                <div className="absolute inset-0 h-full w-full bg-white/20 skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
               </motion.button>
-            </motion.div>
-          </div>
-        </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8 space-y-8">
-            {/* MESA DE TRABALHO - VISOR CENTRAL */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
-              className="bg-[#080808] border border-white/[0.03] rounded-[2rem] flex flex-col h-[500px] overflow-hidden shadow-[inset_0_2px_20px_rgba(0,0,0,0.5)]"
-            >
-              <div className="p-8 border-b border-white/[0.02] flex items-center justify-between bg-black/20">
-                <h3 className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em]">
-                  Monitor de Tarefas
-                </h3>
-                <div className="flex items-center gap-2">
-                  <motion.div
-                    animate={{ opacity: [0.4, 1, 0.4], scale: [0.9, 1.1, 0.9] }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                    className="w-1.5 h-1.5 rounded-full bg-indigo-500"
-                  />
-                  <span className="text-[9px] font-mono text-indigo-500/50 uppercase italic">
-                    Live Data
+              <div className="hidden md:block w-px h-12 bg-white/[0.05]" />
+
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4, type: "spring" }}
+                className="bg-[#080808] border border-white/[0.03] p-2 pr-4 rounded-full flex items-center gap-4 w-full md:w-auto shadow-[inset_0_2px_15px_rgba(255,255,255,0.01)] group hover:border-white/[0.1] transition-colors"
+              >
+                <div className="relative">
+                  {user?.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt="Perfil"
+                      className="w-12 h-12 rounded-full border-2 border-white/5 object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-indigo-500/10 border-2 border-indigo-500/20 flex items-center justify-center">
+                      <User size={20} className="text-indigo-400" />
+                    </div>
+                  )}
+                  <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-[3px] border-[#080808] rounded-full" />
+                </div>
+
+                <div className="flex flex-col flex-1 min-w-[120px]">
+                  <span className="text-[13px] font-bold text-zinc-200 line-clamp-1">
+                    {user?.displayName || "Agente Desconhecido"}
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-mono truncate max-w-[150px]">
+                    {user?.email || "acesso.restrito@sys.com"}
                   </span>
                 </div>
-              </div>
 
-              <div className="p-6 overflow-y-auto flex-1 custom-scrollbar bg-[#050505]/50">
-                <div className="space-y-3">
-                  <AnimatePresence mode="popLayout">
-                    {activeTasks.length > 0 ? (
-                      activeTasks.map((task, idx) => {
-                        const priorityColors: Record<string, string> = {
-                          critical:
-                            "bg-red-500/10 text-red-400 border-red-500/20",
-                          high: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-                          medium:
-                            "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-                          low: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-                          default:
-                            "bg-zinc-800/30 text-zinc-400 border-zinc-700/30",
-                        };
-                        const priorityKey = task.priority
-                          ? task.priority.toLowerCase()
-                          : "default";
-                        const pColor =
-                          priorityColors[priorityKey] || priorityColors.default;
-
-                        return (
-                          <motion.div
-                            key={task.id}
-                            layout
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.3, delay: idx * 0.05 }}
-                            whileHover={{
-                              scale: 1.02,
-                              backgroundColor: "rgba(99, 102, 241, 0.03)",
-                            }}
-                            className="group relative bg-[#0A0A0A] border border-white/[0.04] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors duration-300 hover:border-indigo-500/30 hover:shadow-[0_0_20px_rgba(99,102,241,0.05)] overflow-hidden cursor-pointer z-10"
-                          >
-                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                            <div className="flex items-start sm:items-center gap-4">
-                              <div className="mt-0.5 sm:mt-0">
-                                <Circle
-                                  size={18}
-                                  className="text-zinc-700 group-hover:text-indigo-400 transition-colors"
-                                />
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <span className="text-sm font-medium text-zinc-300 group-hover:text-zinc-100 transition-colors line-clamp-1">
-                                  {task.title}
-                                </span>
-                                <div className="flex items-center gap-3">
-                                  <span
-                                    className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${pColor}`}
-                                  >
-                                    {task.priority || "Normal"}
-                                  </span>
-                                  {task.assignee && (
-                                    <span className="text-[10px] text-zinc-500 flex items-center gap-1">
-                                      <Users size={10} /> {task.assignee}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto mt-2 sm:mt-0 pl-9 sm:pl-0">
-                              <div className="bg-black/40 border border-white/[0.05] px-3 py-1.5 rounded-lg group-hover:border-indigo-500/20 transition-colors">
-                                <span className="text-[10px] font-mono text-zinc-500 group-hover:text-indigo-300 tracking-widest">
-                                  {task.taskKey}
-                                </span>
-                              </div>
-                            </div>
-                          </motion.div>
-                        );
-                      })
-                    ) : (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="h-full flex flex-col items-center justify-center opacity-50 space-y-4 py-20"
-                      >
-                        <CheckSquare size={32} className="text-zinc-800" />
-                        <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold">
-                          Sem tarefas ativas
-                        </span>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* PAINEL DE INSTRUMENTOS */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                whileHover={{ y: -5 }}
-                className="bg-[#080808] border border-red-900/30 rounded-[2rem] p-8 flex flex-col justify-between h-48 group shadow-[0_0_15px_rgba(127,29,29,0.1)] hover:shadow-[0_0_25px_rgba(127,29,29,0.2)] transition-all cursor-pointer relative overflow-hidden"
-              >
-                <motion.div
-                  animate={{ opacity: [0, 0.1, 0] }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="absolute inset-0 bg-red-600/20 blur-3xl -z-10"
-                />
-                <AlertTriangle
-                  size={18}
-                  className="text-red-500 group-hover:text-red-400 transition-colors"
-                />
-                <div>
-                  <motion.span
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: "spring", stiffness: 100, delay: 0.6 }}
-                    className="text-4xl font-light text-red-500 group-hover:text-red-400 transition-colors font-mono block"
-                  >
-                    {criticalTasks.length}
-                  </motion.span>
-                  <p className="text-[9px] text-zinc-500 font-bold uppercase mt-2 tracking-widest group-hover:text-zinc-400">
-                    Alerta Crítico
-                  </p>
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="col-span-2 bg-[#080808] border border-white/[0.03] rounded-[2rem] p-4 flex items-center justify-around shadow-[inset_0_2px_20px_rgba(255,255,255,0.01)]"
-              >
-                <QuickAction
-                  icon={<Users size={20} />}
-                  label="Equipe"
-                  href="/members"
-                  color="cyan"
-                  delay={0.7}
-                />
-                <QuickAction
-                  icon={<LayoutPanelLeft size={20} />}
-                  label="Kanban"
-                  href="/quadros"
-                  color="indigo"
-                  delay={0.8}
-                />
-                <QuickAction
-                  icon={<Settings size={20} />}
-                  label="Configurações"
-                  href="/configuracoes"
-                  color="orange"
-                  delay={0.9}
-                />
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleSignOut}
+                  className="w-10 h-10 rounded-full flex items-center justify-center bg-white/[0.02] hover:bg-red-500/10 hover:text-red-400 text-zinc-500 transition-all ml-2"
+                  title="Desconectar do Sistema"
+                >
+                  <LogOut size={16} />
+                </motion.button>
               </motion.div>
             </div>
-          </div>
+          </section>
 
-          <div className="lg:col-span-4 flex flex-col gap-8">
-            {/* DISCORD BOT CARD */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4, type: "spring" }}
-              whileHover={{ scale: 1.01 }}
-              className="bg-[#080808] border border-[#5865F2]/20 rounded-[2rem] p-6 flex flex-col relative overflow-hidden group shadow-[inset_0_2px_20px_rgba(88,101,242,0.05)]"
-            >
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-8 flex flex-col">
               <motion.div
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.1, 0.2, 0.1],
-                  rotate: [0, 10, 0],
-                }}
-                transition={{
-                  duration: 8,
-                  repeat: Infinity,
-                  repeatType: "reverse",
-                  ease: "easeInOut",
-                }}
-                className="absolute -top-10 -right-10 w-40 h-40 bg-[#5865F2] rounded-full blur-[80px] pointer-events-none"
-              />
-
-              <div className="flex justify-between items-start mb-4 z-10">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-[#5865F2]/10 flex items-center justify-center border border-[#5865F2]/30 group-hover:border-[#5865F2]/60 transition-colors">
-                    <MessageSquare size={20} className="text-[#5865F2]" />
-                  </div>
-                  <div>
-                    <h3 className="text-[11px] font-black text-zinc-300 uppercase tracking-[0.1em]">
-                      Bot do Discord
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+                className="bg-[#080808] border border-white/[0.03] rounded-[2rem] flex flex-col h-[680px] shadow-[inset_0_2px_20px_rgba(0,0,0,0.5)] flex-1 overflow-hidden"
+              >
+                {/* Cabeçalho Principal do Monitor */}
+                <div className="p-6 md:p-8 border-b border-white/[0.02] flex items-center justify-between bg-black/20 shrink-0">
+                  <div className="flex items-center gap-4">
+                    <h3 className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em]">
+                      Monitor de Tarefas
                     </h3>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <motion.div
-                        animate={{
-                          boxShadow: [
-                            "0 0 0px rgba(16,185,129,0.4)",
-                            "0 0 10px rgba(16,185,129,0.8)",
-                            "0 0 0px rgba(16,185,129,0.4)",
-                          ],
-                        }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className="w-1.5 h-1.5 rounded-full bg-emerald-500"
-                      />
-                      <span className="text-[9px] font-mono text-emerald-500/90 uppercase tracking-widest">
-                        Online
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <span className="text-[10px] font-mono text-zinc-600">
-                  24ms
-                </span>
-              </div>
-              <p className="text-[12px] text-zinc-400 z-10 leading-relaxed">
-                Sincronização de tarefas e logs de eventos ativas no servidor.
-              </p>
-            </motion.div>
-
-            {/* RADAR DE EVENTOS (TIMELINE PROFISSIONAL E AESTHETIC) */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="bg-[#080808] border border-white/[0.03] rounded-[2rem] flex flex-col flex-1 max-h-[550px] overflow-hidden relative"
-            >
-              <div className="p-6 md:p-8 border-b border-white/[0.02] bg-black/40 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md">
-                <h3 className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em]">
-                  Histórico de Logs
-                </h3>
-                <div className="flex items-center gap-2 px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/20">
-                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                  <span className="text-[9px] font-mono text-indigo-400 uppercase tracking-widest">
-                    Live
-                  </span>
-                </div>
-              </div>
-
-              {/* Área do Scroll */}
-              <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1 bg-[#050505]/30 relative z-0">
-                {/* Removido o 'h-full' para permitir que a div cresça com os logs */}
-                <div className="relative">
-                  {/* A LINHA DO TIMELINE QUE CRESCE COM O CONTEÚDO */}
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: "100%" }}
-                    transition={{ duration: 1.5, ease: "easeInOut" }}
-                    className="absolute top-2 bottom-0 left-[15px] w-[2px] bg-gradient-to-b from-indigo-500/50 via-zinc-800/40 to-transparent"
-                  >
-                    {/* Partícula de Luz Animada "Laser" (Usa % para ir até ao fim) */}
-                    <motion.div
-                      animate={{ top: ["0%", "100%"], opacity: [0, 1, 1, 0] }}
-                      transition={{
-                        duration: 3.5,
-                        repeat: Infinity,
-                        ease: "linear",
-                      }}
-                      className="absolute left-1/2 -translate-x-1/2 w-[3px] h-16 bg-indigo-400 rounded-full blur-[2px] shadow-[0_0_15px_rgba(99,102,241,0.8)]"
-                    />
-                  </motion.div>
-
-                  {/* Conteúdo dos Logs */}
-                  <div className="space-y-6 relative z-10 pb-8">
-                    <AnimatePresence mode="popLayout">
-                      {activities.length > 0 ? (
-                        activities.map((log, idx) => {
-                          const isCreate = log.type === "create";
-                          const isDelete = log.type === "delete";
-                          const isMove = log.type === "move";
-
-                          let LogIcon = Activity;
-                          let iconColor = "text-blue-400";
-                          let borderColor = "border-blue-500/20";
-                          let glowColor =
-                            "group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]";
-
-                          if (isCreate) {
-                            LogIcon = Plus;
-                            iconColor = "text-emerald-400";
-                            borderColor = "border-emerald-500/20";
-                            glowColor =
-                              "group-hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]";
-                          } else if (isDelete) {
-                            LogIcon = Trash2;
-                            iconColor = "text-red-400";
-                            borderColor = "border-red-500/20";
-                            glowColor =
-                              "group-hover:shadow-[0_0_15px_rgba(239,68,68,0.2)]";
-                          } else if (isMove) {
-                            LogIcon = LayoutPanelLeft;
-                            iconColor = "text-purple-400";
-                            borderColor = "border-purple-500/20";
-                            glowColor =
-                              "group-hover:shadow-[0_0_15px_rgba(168,85,247,0.2)]";
-                          }
-
-                          return (
-                            <motion.div
-                              key={log.id}
-                              layout
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, scale: 0.9 }}
-                              transition={{ duration: 0.3, delay: idx * 0.05 }}
-                              className="relative pl-12 group"
-                            >
-                              {/* ÍCONE EXATAMENTE NO CENTRO DA LINHA */}
-                              <div
-                                className={`absolute left-0 top-0 w-8 h-8 rounded-xl border flex items-center justify-center bg-[#050505] transition-all duration-300 group-hover:scale-110 ${borderColor} ${glowColor} z-10`}
-                              >
-                                <LogIcon size={14} className={iconColor} />
-                              </div>
-
-                              {/* CAIXA DE CONTEÚDO */}
-                              <motion.div className="flex flex-col bg-white/[0.01] border border-white/[0.02] rounded-2xl p-4 group-hover:bg-white/[0.03] group-hover:border-white/[0.06] transition-all duration-300">
-                                <div className="flex items-center gap-3 mb-2">
-                                  {log.userPhoto ? (
-                                    <img
-                                      src={log.userPhoto}
-                                      alt=""
-                                      className="w-5 h-5 rounded-full grayscale group-hover:grayscale-0 transition-all border border-white/10"
-                                    />
-                                  ) : (
-                                    <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center border border-white/10">
-                                      <User
-                                        size={10}
-                                        className="text-zinc-400"
-                                      />
-                                    </div>
-                                  )}
-                                  <span className="text-[12px] text-zinc-200 font-bold tracking-wide">
-                                    {log.userName}
-                                  </span>
-                                  <div className="w-1 h-1 rounded-full bg-zinc-700" />
-                                  <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
-                                    {formatTime(log.timestamp)}
-                                  </span>
-                                </div>
-
-                                <div className="text-[13px] text-zinc-400 leading-relaxed pl-3 border-l-2 border-white/5 ml-1 mt-1 group-hover:border-indigo-500/30 transition-colors">
-                                  {log.content}
-                                </div>
-                              </motion.div>
-                            </motion.div>
-                          );
-                        })
-                      ) : (
-                        <div className="flex flex-col items-center justify-center py-10 opacity-30">
-                          <Activity size={32} className="mb-4 text-zinc-600" />
-                          <span className="text-[10px] uppercase tracking-[0.3em] font-black">
-                            Nenhuma atividade recente
+                    <AnimatePresence mode="wait">
+                      {criticalTasks.length > 0 ? (
+                        <motion.div
+                          key="critical-alert"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-full"
+                        >
+                          <AlertTriangle size={12} className="text-red-500" />
+                          <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">
+                            {criticalTasks.length} {criticalTasks.length === 1 ? "Crítica" : "Críticas"}
                           </span>
-                        </div>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="live-data"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="flex items-center gap-2"
+                        >
+                          <motion.div
+                            animate={{ opacity: [0.4, 1, 0.4], scale: [0.9, 1.1, 0.9] }}
+                            transition={{
+                              duration: 2,
+                              repeat: Infinity,
+                              ease: "easeInOut",
+                            }}
+                            className="w-1.5 h-1.5 rounded-full bg-indigo-500"
+                          />
+                          <span className="text-[9px] font-mono text-indigo-500/50 uppercase italic">
+                            Live Data
+                          </span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  
+                  <Link 
+                    href="/quadros"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-indigo-400 bg-indigo-500/5 border border-indigo-500/10 hover:bg-indigo-500/10 transition-colors uppercase tracking-widest"
+                  >
+                    Ver Kanban <ChevronRight size={12} />
+                  </Link>
+                </div>
+
+                {/* Sub-cabeçalho de Filtros e Pesquisa */}
+                <div className="px-6 py-3 border-b border-white/[0.02] bg-[#050505]/30 flex items-center justify-between relative z-50 shrink-0">
+                  <div className="relative flex-1 max-w-sm flex items-center group">
+                    <Search
+                      size={14}
+                      className="absolute left-3 text-zinc-600 group-focus-within:text-indigo-400 transition-colors"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Pesquisar tarefas..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-transparent border-none text-[11px] text-zinc-300 pl-9 pr-4 py-1.5 outline-none placeholder:text-zinc-600 focus:ring-0"
+                    />
+                  </div>
+
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsFilterOpen(!isFilterOpen);
+                      }}
+                      className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors rounded-lg ${hasActiveFilters ? "text-indigo-400 bg-indigo-500/10" : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"}`}
+                    >
+                      <Filter size={12} /> Filtros{" "}
+                      {hasActiveFilters && (
+                        <span className="ml-1 w-2 h-2 rounded-full bg-indigo-500" />
+                      )}
+                    </button>
+
+                    <AnimatePresence>
+                      {isFilterOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute top-full mt-2 right-0 w-64 bg-[#0A0A0A]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-4 z-[60] flex flex-col gap-4"
+                        >
+                          <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                            <span className="text-xs font-bold text-white">
+                              Filtrar Tarefas
+                            </span>
+                            {hasActiveFilters && (
+                              <button
+                                onClick={clearFilters}
+                                className="text-[10px] text-zinc-500 hover:text-red-400 transition-colors font-bold uppercase"
+                              >
+                                Limpar
+                              </button>
+                            )}
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2 block">
+                              Prioridade
+                            </span>
+                            <div className="flex flex-wrap gap-2">
+                              {["low", "medium", "high", "critical"].map((p) => (
+                                <button
+                                  key={p}
+                                  onClick={() => togglePriorityFilter(p)}
+                                  className={`px-2 py-1 text-[10px] font-bold uppercase rounded border transition-colors ${selectedPriorities.includes(p) ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30" : "bg-transparent text-zinc-500 border-white/10 hover:border-white/20"}`}
+                                >
+                                  {p}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2 block">
+                              Responsável
+                            </span>
+                            <div className="flex flex-col gap-1 max-h-32 overflow-y-auto custom-scrollbar">
+                              {activeProject?.members?.map((m: any) => (
+                                <button
+                                  key={m.email || m.name}
+                                  onClick={() => toggleAssigneeFilter(m.name)}
+                                  className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-white/5 transition-colors group"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <img
+                                      src={
+                                        m.photoURL ||
+                                        `https://ui-avatars.com/api/?name=${m.name}`
+                                      }
+                                      className="w-5 h-5 rounded-full"
+                                      alt=""
+                                    />
+                                    <span
+                                      className={`text-[11px] ${selectedAssignees.includes(m.name) ? "text-indigo-400 font-bold" : "text-zinc-400 group-hover:text-white"}`}
+                                    >
+                                      {m.name}
+                                    </span>
+                                  </div>
+                                  {selectedAssignees.includes(m.name) && (
+                                    <Check size={12} className="text-indigo-400" />
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </motion.div>
                       )}
                     </AnimatePresence>
                   </div>
                 </div>
-              </div>
 
-              {/* Fade out na parte inferior do scroll */}
-              <div className="h-12 bg-gradient-to-t from-[#080808] to-transparent absolute bottom-0 left-0 right-0 pointer-events-none z-10" />
-            </motion.div>
+                {/* Lista de Tarefas - CARDS MAIS ATRATIVOS */}
+                <div className="p-6 overflow-y-auto flex-1 custom-scrollbar bg-[#050505]/50 relative z-10">
+                  <div className="space-y-4">
+                    <AnimatePresence mode="popLayout">
+                      {filteredTasks.length > 0 ? (
+                        filteredTasks.map((task, idx) => {
+                          const priorityColors: Record<string, any> = {
+                            critical: { bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/20", line: "bg-red-500" },
+                            high: { bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/20", line: "bg-orange-500" },
+                            medium: { bg: "bg-yellow-500/10", text: "text-yellow-400", border: "border-yellow-500/20", line: "bg-yellow-500" },
+                            low: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20", line: "bg-emerald-500" },
+                            default: { bg: "bg-zinc-800/30", text: "text-zinc-400", border: "border-zinc-700/30", line: "bg-zinc-600" },
+                          };
+                          const pStyle = priorityColors[task.priority?.toLowerCase() || "default"];
+
+                          return (
+                            <motion.div
+                              key={task.id}
+                              layout
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              transition={{ duration: 0.3, delay: idx * 0.05 }}
+                              className="group relative bg-[#0A0A0A] border border-white/[0.05] hover:border-white/[0.1] rounded-[1.2rem] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-300 shadow-sm hover:shadow-xl cursor-pointer"
+                            >
+                              {/* Barra de destaque lateral da prioridade */}
+                              <div className={`absolute left-0 top-0 bottom-0 w-1 ${pStyle.line} opacity-40 group-hover:opacity-100 transition-opacity duration-300 rounded-l-[1.2rem]`} />
+
+                              <div className="flex items-center gap-4 pl-3">
+                                <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 transition-colors ${pStyle.bg} ${pStyle.border}`}>
+                                  <CheckSquare size={16} className={pStyle.text} />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-mono text-zinc-500 tracking-widest">{task.taskKey}</span>
+                                    <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${pStyle.bg} ${pStyle.border} ${pStyle.text}`}>
+                                      {task.priority || "Normal"}
+                                    </span>
+                                  </div>
+                                  <span className="text-[13px] font-bold text-zinc-200 group-hover:text-white transition-colors line-clamp-1">
+                                    {task.title}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-5 sm:pl-0 pl-[3.25rem]">
+                                {/* Epic */}
+                                {task.epic && (
+                                  <span className="hidden md:inline-flex text-[9px] font-black uppercase tracking-widest px-2 py-1 bg-white/[0.03] text-zinc-400 rounded-md border border-white/5 truncate max-w-[80px]">
+                                    {task.epic}
+                                  </span>
+                                )}
+
+                                {/* Points */}
+                                <div className="w-8 flex justify-center">
+                                  <span className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-bold border ${task.points ? "bg-zinc-800/50 text-zinc-400 border-zinc-700" : "bg-transparent border-dashed border-zinc-700 text-zinc-600"}`}>
+                                    {task.points || "-"}
+                                  </span>
+                                </div>
+
+                                {/* Avatar */}
+                                <div className="flex items-center">
+                                  <img
+                                    src={task.assigneePhoto || `https://ui-avatars.com/api/?name=${task.assignee || "U"}&background=0D0D0D&color=fff`}
+                                    className="w-7 h-7 rounded-full border border-white/10 grayscale group-hover:grayscale-0 transition-all object-cover"
+                                    alt=""
+                                    title={task.assignee}
+                                  />
+                                </div>
+                                
+                                <div className="text-zinc-600 group-hover:text-white transition-colors">
+                                  <MoreHorizontal size={16} />
+                                </div>
+                              </div>
+                            </motion.div>
+                          );
+                        })
+                      ) : (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="h-full flex flex-col items-center justify-center opacity-50 space-y-4 py-20"
+                        >
+                          <CheckSquare size={32} className="text-zinc-800" />
+                          <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold text-center">
+                            {hasActiveFilters ? "Nenhuma tarefa encontrada para os filtros." : "Sem tarefas ativas"}
+                          </span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
+            <div className="lg:col-span-4 flex flex-col gap-8">
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4, type: "spring" }}
+                whileHover={{ scale: 1.01 }}
+                className="bg-[#080808] border border-[#5865F2]/20 rounded-[2rem] p-6 flex flex-col relative overflow-hidden group shadow-[inset_0_2px_20px_rgba(88,101,242,0.05)]"
+              >
+                <motion.div
+                  animate={{
+                    scale: [1, 1.2, 1],
+                    opacity: [0.1, 0.2, 0.1],
+                    rotate: [0, 10, 0],
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    ease: "easeInOut",
+                  }}
+                  className="absolute -top-10 -right-10 w-40 h-40 bg-[#5865F2] rounded-full blur-[80px] pointer-events-none"
+                />
+
+                <div className="flex justify-between items-start mb-4 z-10">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-[#5865F2]/10 flex items-center justify-center border border-[#5865F2]/30 group-hover:border-[#5865F2]/60 transition-colors">
+                      <MessageSquare size={20} className="text-[#5865F2]" />
+                    </div>
+                    <div>
+                      <h3 className="text-[11px] font-black text-zinc-300 uppercase tracking-[0.1em]">
+                        Bot do Discord
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <motion.div
+                          animate={{
+                            boxShadow: [
+                              "0 0 0px rgba(16,185,129,0.4)",
+                              "0 0 10px rgba(16,185,129,0.8)",
+                              "0 0 0px rgba(16,185,129,0.4)",
+                            ],
+                          }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                          className="w-1.5 h-1.5 rounded-full bg-emerald-500"
+                        />
+                        <span className="text-[9px] font-mono text-emerald-500/90 uppercase tracking-widest">
+                          Online
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-zinc-600">
+                    24ms
+                  </span>
+                </div>
+                <p className="text-[12px] text-zinc-400 z-10 leading-relaxed">
+                  Sincronização de tarefas e logs de eventos ativas no servidor.
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="bg-[#080808] border border-white/[0.03] rounded-[2rem] flex flex-col flex-1 min-h-[460px] max-h-[550px] overflow-hidden relative"
+              >
+                <div className="p-6 md:p-8 border-b border-white/[0.02] bg-black/40 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md">
+                  <h3 className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em]">
+                    Histórico de Logs
+                  </h3>
+                  <div className="flex items-center gap-2 px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/20">
+                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    <span className="text-[9px] font-mono text-indigo-400 uppercase tracking-widest">
+                      Live
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1 bg-[#050505]/30 relative z-0">
+                  <div className="relative">
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: "100%" }}
+                      transition={{ duration: 1.5, ease: "easeInOut" }}
+                      className="absolute top-2 bottom-0 left-[15px] w-[2px] bg-gradient-to-b from-indigo-500/50 via-zinc-800/40 to-transparent"
+                    >
+                      <motion.div
+                        animate={{ top: ["0%", "100%"], opacity: [0, 1, 1, 0] }}
+                        transition={{
+                          duration: 3.5,
+                          repeat: Infinity,
+                          ease: "linear",
+                        }}
+                        className="absolute left-1/2 -translate-x-1/2 w-[3px] h-16 bg-indigo-400 rounded-full blur-[2px] shadow-[0_0_15px_rgba(99,102,241,0.8)]"
+                      />
+                    </motion.div>
+
+                    <div className="space-y-6 relative z-10 pb-8">
+                      <AnimatePresence mode="popLayout">
+                        {activities.length > 0 ? (
+                          activities.map((log, idx) => {
+                            const isCreate = log.type === "create";
+                            const isDelete = log.type === "delete";
+                            const isMove = log.type === "move";
+
+                            let LogIcon = Activity;
+                            let iconColor = "text-blue-400";
+                            let borderColor = "border-blue-500/20";
+                            let glowColor =
+                              "group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]";
+
+                            if (isCreate) {
+                              LogIcon = Plus;
+                              iconColor = "text-emerald-400";
+                              borderColor = "border-emerald-500/20";
+                              glowColor =
+                                "group-hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]";
+                            } else if (isDelete) {
+                              LogIcon = Trash2;
+                              iconColor = "text-red-400";
+                              borderColor = "border-red-500/20";
+                              glowColor =
+                                "group-hover:shadow-[0_0_15px_rgba(239,68,68,0.2)]";
+                            } else if (isMove) {
+                              LogIcon = LayoutPanelLeft;
+                              iconColor = "text-purple-400";
+                              borderColor = "border-purple-500/20";
+                              glowColor =
+                                "group-hover:shadow-[0_0_15px_rgba(168,85,247,0.2)]";
+                            }
+
+                            return (
+                              <motion.div
+                                key={log.id}
+                                layout
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                transition={{ duration: 0.3, delay: idx * 0.05 }}
+                                className="relative pl-12 group"
+                              >
+                                <div
+                                  className={`absolute left-0 top-0 w-8 h-8 rounded-xl border flex items-center justify-center bg-[#050505] transition-all duration-300 group-hover:scale-110 ${borderColor} ${glowColor} z-10`}
+                                >
+                                  <LogIcon size={14} className={iconColor} />
+                                </div>
+
+                                <motion.div className="flex flex-col bg-white/[0.01] border border-white/[0.02] rounded-2xl p-4 group-hover:bg-white/[0.03] group-hover:border-white/[0.06] transition-all duration-300">
+                                  <div className="flex items-center gap-3 mb-2">
+                                    {log.userPhoto ? (
+                                      <img
+                                        src={log.userPhoto}
+                                        alt=""
+                                        className="w-5 h-5 rounded-full grayscale group-hover:grayscale-0 transition-all border border-white/10"
+                                      />
+                                    ) : (
+                                      <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center border border-white/10">
+                                        <User
+                                          size={10}
+                                          className="text-zinc-400"
+                                        />
+                                      </div>
+                                    )}
+                                    <span className="text-[12px] text-zinc-200 font-bold tracking-wide">
+                                      {log.userName}
+                                    </span>
+                                    <div className="w-1 h-1 rounded-full bg-zinc-700" />
+                                    <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
+                                      {formatTime(log.timestamp)}
+                                    </span>
+                                  </div>
+
+                                  <div className="text-[13px] text-zinc-400 leading-relaxed pl-3 border-l-2 border-white/5 ml-1 mt-1 group-hover:border-indigo-500/30 transition-colors">
+                                    {log.content}
+                                  </div>
+                                </motion.div>
+                              </motion.div>
+                            );
+                          })
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-10 opacity-30">
+                            <Activity size={32} className="mb-4 text-zinc-600" />
+                            <span className="text-[10px] uppercase tracking-[0.3em] font-black">
+                              Nenhuma atividade recente
+                            </span>
+                          </div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-12 bg-gradient-to-t from-[#080808] to-transparent absolute bottom-0 left-0 right-0 pointer-events-none z-10" />
+              </motion.div>
+            </div>
           </div>
         </div>
       </div>
@@ -598,54 +718,5 @@ export default function DashboardPage() {
         onClose={() => setIsProjectModalOpen(false)}
       />
     </motion.main>
-  );
-}
-
-function QuickAction({
-  icon,
-  label,
-  href,
-  color,
-  delay = 0,
-}: {
-  icon: any;
-  label: string;
-  href: string;
-  color: "cyan" | "indigo" | "orange";
-  delay?: number;
-}) {
-  const themes = {
-    cyan: "text-cyan-400 border-cyan-400/30 bg-cyan-400/[0.05] shadow-[0_0_15px_rgba(34,211,238,0.05)] group-hover:bg-cyan-400/[0.15] group-hover:border-cyan-400/60 group-hover:shadow-[0_0_25px_rgba(34,211,238,0.2)]",
-    indigo:
-      "text-indigo-400 border-indigo-400/30 bg-indigo-400/[0.05] shadow-[0_0_15px_rgba(99,102,241,0.05)] group-hover:bg-indigo-400/[0.15] group-hover:border-indigo-400/60 group-hover:shadow-[0_0_25px_rgba(99,102,241,0.2)]",
-    orange:
-      "text-orange-400 border-orange-400/30 bg-orange-400/[0.05] shadow-[0_0_15px_rgba(249,115,22,0.05)] group-hover:bg-orange-400/[0.15] group-hover:border-orange-400/60 group-hover:shadow-[0_0_25px_rgba(249,115,22,0.2)]",
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay, type: "spring" }}
-    >
-      <Link
-        href={href}
-        className="flex flex-col items-center gap-4 group px-6 py-4 transition-all"
-      >
-        <motion.div
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          whileTap={{ scale: 0.9 }}
-          className={`
-          w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300
-          border ${themes[color]}
-        `}
-        >
-          <div>{icon}</div>
-        </motion.div>
-        <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] group-hover:text-zinc-200 transition-colors">
-          {label}
-        </span>
-      </Link>
-    </motion.div>
   );
 }

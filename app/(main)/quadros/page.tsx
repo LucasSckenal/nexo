@@ -61,7 +61,6 @@ const KANBAN_COLUMNS = [
   },
 ];
 
-// Helper para calcular dias restantes da Sprint
 const getDaysRemaining = (endDate: any) => {
   if (!endDate) return null;
   const end = endDate.seconds
@@ -175,7 +174,6 @@ export default function QuadrosPage() {
 
   if (!activeProject) return null;
 
-  // Cálculos de Progresso da Sprint
   const totalSprintTasks = tasks.length;
   const completedSprintTasks = tasks.filter((t) => t.status === "done").length;
   const sprintProgress =
@@ -187,8 +185,7 @@ export default function QuadrosPage() {
     <main className="flex-1 flex flex-col h-full bg-[#050505] relative overflow-hidden">
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/5 blur-[120px] rounded-full pointer-events-none" />
 
-      {/* --- HEADER MELHORADO --- */}
-      <header className="h-28 shrink-0 border-b border-white/[0.04] bg-[#050505]/80 backdrop-blur-xl px-10 flex items-center justify-between z-20">
+      <header className="shrink-0 border-b border-white/[0.08] bg-[#050505]/80 backdrop-blur-xl px-6 lg:px-10 py-6 flex flex-col md:flex-row md:items-end justify-between gap-6 z-20">
         <div className="flex items-center gap-10">
           <div className="space-y-3">
             <div className="flex items-center gap-3">
@@ -208,12 +205,11 @@ export default function QuadrosPage() {
             </div>
 
             <div className="flex items-end gap-6">
-              <h1 className="text-2xl font-black text-white tracking-tighter leading-none">
+              <h1 className="text-4xl font-black text-white tracking-tighter leading-none">
                 {activeSprint?.name || "Quadro Kanban"}
               </h1>
 
-              {/* Barra de Progresso da Sprint */}
-              <div className="flex items-center gap-3 bg-white/[0.02] border border-white/[0.05] rounded-xl px-4 py-1.5">
+              <div className="flex items-center gap-3 bg-white/[0.02] border border-white/[0.05] rounded-xl px-4 py-1.5 mb-1">
                 <div className="flex flex-col gap-1.5">
                   <div className="flex justify-between items-center w-32">
                     <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">
@@ -240,14 +236,13 @@ export default function QuadrosPage() {
           </div>
         </div>
 
-        <button className="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black px-6 py-3 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20">
+        <button className="px-5 py-2 rounded-xl bg-indigo-600 text-[11px] font-black text-white hover:bg-indigo-500 transition-colors shadow-[0_0_20px_rgba(79,70,229,0.3)] flex items-center gap-2 mb-1">
           <Plus size={16} strokeWidth={3} />
           NOVA TAREFA
         </button>
       </header>
 
-      {/* --- KANBAN BOARD --- */}
-      <div className="flex-1 overflow-x-auto flex p-8 gap-0 w-full justify-between custom-scrollbar relative z-10">
+      <div className="flex-1 overflow-x-auto flex px-6 lg:px-10 py-8 gap-0 w-full justify-between custom-scrollbar relative z-10">
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center">
             <Loader2 className="animate-spin text-indigo-500" />
@@ -256,7 +251,7 @@ export default function QuadrosPage() {
           KANBAN_COLUMNS.map((column, idx) => (
             <React.Fragment key={column.id}>
               <div
-                className={`flex flex-col flex-1 min-w-[280px] max-w-[320px] px-4 transition-all duration-500 ${isOverColumn === column.id ? "bg-white/[0.01]" : ""}`}
+                className={`flex flex-col flex-1 min-w-[280px] max-w-[320px] px-4 transition-all duration-500 ${isOverColumn === column.id ? "bg-white/[0.02] rounded-3xl" : ""}`}
                 onDragOver={(e) => {
                   e.preventDefault();
                   setIsOverColumn(column.id);
@@ -302,7 +297,7 @@ export default function QuadrosPage() {
                               e.dataTransfer.setData("taskId", task.id)
                             }
                             onClick={() => setSelectedTask(task)}
-                            className="group bg-[#080808]/80 border border-white/[0.05] hover:border-indigo-500/30 p-5 rounded-[1.8rem] cursor-grab active:cursor-grabbing transition-all duration-300 shadow-sm hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+                            className="group bg-[#0A0A0A] border border-white/[0.1] hover:border-indigo-500/50 p-5 rounded-[1.8rem] cursor-grab active:cursor-grabbing transition-all duration-300 shadow-md hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
                           >
                             <div className="flex items-center justify-between mb-4">
                               <span className="text-[9px] font-bold text-zinc-600 tracking-widest">
@@ -319,7 +314,6 @@ export default function QuadrosPage() {
                               {task.title}
                             </h4>
 
-                            {/* --- BADGE DE BRANCH --- */}
                             {task.branch && (
                               <div className="mb-4">
                                 <div className="inline-flex items-center gap-1.5 bg-indigo-500/5 border border-indigo-500/20 px-2 py-1 rounded-md text-indigo-400">
@@ -386,7 +380,7 @@ export default function QuadrosPage() {
               </div>
 
               {idx < KANBAN_COLUMNS.length - 1 && (
-                <div className="w-px h-full bg-gradient-to-b from-transparent via-white/[0.03] to-transparent shrink-0" />
+                <div className="w-px h-full bg-gradient-to-b from-transparent via-white/[0.1] to-transparent shrink-0" />
               )}
             </React.Fragment>
           ))
