@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { doc, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  updateDoc,
+  collection,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { db, auth } from "../../lib/firebase";
 import { useData } from "../../context/DataContext";
 import {
@@ -33,7 +39,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Emojis Curados para o Kanban
 const KANBAN_EMOJIS = [
   "📝",
   "📌",
@@ -53,18 +58,39 @@ const KANBAN_EMOJIS = [
   "⚡",
 ];
 
-// Colunas padrão com Emojis
 const DEFAULT_COLUMNS = [
-  { id: "todo", title: "A Fazer", color: "zinc", limit: 0, emoji: "📝" },
+  {
+    id: "todo",
+    title: "A Fazer",
+    color: "zinc",
+    limit: 0,
+    emoji: "📝",
+    bannerUrl: "",
+  },
   {
     id: "in-progress",
     title: "Em Curso",
     color: "indigo",
     limit: 4,
     emoji: "🚀",
+    bannerUrl: "",
   },
-  { id: "review", title: "Revisão", color: "purple", limit: 3, emoji: "👀" },
-  { id: "done", title: "Concluído", color: "emerald", limit: 0, emoji: "✅" },
+  {
+    id: "review",
+    title: "Revisão",
+    color: "purple",
+    limit: 3,
+    emoji: "👀",
+    bannerUrl: "",
+  },
+  {
+    id: "done",
+    title: "Concluído",
+    color: "emerald",
+    limit: 0,
+    emoji: "✅",
+    bannerUrl: "",
+  },
 ];
 
 const AVAILABLE_COLORS = [
@@ -80,7 +106,7 @@ const AVAILABLE_COLORS = [
 export default function SettingsPage() {
   const { activeProject } = useData();
   const [activeTab, setActiveTab] = useState<
-    "general" | "members" | "integrations" | "board"
+    "general" | "board" | "members" | "integrations"
   >("general");
 
   const [isSaving, setIsSaving] = useState(false);
@@ -98,21 +124,16 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
-  // Campos - Identidade do Projeto
   const [projectName, setProjectName] = useState("");
   const [projectKey, setProjectKey] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
-
-  // Ícone Figma-like (Emoji ou Imagem)
   const [iconType, setIconType] = useState<"image" | "emoji">("image");
   const [projectEmoji, setProjectEmoji] = useState("✨");
 
-  // Integrações e Quadro
   const [githubRepo, setGithubRepo] = useState("");
   const [githubToken, setGithubToken] = useState("");
   const [boardColumns, setBoardColumns] = useState<any[]>([]);
 
-  // Estados de UI do Quadro
   const [activeEmojiDropdown, setActiveEmojiDropdown] = useState<number | null>(
     null,
   );
@@ -120,7 +141,6 @@ export default function SettingsPage() {
     number | null
   >(null);
 
-  // Membros
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
@@ -132,7 +152,6 @@ export default function SettingsPage() {
       ? `${window.location.origin}/convite/${activeProject.id}`
       : "";
 
-  // Fechar dropdown de emojis ao clicar fora
   useEffect(() => {
     const handleClickOutside = () => setActiveEmojiDropdown(null);
     document.addEventListener("click", handleClickOutside);
@@ -191,6 +210,7 @@ export default function SettingsPage() {
   };
 
   const handleDiscard = () => {
+    if (!activeProject) return;
     setProjectName(activeProject.name || "");
     setProjectKey(activeProject.key || "");
     setProjectDescription(activeProject.description || "");
@@ -205,7 +225,7 @@ export default function SettingsPage() {
   };
 
   const handleSave = async () => {
-    if (!projectName.trim() || !projectKey.trim()) return;
+    if (!projectName.trim() || !projectKey.trim() || !activeProject) return;
     setIsSaving(true);
     setSyncStatus("saving");
     const cleanRepoSlug = githubRepo
@@ -236,10 +256,9 @@ export default function SettingsPage() {
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !activeProject) return;
     if (file.size > 2000000) {
       showToast("Máximo de 2MB para a imagem.", "error");
-      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
     setIsUploadingLogo(true);
@@ -251,7 +270,7 @@ export default function SettingsPage() {
           iconType: "image",
         });
         setIconType("image");
-        showToast("Logótipo atualizado com sucesso!");
+        showToast("Logótipo atualizado!");
       } catch (error) {
         showToast("Erro ao atualizar o logótipo.", "error");
       } finally {
@@ -262,19 +281,23 @@ export default function SettingsPage() {
     reader.readAsDataURL(file);
   };
 
+  // AQUI ESTÁ A CORREÇÃO MÁGICA PARA O BANNER ATIVAR O BOTÃO DE SALVAR!
   const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || uploadingBannerIndex === null) return;
     if (file.size > 2000000) {
-      showToast("Máximo de 2MB para o banner.", "error");
-      if (bannerInputRef.current) bannerInputRef.current.value = "";
+      showToast("O banner deve ter menos de 2MB.", "error");
       return;
     }
 
     const reader = new FileReader();
     reader.onloadend = () => {
       const newCols = [...boardColumns];
-      newCols[uploadingBannerIndex].bannerUrl = reader.result as string;
+      // Criar uma cópia profunda da coluna para forçar o React a ver a mudança
+      newCols[uploadingBannerIndex] = {
+        ...newCols[uploadingBannerIndex],
+        bannerUrl: reader.result as string,
+      };
       setBoardColumns(newCols);
       setUploadingBannerIndex(null);
       if (bannerInputRef.current) bannerInputRef.current.value = "";
@@ -282,27 +305,9 @@ export default function SettingsPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleDisconnectGithub = async () => {
-    if (!confirm("Tem a certeza que deseja desconectar o GitHub?")) return;
-    setIsSaving(true);
-    try {
-      await updateDoc(doc(db, "projects", activeProject.id), {
-        githubRepo: "",
-        githubToken: "",
-      });
-      setGithubRepo("");
-      setGithubToken("");
-      showToast("Integração do GitHub removida.");
-    } catch (error) {
-      showToast("Erro ao desconectar GitHub.", "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleInviteMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inviteEmail.trim() || !inviteName.trim()) return;
+    if (!inviteEmail.trim() || !inviteName.trim() || !activeProject) return;
     setIsSaving(true);
     try {
       const currentMembers = activeProject.members || [];
@@ -336,7 +341,10 @@ export default function SettingsPage() {
   };
 
   const handleRemoveMember = async (emailToRemove: string) => {
-    if (!confirm("Tem certeza que deseja remover este membro da equipe?"))
+    if (
+      !activeProject ||
+      !confirm("Tem certeza que deseja remover este membro da equipe?")
+    )
       return;
     try {
       const updatedMembers = (activeProject.members || []).filter(
@@ -361,7 +369,6 @@ export default function SettingsPage() {
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  // Funções do Quadro Kanban
   const addColumn = () => {
     const newCol = {
       id: `col-${Date.now()}`,
@@ -373,17 +380,15 @@ export default function SettingsPage() {
     };
     setBoardColumns([...boardColumns, newCol]);
   };
-
   const updateColumn = (index: number, field: string, value: string) => {
     const newCols = [...boardColumns];
     newCols[index] = { ...newCols[index], [field]: value };
     setBoardColumns(newCols);
   };
-
   const removeColumn = (index: number) => {
     if (
       confirm(
-        "Tem a certeza que deseja remover esta coluna? As tarefas não serão apagadas, mas deixarão de aparecer.",
+        "Apagar coluna? As tarefas não serão apagadas, mas deixarão de aparecer.",
       )
     ) {
       const newCols = [...boardColumns];
@@ -391,7 +396,6 @@ export default function SettingsPage() {
       setBoardColumns(newCols);
     }
   };
-
   const moveColumn = (index: number, direction: "up" | "down") => {
     if (direction === "up" && index === 0) return;
     if (direction === "down" && index === boardColumns.length - 1) return;
@@ -403,10 +407,32 @@ export default function SettingsPage() {
     setBoardColumns(newCols);
   };
 
+  const handleDisconnectGithub = async () => {
+    if (
+      !activeProject ||
+      !confirm("Tem a certeza que deseja desconectar o GitHub?")
+    )
+      return;
+    setIsSaving(true);
+    try {
+      await updateDoc(doc(db, "projects", activeProject.id), {
+        githubRepo: "",
+        githubToken: "",
+      });
+      setGithubRepo("");
+      setGithubToken("");
+      showToast("Integração do GitHub removida.");
+    } catch (error) {
+      showToast("Erro ao desconectar GitHub.", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (!activeProject) return null;
 
   return (
-    <div className="min-h-full bg-[#050505] text-zinc-200 p-8 pb-32 relative custom-scrollbar w-full">
+    <div className="flex-1 flex flex-col h-full bg-[#050505] relative overflow-hidden">
       <AnimatePresence>
         {toast.show && (
           <motion.div
@@ -431,37 +457,48 @@ export default function SettingsPage() {
         )}
       </AnimatePresence>
 
-      <div className="w-full max-w-[1000px] mx-auto mb-10 pt-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-white tracking-tight mb-2">
-            Configurações do Projeto
-          </h1>
-          <p className="text-zinc-500 text-sm">
-            Gerencie o projeto{" "}
-            <strong className="text-white">{activeProject.name}</strong> e as
-            suas preferências.
-          </p>
-        </div>
-        <div
-          className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-bold transition-all shadow-sm shrink-0 ${syncStatus === "synced" && !isDirty ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : syncStatus === "saving" ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400" : "bg-white/[0.02] border-white/10 text-zinc-400"}`}
-        >
-          {syncStatus === "synced" && !isDirty && <Wifi size={14} />}
-          {syncStatus === "saving" && (
-            <Loader2 size={14} className="animate-spin" />
-          )}
-          {isDirty && syncStatus !== "saving" && (
-            <AlertTriangle size={14} className="text-amber-400" />
-          )}
-          {syncStatus === "saving"
-            ? "A guardar..."
-            : isDirty
-              ? "Alterações pendentes"
-              : "Sincronizado"}
-        </div>
-      </div>
+      {/* Luzes de Fundo (Glow Effect) */}
+      <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-purple-600/5 blur-[100px] rounded-full pointer-events-none" />
 
-      <div className="w-full max-w-[1000px] mx-auto flex flex-col md:flex-row gap-10">
-        <nav className="w-full md:w-56 shrink-0 flex flex-col gap-1.5">
+      {/* HEADER */}
+      <header className="shrink-0 border-b border-white/[0.08] bg-[#050505]/60 backdrop-blur-xl px-10 py-8 flex items-center justify-between z-20">
+        <div>
+          <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] uppercase tracking-[0.4em] mb-2">
+            <Settings size={12} />
+            <span>Project Settings</span>
+          </div>
+          <h1 className="text-4xl font-black text-white tracking-tighter">
+            Configurações
+          </h1>
+        </div>
+        <div className="flex items-center gap-4">
+          <div
+            className={`flex items-center gap-2 px-4 py-2 bg-white/[0.03] border border-white/[0.05] rounded-full ${syncStatus === "saving" ? "text-indigo-400" : isDirty ? "text-amber-400" : "text-zinc-400"}`}
+          >
+            {syncStatus === "synced" && !isDirty && (
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            )}
+            {syncStatus === "saving" && (
+              <Loader2 size={12} className="animate-spin" />
+            )}
+            {isDirty && syncStatus !== "saving" && (
+              <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            )}
+            <span className="text-[10px] font-bold uppercase tracking-widest">
+              {syncStatus === "saving"
+                ? "A guardar..."
+                : isDirty
+                  ? "Alterações pendentes"
+                  : "Sincronizado"}
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 flex overflow-hidden z-10">
+        {/* SIDEBAR DE NAVEGAÇÃO */}
+        <aside className="w-80 border-r border-white/[0.06] p-8 space-y-2 bg-black/20">
           <SidebarItem
             icon={<Globe size={18} />}
             label="Geral"
@@ -476,7 +513,7 @@ export default function SettingsPage() {
           />
           <SidebarItem
             icon={<Users size={18} />}
-            label="Equipa"
+            label="Membros e Equipa"
             isActive={activeTab === "members"}
             onClick={() => setActiveTab("members")}
           />
@@ -486,27 +523,23 @@ export default function SettingsPage() {
             isActive={activeTab === "integrations"}
             onClick={() => setActiveTab("integrations")}
           />
-        </nav>
+        </aside>
 
-        <div className="flex-1 space-y-8">
-          {/* ABA GERAL */}
-          {activeTab === "general" && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-8"
-            >
-              <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
-                <div className="p-8 border-b border-white/5">
-                  <h2 className="text-lg font-bold text-white mb-1">
+        {/* CONTEÚDO PRINCIPAL */}
+        <main className="flex-1 overflow-y-auto p-12 custom-scrollbar relative">
+          <div className="max-w-4xl space-y-12 pb-32">
+            {/* ABA GERAL */}
+            {activeTab === "general" && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-10"
+              >
+                <section className="bg-white/[0.02] border border-white/[0.05] rounded-[2.5rem] p-10 space-y-10">
+                  <h3 className="text-xl font-black text-white tracking-tight">
                     Identidade do Projeto
-                  </h2>
-                  <p className="text-sm text-zinc-500">
-                    O nome, a chave e o ícone são usados em toda a sua área de
-                    trabalho.
-                  </p>
-                </div>
-                <div className="p-8 space-y-10">
+                  </h3>
+
                   {/* SEÇÃO FIGMA-LIKE DO ÍCONE */}
                   <div className="flex items-center gap-8">
                     <input
@@ -517,7 +550,6 @@ export default function SettingsPage() {
                       accept="image/*"
                     />
 
-                    {/* Visualização do Avatar/Ícone */}
                     <div className="w-28 h-28 shrink-0 rounded-[2rem] flex items-center justify-center text-5xl font-black shadow-2xl relative overflow-hidden border-2 border-white/10 bg-[#121212]">
                       {isUploadingLogo ? (
                         <Loader2
@@ -545,38 +577,33 @@ export default function SettingsPage() {
                       )}
                     </div>
 
-                    {/* Controlos do Ícone (Imagem vs Emoji) */}
                     <div className="space-y-3 flex-1">
                       <div>
                         <h3 className="text-sm font-bold text-white mb-1">
                           Ícone Personalizado
                         </h3>
                         <p className="text-xs text-zinc-500 leading-relaxed max-w-sm">
-                          Escolha entre fazer upload de uma imagem quadrada
-                          (Máx. 2MB) ou usar um emoji elegante (Estilo Figma).
+                          Escolha entre fazer upload de uma imagem quadrada ou
+                          usar um emoji elegante.
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-3 bg-white/[0.02] p-1.5 rounded-xl border border-white/5 w-fit">
-                        {/* Botão de Imagem */}
+                      <div className="flex items-center gap-3 bg-white/[0.02] p-1.5 rounded-2xl border border-white/5 w-fit">
                         <button
                           onClick={() => {
-                            if (!activeProject.imageUrl) {
+                            if (!activeProject.imageUrl)
                               fileInputRef.current?.click();
-                            } else {
-                              setIconType("image");
-                            }
+                            else setIconType("image");
                           }}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${iconType === "image" ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shadow-sm" : "text-zinc-400 hover:bg-white/5 border border-transparent"}`}
+                          className={`flex items-center gap-2 px-4 py-2.5 rounded-[1rem] text-xs font-bold transition-all ${iconType === "image" ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shadow-sm" : "text-zinc-400 hover:bg-white/5 border border-transparent"}`}
                         >
                           <ImageIcon size={14} /> Imagem
                         </button>
 
                         <div className="w-px h-5 bg-white/10" />
 
-                        {/* Input de Emoji */}
                         <div
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all border ${iconType === "emoji" ? "bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-sm" : "text-zinc-400 border-transparent hover:bg-white/5 focus-within:border-white/20"}`}
+                          className={`flex items-center gap-2 px-3 py-2.5 rounded-[1rem] text-xs font-bold transition-all border ${iconType === "emoji" ? "bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-sm" : "text-zinc-400 border-transparent hover:bg-white/5 focus-within:border-white/20"}`}
                         >
                           <Smile
                             size={14}
@@ -600,31 +627,22 @@ export default function SettingsPage() {
                           />
                         </div>
                       </div>
-
-                      {iconType === "image" && (
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="text-[10px] uppercase tracking-widest font-bold text-zinc-500 hover:text-white transition-colors"
-                        >
-                          Fazer upload de nova imagem
-                        </button>
-                      )}
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-white/5">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
                         Nome do Projeto
                       </label>
                       <input
                         value={projectName}
                         onChange={(e) => setProjectName(e.target.value)}
-                        className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:border-indigo-500 outline-none transition-all"
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-sm text-white focus:border-indigo-500 outline-none transition-all"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
                         Chave (ID Base)
                       </label>
                       <input
@@ -633,276 +651,253 @@ export default function SettingsPage() {
                           setProjectKey(e.target.value.toUpperCase())
                         }
                         maxLength={5}
-                        className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-indigo-400 font-mono font-bold focus:border-indigo-500 outline-none transition-all uppercase"
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-sm text-indigo-400 font-mono font-bold focus:border-indigo-500 outline-none transition-all uppercase"
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
                       Descrição
                     </label>
                     <textarea
                       value={projectDescription}
                       onChange={(e) => setProjectDescription(e.target.value)}
                       rows={3}
-                      className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:border-indigo-500 outline-none transition-all resize-none custom-scrollbar"
+                      className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-sm text-white focus:border-indigo-500 outline-none transition-all resize-none custom-scrollbar"
                     />
                   </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
+                </section>
+              </motion.div>
+            )}
 
-          {/* ABA QUADRO KANBAN (COM BANNERS DESTACADOS) */}
-          {activeTab === "board" && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-[#0A0A0A] border border-white/5 rounded-3xl overflow-hidden shadow-2xl"
-            >
-              <div className="p-8 border-b border-white/5 flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-white mb-1">
-                    Capa das Colunas
-                  </h2>
-                  <p className="text-sm text-zinc-500">
-                    Faça o upload de banners ou selecione Emojis para o topo das
-                    colunas.
-                  </p>
-                </div>
-                <button
-                  onClick={addColumn}
-                  className="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2"
-                >
-                  <Plus size={16} /> Nova Coluna
-                </button>
-              </div>
+            {/* ABA QUADRO KANBAN (COM BANNERS DESTACADOS) */}
+            {activeTab === "board" && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-10"
+              >
+                <section className="bg-white/[0.02] border border-white/[0.05] rounded-[2.5rem] p-10 space-y-8">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-8">
+                    <div>
+                      <h3 className="text-xl font-black text-white tracking-tight mb-2">
+                        Capa das Colunas
+                      </h3>
+                      <p className="text-sm text-zinc-500">
+                        Faça o upload de banners ou selecione Emojis para o topo
+                        das colunas do Kanban.
+                      </p>
+                    </div>
+                    <button
+                      onClick={addColumn}
+                      className="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                    >
+                      <Plus size={16} /> Nova Coluna
+                    </button>
+                  </div>
 
-              {/* Input escondido para Banners */}
-              <input
-                type="file"
-                ref={bannerInputRef}
-                onChange={handleBannerUpload}
-                className="hidden"
-                accept="image/*"
-              />
+                  <input
+                    type="file"
+                    ref={bannerInputRef}
+                    onChange={handleBannerUpload}
+                    className="hidden"
+                    accept="image/*"
+                  />
 
-              <div className="p-8 space-y-6">
-                {boardColumns.map((col, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-[#050505] border border-white/5 rounded-2xl overflow-hidden group transition-all hover:border-white/20"
-                  >
-                    {/* ÁREA DE CAPA (BANNER) */}
-                    <div className="h-20 w-full relative bg-white/[0.02] border-b border-white/5 flex items-center justify-center overflow-hidden">
-                      {col.bannerUrl ? (
-                        <>
-                          <div
-                            className="absolute inset-0 bg-cover bg-center"
-                            style={{ backgroundImage: `url(${col.bannerUrl})` }}
-                          />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-sm">
+                  <div className="grid gap-6">
+                    {boardColumns.map((col, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-[#0D0D0F] border border-white/5 rounded-[2rem] overflow-hidden group transition-all hover:border-white/20"
+                      >
+                        {/* ÁREA DE CAPA (BANNER) */}
+                        <div className="h-28 w-full relative bg-white/[0.02] border-b border-white/5 flex items-center justify-center overflow-hidden">
+                          {col.bannerUrl ? (
+                            <>
+                              <div
+                                className="absolute inset-0 bg-cover bg-center"
+                                style={{
+                                  backgroundImage: `url(${col.bannerUrl})`,
+                                }}
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-sm">
+                                <button
+                                  onClick={() => {
+                                    setUploadingBannerIndex(idx);
+                                    bannerInputRef.current?.click();
+                                  }}
+                                  className="bg-white text-black px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg hover:bg-zinc-200"
+                                >
+                                  Alterar Capa
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    updateColumn(idx, "bannerUrl", "")
+                                  }
+                                  className="bg-red-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg hover:bg-red-600"
+                                >
+                                  Remover
+                                </button>
+                              </div>
+                            </>
+                          ) : (
                             <button
                               onClick={() => {
                                 setUploadingBannerIndex(idx);
                                 bannerInputRef.current?.click();
                               }}
-                              className="bg-white text-black px-4 py-2 rounded-lg text-xs font-bold shadow-lg"
+                              className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors text-xs font-bold"
                             >
-                              Alterar Capa
+                              <ImageIcon size={16} /> Adicionar Banner de Capa
+                            </button>
+                          )}
+                        </div>
+
+                        {/* CONTROLOS INFERIORES */}
+                        <div className="p-6 flex items-center gap-6">
+                          <div className="flex flex-col gap-1 text-zinc-600">
+                            <button
+                              type="button"
+                              onClick={() => moveColumn(idx, "up")}
+                              disabled={idx === 0}
+                              className="hover:text-white disabled:opacity-30 transition-colors p-1"
+                            >
+                              <ChevronUp size={16} />
                             </button>
                             <button
-                              onClick={() => updateColumn(idx, "bannerUrl", "")}
-                              className="bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg"
+                              type="button"
+                              onClick={() => moveColumn(idx, "down")}
+                              disabled={idx === boardColumns.length - 1}
+                              className="hover:text-white disabled:opacity-30 transition-colors p-1"
                             >
-                              Remover
+                              <ChevronDown size={16} />
                             </button>
                           </div>
-                        </>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setUploadingBannerIndex(idx);
-                            bannerInputRef.current?.click();
-                          }}
-                          className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors text-xs font-bold"
-                        >
-                          <ImageIcon size={16} /> Adicionar Banner de Capa
-                        </button>
-                      )}
-                    </div>
 
-                    {/* CONTROLOS INFERIORES */}
-                    <div className="p-4 flex items-center gap-4">
-                      <div className="flex flex-col gap-1 text-zinc-600">
-                        <button
-                          type="button"
-                          onClick={() => moveColumn(idx, "up")}
-                          disabled={idx === 0}
-                          className="hover:text-white disabled:opacity-30 transition-colors"
-                        >
-                          <ChevronUp size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveColumn(idx, "down")}
-                          disabled={idx === boardColumns.length - 1}
-                          className="hover:text-white disabled:opacity-30 transition-colors"
-                        >
-                          <ChevronDown size={16} />
-                        </button>
-                      </div>
-
-                      {/* EMOJI PICKER (Figma Style) */}
-                      <div className="shrink-0 relative">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveEmojiDropdown(
-                              activeEmojiDropdown === idx ? null : idx,
-                            );
-                          }}
-                          className="w-12 h-10 bg-white/5 rounded-xl text-center text-lg hover:bg-white/10 transition-colors border border-white/5"
-                        >
-                          {col.emoji || "✨"}
-                        </button>
-
-                        <AnimatePresence>
-                          {activeEmojiDropdown === idx && (
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                              animate={{ opacity: 1, scale: 1, y: 0 }}
-                              exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                              onClick={(e) => e.stopPropagation()}
-                              className="absolute top-full left-0 mt-2 bg-[#1A1A1E] border border-white/10 rounded-2xl p-3 shadow-2xl z-50 w-64 grid grid-cols-4 gap-2"
-                            >
-                              {KANBAN_EMOJIS.map((emoji) => (
-                                <button
-                                  key={emoji}
-                                  type="button"
-                                  onClick={() => {
-                                    updateColumn(idx, "emoji", emoji);
-                                    setActiveEmojiDropdown(null);
-                                  }}
-                                  className="w-12 h-12 flex items-center justify-center text-2xl hover:bg-white/10 rounded-xl transition-all hover:scale-110"
-                                >
-                                  {emoji}
-                                </button>
-                              ))}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-
-                      {/* NOME DA COLUNA */}
-                      <div className="flex-1">
-                        <input
-                          type="text"
-                          value={col.title}
-                          onChange={(e) =>
-                            updateColumn(idx, "title", e.target.value)
-                          }
-                          className="w-full bg-transparent text-sm text-white font-bold border-b border-transparent focus:border-indigo-500 outline-none transition-colors pb-1 h-10"
-                        />
-                      </div>
-
-                      {/* COR */}
-                      <div className="w-36 shrink-0 hidden md:block">
-                        <div className="flex items-center gap-1.5 h-10">
-                          {AVAILABLE_COLORS.slice(0, 5).map((colorOption) => (
+                          {/* EMOJI PICKER */}
+                          <div className="shrink-0 relative">
                             <button
-                              key={colorOption.name}
                               type="button"
-                              title={colorOption.label}
-                              onClick={() =>
-                                updateColumn(idx, "color", colorOption.name)
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveEmojiDropdown(
+                                  activeEmojiDropdown === idx ? null : idx,
+                                );
+                              }}
+                              className="w-14 h-14 bg-white/[0.03] border border-white/10 rounded-2xl text-center text-2xl hover:bg-white/10 transition-colors flex items-center justify-center"
+                            >
+                              {col.emoji || "✨"}
+                            </button>
+
+                            <AnimatePresence>
+                              {activeEmojiDropdown === idx && (
+                                <motion.div
+                                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="absolute top-full left-0 mt-3 bg-[#1A1A1E] border border-white/10 rounded-[1.5rem] p-4 shadow-2xl z-50 w-72 grid grid-cols-4 gap-2"
+                                >
+                                  {KANBAN_EMOJIS.map((emoji) => (
+                                    <button
+                                      key={emoji}
+                                      type="button"
+                                      onClick={() => {
+                                        updateColumn(idx, "emoji", emoji);
+                                        setActiveEmojiDropdown(null);
+                                      }}
+                                      className="w-12 h-12 flex items-center justify-center text-2xl hover:bg-white/10 rounded-xl transition-all hover:scale-110"
+                                    >
+                                      {emoji}
+                                    </button>
+                                  ))}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+
+                          <div className="flex-1">
+                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-2">
+                              Nome da Coluna
+                            </label>
+                            <input
+                              type="text"
+                              value={col.title}
+                              onChange={(e) =>
+                                updateColumn(idx, "title", e.target.value)
                               }
-                              className={`w-4 h-4 rounded-full ${colorOption.bg} border-2 transition-all ${col.color === colorOption.name ? "border-white scale-125 shadow-[0_0_8px_currentColor]" : "border-transparent opacity-40 hover:opacity-100"}`}
+                              className="w-full bg-transparent text-lg text-white font-bold border-b border-transparent focus:border-indigo-500 outline-none transition-colors pb-1"
                             />
-                          ))}
+                          </div>
+
+                          <div className="w-40 shrink-0 hidden md:block border-l border-white/5 pl-6">
+                            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">
+                              Cor Base
+                            </label>
+                            <div className="flex items-center gap-2">
+                              {AVAILABLE_COLORS.slice(0, 5).map(
+                                (colorOption) => (
+                                  <button
+                                    key={colorOption.name}
+                                    type="button"
+                                    title={colorOption.label}
+                                    onClick={() =>
+                                      updateColumn(
+                                        idx,
+                                        "color",
+                                        colorOption.name,
+                                      )
+                                    }
+                                    className={`w-5 h-5 rounded-full ${colorOption.bg} border-2 transition-all ${col.color === colorOption.name ? "border-white scale-125 shadow-[0_0_10px_currentColor]" : "border-transparent opacity-40 hover:opacity-100"}`}
+                                  />
+                                ),
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="pl-6 border-l border-white/5 flex items-center">
+                            <button
+                              onClick={() => removeColumn(idx)}
+                              className="text-zinc-600 hover:text-red-400 p-3 rounded-2xl hover:bg-red-400/10 transition-all"
+                              title="Apagar Coluna"
+                            >
+                              <Trash2 size={20} />
+                            </button>
+                          </div>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                </section>
+              </motion.div>
+            )}
 
-                      <div className="pl-4 border-l border-white/5 h-10 flex items-center">
-                        <button
-                          onClick={() => removeColumn(idx)}
-                          className="text-zinc-600 hover:text-red-400 p-2 rounded-lg hover:bg-red-400/10 transition-all"
-                          title="Apagar Coluna"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
+            {/* ABA MEMBROS */}
+            {activeTab === "members" && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-8"
+              >
+                <section className="bg-white/[0.02] border border-white/[0.05] p-10 rounded-[2.5rem] space-y-8">
+                  <div className="flex justify-between items-center border-b border-white/5 pb-8">
+                    <div>
+                      <h3 className="text-xl font-black text-white tracking-tight mb-2">
+                        Equipa do Projeto
+                      </h3>
+                      <p className="text-sm text-zinc-500">
+                        Gere quem tem acesso a este workspace.
+                      </p>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {/* ABA MEMBROS */}
-          {activeTab === "members" && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-[#0A0A0A] border border-white/5 rounded-3xl overflow-hidden shadow-2xl"
-            >
-              <div className="p-8 border-b border-white/5 flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-white mb-1">
-                    Membros do Projeto
-                  </h2>
-                  <p className="text-sm text-zinc-500">
-                    Gerencie acessos e convide novos colaboradores para a
-                    equipe.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsInviteModalOpen(true)}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20"
-                >
-                  <Plus size={16} strokeWidth={3} /> Convidar
-                </button>
-              </div>
-
-              <div className="p-8 space-y-8">
-                <div className="bg-[#050505] border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <h4 className="text-sm font-bold text-white mb-1 flex items-center gap-2">
-                      <LinkIcon size={16} className="text-indigo-400" /> Convite
-                      Rápido
-                    </h4>
-                    <p className="text-xs text-zinc-500">
-                      Envie este link para convidar membros diretamente.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 bg-[#0A0A0A] border border-white/10 rounded-xl p-1.5 w-full md:w-auto md:min-w-[300px]">
-                    <input
-                      type="text"
-                      readOnly
-                      value={inviteLink}
-                      className="flex-1 bg-transparent text-xs text-zinc-400 px-3 outline-none font-mono truncate"
-                    />
                     <button
-                      onClick={copyInviteLink}
-                      className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${copiedLink ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-zinc-300 hover:bg-white/10"}`}
+                      onClick={() => setIsInviteModalOpen(true)}
+                      className="bg-white text-black hover:bg-zinc-200 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 shadow-xl"
                     >
-                      {copiedLink ? <Check size={14} /> : <Copy size={14} />}{" "}
-                      {copiedLink ? "Copiado" : "Copiar"}
+                      <Plus size={16} strokeWidth={3} /> Convidar
                     </button>
                   </div>
-                </div>
 
-                <div className="border border-white/5 rounded-2xl overflow-hidden">
-                  <div className="bg-white/[0.02] grid grid-cols-12 gap-4 px-6 py-3 border-b border-white/5 text-[10px] font-black text-zinc-500 uppercase tracking-widest">
-                    <div className="col-span-6 md:col-span-5">Utilizador</div>
-                    <div className="col-span-3 hidden md:block">Status</div>
-                    <div className="col-span-4 md:col-span-3">Função</div>
-                    <div className="col-span-2 md:col-span-1 text-right">
-                      Ações
-                    </div>
-                  </div>
-                  <div className="divide-y divide-white/5">
+                  <div className="grid grid-cols-1 gap-4">
                     {(activeProject.members || []).map(
                       (member: any, idx: number) => {
                         const isUserOwner =
@@ -911,50 +906,44 @@ export default function SettingsPage() {
                         return (
                           <div
                             key={idx}
-                            className="grid grid-cols-12 gap-4 items-center px-6 py-4 hover:bg-white/[0.01] transition-colors"
+                            className="bg-[#0D0D0F] border border-white/5 p-6 rounded-[2rem] flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-white/10 transition-all"
                           >
-                            <div className="col-span-6 md:col-span-5 flex items-center gap-3">
-                              <img
-                                src={member.photoURL}
-                                alt=""
-                                className="w-8 h-8 rounded-full border border-white/10 object-cover"
-                              />
-                              <div className="truncate">
-                                <p className="text-sm font-bold text-white truncate">
+                            <div className="flex items-center gap-5">
+                              <div className="relative">
+                                <img
+                                  src={member.photoURL}
+                                  className="w-14 h-14 rounded-2xl object-cover"
+                                />
+                                {isAdmin && (
+                                  <div className="absolute -top-2 -right-2 bg-indigo-500 p-1 rounded-lg border-4 border-[#0D0D0F]">
+                                    <Crown size={10} className="text-white" />
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <h4 className="text-white font-bold">
                                   {member.name}
-                                </p>
-                                <p className="text-[11px] text-zinc-500 truncate">
+                                </h4>
+                                <p className="text-xs text-zinc-500">
                                   {member.email}
                                 </p>
                               </div>
                             </div>
-                            <div className="col-span-3 hidden md:flex items-center">
-                              <span className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />{" "}
-                                Ativo
-                              </span>
-                            </div>
-                            <div className="col-span-4 md:col-span-3">
-                              <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${isAdmin ? "bg-indigo-500/10 text-indigo-400" : "bg-white/5 text-zinc-400"}`}
+                            <div className="flex items-center gap-4 sm:ml-auto">
+                              <div
+                                className={`px-4 py-1.5 border rounded-xl text-[10px] font-black uppercase tracking-widest ${isAdmin ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400" : "bg-white/[0.03] border-white/[0.05] text-zinc-400"}`}
                               >
-                                {isAdmin && <Crown size={12} />}{" "}
                                 {isAdmin ? "Administrador" : "Membro"}
-                              </span>
-                            </div>
-                            <div className="col-span-2 md:col-span-1 flex justify-end">
-                              {!isUserOwner ? (
+                              </div>
+                              {!isUserOwner && (
                                 <button
                                   onClick={() =>
                                     handleRemoveMember(member.email)
                                   }
-                                  className="text-zinc-500 hover:text-red-400 hover:bg-red-400/10 p-2 rounded-lg transition-all"
-                                  title="Remover"
+                                  className="text-zinc-600 hover:text-red-500 p-2 rounded-xl hover:bg-red-500/10 transition-all"
                                 >
-                                  <LogOut size={16} />
+                                  <LogOut size={18} />
                                 </button>
-                              ) : (
-                                <div className="w-8" />
                               )}
                             </div>
                           </div>
@@ -962,145 +951,149 @@ export default function SettingsPage() {
                       },
                     )}
                   </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
+                </section>
+              </motion.div>
+            )}
 
-          {/* ABA INTEGRAÇÕES */}
-          {activeTab === "integrations" && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-[#0A0A0A] border border-white/5 rounded-3xl overflow-hidden shadow-2xl"
-            >
-              <div className="p-8 border-b border-white/5">
-                <h2 className="text-lg font-bold text-white mb-1">
-                  Integrações de Pipeline
-                </h2>
-                <p className="text-sm text-zinc-500">
-                  Conecte repositórios para visualizar commits e pull requests.
-                </p>
-              </div>
-              <div className="p-8">
-                <div
-                  className={`border rounded-3xl p-8 transition-all relative overflow-hidden ${activeProject.githubRepo ? "bg-indigo-500/5 border-indigo-500/20" : "bg-[#050505] border-white/10"}`}
-                >
-                  {activeProject.githubRepo && (
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
-                  )}
-                  <div className="flex items-center justify-between border-b border-white/5 pb-6 mb-6 relative z-10">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                        <Github className="text-white" size={32} />
+            {/* ABA INTEGRAÇÕES */}
+            {activeTab === "integrations" && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-8"
+              >
+                <section className="bg-white/[0.02] border border-white/[0.05] p-10 rounded-[2.5rem]">
+                  <div className="border-b border-white/5 pb-8 mb-8">
+                    <h3 className="text-xl font-black text-white tracking-tight mb-2">
+                      Integrações
+                    </h3>
+                    <p className="text-sm text-zinc-500">
+                      Conecte ferramentas externas para automatizar o seu fluxo.
+                    </p>
+                  </div>
+                  <div
+                    className={`border rounded-[2rem] p-8 transition-all relative overflow-hidden ${activeProject.githubRepo ? "bg-indigo-500/5 border-indigo-500/20" : "bg-[#0D0D0F] border-white/10"}`}
+                  >
+                    {activeProject.githubRepo && (
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
+                    )}
+
+                    <div className="flex items-center justify-between border-b border-white/5 pb-6 mb-6 relative z-10">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                          <Github className="text-white" size={28} />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-black text-white">
+                            GitHub
+                          </h3>
+                          <p className="text-xs text-zinc-400 mt-1">
+                            Sincronização de Código e Branches
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-xl font-black text-white">
-                          GitHub
-                        </h3>
-                        <p className="text-xs text-zinc-400 mt-0.5">
-                          Sincronização de Código e Branches
-                        </p>
+                      {activeProject.githubRepo && (
+                        <span className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/20 text-[10px] font-black uppercase tracking-widest">
+                          <Check size={14} /> Conectado
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="space-y-6 relative z-10">
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                          Repositório GitHub
+                        </label>
+                        <input
+                          value={githubRepo}
+                          onChange={(e) => setGithubRepo(e.target.value)}
+                          placeholder="Ex: Utilizador/Nome-do-Repo"
+                          className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-sm text-white focus:border-indigo-500 outline-none transition-all"
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                          <KeyRound size={12} /> Personal Access Token (Classic)
+                        </label>
+                        <input
+                          type="password"
+                          value={githubToken}
+                          onChange={(e) => setGithubToken(e.target.value)}
+                          placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxx"
+                          className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 text-sm text-white focus:border-indigo-500 outline-none transition-all font-mono"
+                        />
                       </div>
                     </div>
+
                     {activeProject.githubRepo && (
-                      <span className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-500/20 text-[10px] font-black uppercase tracking-widest">
-                        <Check size={14} /> Conectado
-                      </span>
+                      <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between relative z-10">
+                        <a
+                          href={`https://github.com/${activeProject.githubRepo}`}
+                          target="_blank"
+                          className="text-xs font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-2"
+                        >
+                          Abrir Repositório <ExternalLink size={14} />
+                        </a>
+                        <button
+                          onClick={handleDisconnectGithub}
+                          className="text-[10px] uppercase tracking-widest text-red-500 hover:text-white font-black px-4 py-2 rounded-lg hover:bg-red-500 border border-red-500/20 transition-all"
+                        >
+                          Desconectar
+                        </button>
+                      </div>
                     )}
                   </div>
-                  <div className="space-y-6 relative z-10">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
-                        Repositório GitHub
-                      </label>
-                      <input
-                        value={githubRepo}
-                        onChange={(e) => setGithubRepo(e.target.value)}
-                        placeholder="Ex: Utilizador/Nome-do-Repo"
-                        className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:border-indigo-500 outline-none transition-all"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-2">
-                        <KeyRound size={12} /> Personal Access Token (Classic)
-                      </label>
-                      <input
-                        type="password"
-                        value={githubToken}
-                        onChange={(e) => setGithubToken(e.target.value)}
-                        placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxx"
-                        className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:border-indigo-500 outline-none transition-all font-mono"
-                      />
-                    </div>
+                </section>
+              </motion.div>
+            )}
+          </div>
+
+          {/* FLOAT SAVE BAR */}
+          <AnimatePresence>
+            {isDirty && (
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 50 }}
+                className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-[#0A0A0A] border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.8)] rounded-3xl p-4 pl-8 flex items-center justify-between gap-12 z-50 w-max"
+              >
+                <div className="flex items-center gap-4 text-amber-400">
+                  <AlertTriangle size={24} />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold">
+                      Alterações Pendentes
+                    </span>
+                    <span className="text-[11px] text-amber-400/70">
+                      Tem modificações por guardar.
+                    </span>
                   </div>
-                  {activeProject.githubRepo && (
-                    <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between relative z-10">
-                      <a
-                        href={`https://github.com/${activeProject.githubRepo}`}
-                        target="_blank"
-                        className="text-xs font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-2"
-                      >
-                        Abrir Repositório <ExternalLink size={14} />
-                      </a>
-                      <button
-                        onClick={handleDisconnectGithub}
-                        className="text-[10px] uppercase tracking-widest text-red-500 hover:text-white font-black px-4 py-2 rounded-lg hover:bg-red-500 border border-red-500/20 transition-all"
-                      >
-                        Desconectar
-                      </button>
-                    </div>
-                  )}
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleDiscard}
+                    className="px-6 py-4 text-[10px] font-black text-zinc-500 hover:text-white uppercase tracking-widest transition-colors"
+                  >
+                    Reverter
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="bg-white text-black hover:bg-zinc-200 px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl transition-all flex items-center gap-3 disabled:opacity-50"
+                  >
+                    {isSaving ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Save size={16} />
+                    )}{" "}
+                    Salvar Configurações
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </main>
       </div>
 
-      {/* FLOAT SAVE BAR */}
-      <AnimatePresence>
-        {isDirty && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 right-8 left-8 md:left-auto bg-[#0A0A0A] border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.8)] rounded-2xl p-3 pl-6 flex flex-col sm:flex-row items-center justify-between gap-6 z-50"
-          >
-            <div className="flex items-center gap-3 text-amber-400">
-              <AlertTriangle size={20} />
-              <div className="flex flex-col">
-                <span className="text-sm font-bold">Alterações Pendentes</span>
-                <span className="text-[11px] text-amber-400/70">
-                  Salve para aplicar as configurações.
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <button
-                onClick={handleDiscard}
-                className="flex-1 sm:flex-none px-4 py-3 text-xs font-black text-zinc-400 hover:text-white uppercase tracking-widest transition-colors"
-              >
-                Reverter
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {isSaving ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Save size={16} />
-                )}{" "}
-                Salvar
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* MODAL DE CONVITE */}
       {/* MODAL DE CONVITE PREMIUM */}
       <AnimatePresence>
         {isInviteModalOpen && (
@@ -1111,9 +1104,7 @@ export default function SettingsPage() {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="bg-[#0D0D0F] border border-white/10 rounded-[2.5rem] w-full max-w-lg shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden relative"
             >
-              {/* Efeito de Brilho de Fundo */}
               <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" />
-
               <div className="p-10 border-b border-white/[0.05] relative">
                 <div className="flex justify-between items-start mb-2">
                   <div>
@@ -1132,13 +1123,6 @@ export default function SettingsPage() {
                     <X size={20} />
                   </button>
                 </div>
-                <p className="text-sm text-zinc-400 leading-relaxed">
-                  Adicione um novo talento ao projeto{" "}
-                  <span className="text-white font-semibold">
-                    {activeProject.name}
-                  </span>
-                  .
-                </p>
               </div>
 
               <form
@@ -1146,42 +1130,34 @@ export default function SettingsPage() {
                 className="p-10 space-y-8 relative"
               >
                 <div className="grid grid-cols-1 gap-6">
-                  {/* Campo Nome */}
                   <div className="space-y-2.5">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
                       Nome Completo
                     </label>
-                    <div className="relative group">
-                      <input
-                        type="text"
-                        required
-                        value={inviteName}
-                        onChange={(e) => setInviteName(e.target.value)}
-                        placeholder="Ex: João Silva"
-                        className="w-full bg-white/[0.03] border border-white/10 text-white rounded-2xl px-5 py-4 text-sm focus:border-indigo-500/50 focus:bg-white/[0.05] outline-none transition-all placeholder:text-zinc-600"
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={inviteName}
+                      onChange={(e) => setInviteName(e.target.value)}
+                      placeholder="Ex: João Silva"
+                      className="w-full bg-white/[0.03] border border-white/10 text-white rounded-2xl px-5 py-4 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
+                    />
                   </div>
-
-                  {/* Campo Email */}
                   <div className="space-y-2.5">
                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
                       Endereço de Email
                     </label>
-                    <div className="relative group">
-                      <input
-                        type="email"
-                        required
-                        value={inviteEmail}
-                        onChange={(e) => setInviteEmail(e.target.value)}
-                        placeholder="joao@empresa.com"
-                        className="w-full bg-white/[0.03] border border-white/10 text-white rounded-2xl px-5 py-4 text-sm focus:border-indigo-500/50 focus:bg-white/[0.05] outline-none transition-all placeholder:text-zinc-600"
-                      />
-                    </div>
+                    <input
+                      type="email"
+                      required
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      placeholder="joao@empresa.com"
+                      className="w-full bg-white/[0.03] border border-white/10 text-white rounded-2xl px-5 py-4 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
+                    />
                   </div>
                 </div>
 
-                {/* Seleção de Role - Estilo Cards */}
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
                     Nível de Acesso
@@ -1203,10 +1179,9 @@ export default function SettingsPage() {
                         Membro
                       </span>
                       <span className="text-[10px] leading-snug block opacity-60 font-medium">
-                        Pode criar e editar tarefas no quadro.
+                        Lê e edita tarefas.
                       </span>
                     </button>
-
                     <button
                       type="button"
                       onClick={() => setInviteRole("admin")}
@@ -1223,31 +1198,30 @@ export default function SettingsPage() {
                         Admin
                       </span>
                       <span className="text-[10px] leading-snug block opacity-60 font-medium">
-                        Controlo total sobre o projeto e equipa.
+                        Controlo total do projeto.
                       </span>
                     </button>
                   </div>
                 </div>
 
-                {/* Rodapé do Modal */}
                 <div className="pt-6 mt-4 border-t border-white/[0.05] flex items-center justify-between">
                   <button
                     type="button"
                     onClick={() => setIsInviteModalOpen(false)}
-                    className="text-xs font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+                    className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="bg-white text-black hover:bg-zinc-200 px-10 py-4 rounded-2xl text-xs font-black uppercase tracking-[0.15em] transition-all flex items-center gap-3 disabled:opacity-50 shadow-[0_10px_20px_rgba(255,255,255,0.1)] active:scale-95"
+                    className="bg-white text-black hover:bg-zinc-200 px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 disabled:opacity-50 shadow-xl"
                   >
                     {isSaving ? (
                       <Loader2 size={16} className="animate-spin" />
                     ) : (
                       <Plus size={16} strokeWidth={3} />
-                    )}
+                    )}{" "}
                     Enviar Convite
                   </button>
                 </div>
@@ -1274,12 +1248,22 @@ function SidebarItem({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-xl text-sm font-bold transition-all ${isActive ? "bg-white/10 text-white shadow-sm" : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.03]"}`}
+      className={`w-full flex items-center gap-4 px-6 py-5 rounded-[1.5rem] text-sm font-bold transition-all relative ${
+        isActive
+          ? "bg-white/[0.05] text-white border border-white/10 shadow-sm"
+          : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.02]"
+      }`}
     >
-      <div className={`${isActive ? "text-indigo-400" : "text-zinc-500"}`}>
+      <span className={`${isActive ? "text-indigo-400" : "text-zinc-600"}`}>
         {icon}
-      </div>
+      </span>
       {label}
+      {isActive && (
+        <motion.div
+          layoutId="activeTab"
+          className="absolute left-2 w-1 h-6 bg-indigo-500 rounded-full"
+        />
+      )}
     </button>
   );
 }
