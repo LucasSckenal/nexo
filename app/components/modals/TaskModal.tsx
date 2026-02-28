@@ -101,7 +101,7 @@ export function TaskModal({
   const handleCreateBranch = async () => {
     if (!activeProject?.githubRepo || !activeProject?.githubToken) {
       alert(
-        "Por favor, configura o Token do GitHub (PAT) na página de Repositórios primeiro!",
+        "Por favor, configure o Token do GitHub (PAT) na página de Repositórios primeiro!",
       );
       return;
     }
@@ -132,55 +132,58 @@ export function TaskModal({
       setTaskForm({ ...taskForm, branch: newBranchName });
     } else {
       alert(
-        "Falha ao criar branch. Verifica se o teu token tem permissões de 'repo' e se não expirou.",
+        "Falha ao criar branch. Verifique se o seu token tem permissões de 'repo' e se não expirou.",
       );
     }
     setIsCreatingBranch(false);
   };
 
-  // === FUNÇÃO PARA GERAR SUB-TAREFAS COM IA ===
+  // === FUNÇÃO PARA GERAR SUB-TAREFAS COM IA (AGORA REAL) ===
   const handleGenerateAISubtasks = async () => {
-    if (!taskForm.title) {
+    console.log("Botão clicado! Título:", taskForm.title); // <--- DEBUG 1
+    if (!taskForm.title?.trim()) {
       alert(
         "Por favor, preencha o título da tarefa para a IA entender o contexto.",
       );
       return;
     }
 
+    const projectType =
+      activeProject?.category?.toLowerCase() === "design" ? "design" : "software_development";
+
     setIsGeneratingAI(true);
 
-    // Mock/Simulação de chamada a uma API (ex: OpenAI, Gemini)
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const res = await fetch("/api/generate-task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: taskForm.title,
+          projectType: projectType, 
+        }),
+      });
 
-    const generatedItems = [
-      {
-        id: `ai-${Date.now()}-1`,
-        title: `Análise técnica de: ${taskForm.title}`,
-        completed: false,
-      },
-      {
-        id: `ai-${Date.now()}-2`,
-        title: "Mapeamento dos requisitos e dependências",
-        completed: false,
-      },
-      {
-        id: `ai-${Date.now()}-3`,
-        title: "Implementação da lógica principal",
-        completed: false,
-      },
-      {
-        id: `ai-${Date.now()}-4`,
-        title: "Validação e testes",
-        completed: false,
-      },
-    ];
+      const data = await res.json();
 
-    setTaskForm((prev: any) => ({
-      ...prev,
-      checklist: [...(prev.checklist || []), ...generatedItems],
-    }));
-
-    setIsGeneratingAI(false);
+      setTaskForm((prev: any) => ({
+        ...prev,
+        description: data.description || prev.description,
+        points: data.points || prev.points, // A IA agora preenche os botões de pontos!
+        checklist: [
+          ...(prev.checklist || []),
+          ...(data.subtasks?.map((st: string, idx: number) => ({
+            id: `ai-${Date.now()}-${idx}`,
+            title: st,
+            completed: false,
+          })) || []),
+        ],
+      }));
+    } catch (error) {
+      console.error("Erro na IA", error);
+      alert("Erro ao gerar com IA. Verifique o console ou a sua chave da API.");
+    } finally {
+      setIsGeneratingAI(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -277,7 +280,7 @@ export function TaskModal({
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
                           className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                          title="Anexar Ficheiro"
+                          title="Anexar Arquivo"
                         >
                           <Paperclip size={16} />
                         </button>

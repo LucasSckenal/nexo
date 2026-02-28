@@ -11,6 +11,7 @@ import {
   updateDoc,
   addDoc,
   serverTimestamp,
+  deleteDoc,
 } from "firebase/firestore";
 import { db, auth } from "../../lib/firebase";
 import { useData } from "../../context/DataContext";
@@ -22,13 +23,15 @@ import {
   Loader2,
   GitBranch,
   Paperclip,
-  CheckSquare,
   Target,
   AlertTriangle,
-  ListChecks, // Novo ícone importado
+  ListChecks,
+  Briefcase,
+  Trash2,
 } from "lucide-react";
 
 import { TaskExecutionModal } from "@/app/components/modals/TaskExecutionModal";
+import { CreateTaskModal } from "@/app/components/modals/CreateTaskModal";
 
 const DEFAULT_COLUMNS = [
   { id: "todo", title: "A Fazer", color: "zinc", limit: 0, emoji: "📝" },
@@ -84,7 +87,6 @@ const getColumnColorClasses = (colorName: string) => {
   return colors[colorName] || colors.zinc;
 };
 
-// Cores mais vibrantes para as tags
 const getPriorityStyles = (priority: string) => {
   switch (priority) {
     case "urgent":
@@ -100,7 +102,6 @@ const getPriorityStyles = (priority: string) => {
   }
 };
 
-// Nova função para a linha lateral brilhante do card
 const getPriorityAccent = (priority: string) => {
   switch (priority) {
     case "urgent":
@@ -138,12 +139,15 @@ export default function QuadrosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [draggedOverCol, setDraggedOverCol] = useState<string | null>(null);
   const [activeSprint, setActiveSprint] = useState<any>(null);
-  const [selectedTask, setSelectedTask] = useState<any | null>(null);
 
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [editingLimitCol, setEditingLimitCol] = useState<string | null>(null);
   const [tempLimit, setTempLimit] = useState<string>("");
 
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
   const boardColumns = activeProject?.boardColumns || DEFAULT_COLUMNS;
+  const firstColumnId = boardColumns[0]?.id || "todo";
 
   useEffect(() => {
     if (!activeProject?.id) return;
@@ -266,6 +270,17 @@ export default function QuadrosPage() {
     setEditingLimitCol(null);
   };
 
+  const handleDeleteTask = async (e: React.MouseEvent, taskId: string) => {
+    e.stopPropagation();
+    if (window.confirm("Apagar este cartão permanentemente?")) {
+      try {
+        await deleteDoc(doc(db, "projects", activeProject.id, "tasks", taskId));
+      } catch (error) {
+        console.error("Erro ao apagar tarefa:", error);
+      }
+    }
+  };
+
   if (!activeProject) return null;
 
   const totalSprintTasks = tasks.length;
@@ -278,19 +293,26 @@ export default function QuadrosPage() {
       : Math.round((completedSprintTasks / totalSprintTasks) * 100);
 
   return (
+    // Removida a div absoluta. O main com flex-1 flex flex-col h-full preenche o ecrã nativamente.
     <main className="flex-1 flex flex-col h-full bg-[#000000] relative overflow-hidden">
+      {/* Efeitos de Fundo */}
       <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-indigo-600/10 blur-[140px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-20%] left-[10%] w-[500px] h-[500px] bg-purple-600/10 blur-[150px] rounded-full pointer-events-none" />
 
+      {/* HEADER DO QUADRO */}
       <header className="shrink-0 px-8 py-6 border-b border-white/[0.05] bg-white/[0.01] backdrop-blur-2xl flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-20">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] uppercase tracking-[0.4em]">
               <Target size={12} />
-              <span>Sprint Ativa</span>
+              <span>
+                {activeProject.category === "design"
+                  ? "Fluxo Contínuo"
+                  : "Sprint Ativa"}
+              </span>
             </div>
 
-            {activeSprint?.endDate && (
+            {activeSprint?.endDate && activeProject.category !== "design" && (
               <div
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] border ${getDaysRemaining(activeSprint.endDate)?.includes("Atrasada") ? "border-red-500/30 text-red-400" : "border-white/[0.05] text-zinc-400"} text-[9px] font-black uppercase tracking-widest shadow-sm`}
               >
@@ -302,7 +324,9 @@ export default function QuadrosPage() {
 
           <div className="flex flex-col md:flex-row md:items-end gap-8">
             <h1 className="text-4xl font-black text-white tracking-tighter leading-none">
-              {activeSprint?.name || "Quadro Kanban"}
+              {activeProject.category === "design"
+                ? "Quadro de Design"
+                : activeSprint?.name || "Quadro Kanban"}
             </h1>
 
             <div className="flex items-center gap-4 bg-white/[0.02] border border-white/[0.05] rounded-2xl px-5 py-2.5 backdrop-blur-md">
@@ -345,25 +369,29 @@ export default function QuadrosPage() {
             />
             <input
               type="text"
-              placeholder="Buscar tarefas..."
+              placeholder="Procurar tarefas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-64 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-sm text-white placeholder-zinc-500 focus:border-indigo-500/50 outline-none transition-all"
             />
           </div>
-          <button className="bg-white text-black hover:bg-zinc-200 px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-[0_10px_30px_rgba(255,255,255,0.05)] active:scale-95 whitespace-nowrap">
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-white text-black hover:bg-zinc-200 px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-[0_10px_30px_rgba(255,255,255,0.05)] active:scale-95 whitespace-nowrap"
+          >
             <Plus size={16} strokeWidth={3} /> Nova Tarefa
           </button>
         </div>
       </header>
 
-      <div className="flex-1 overflow-x-auto overflow-y-hidden flex items-stretch gap-6 px-8 py-6 custom-scrollbar relative z-10 min-h-0">
+      {/* ÁREA DE SCROLL PRINCIPAL - A magia do flex-1 e min-w-[] acontece aqui */}
+      <div className="flex-1 flex gap-6 px-8 py-6 overflow-x-auto overflow-y-hidden custom-scrollbar relative z-10 min-h-0">
         {isLoading ? (
           <div className="w-full h-full flex items-center justify-center text-zinc-500">
             <Loader2 size={24} className="animate-spin text-indigo-500" />
           </div>
         ) : (
-          boardColumns.map((column: any) => {
+          boardColumns.map((column: any, idx: number) => {
             const columnTasks = filteredTasks.filter(
               (t) => t.status === column.id,
             );
@@ -378,7 +406,8 @@ export default function QuadrosPage() {
                 onDragOver={(e) => handleDragOver(e, column.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, column.id)}
-                className={`h-full max-h-full flex flex-col flex-shrink-0 w-[340px] bg-white/[0.01] backdrop-blur-[2px] border border-white/[0.05] rounded-3xl transition-all duration-300 ${isDraggedOver ? "bg-white/[0.03] ring-1 ring-white/20 scale-[1.01]" : ""} ${isOverLimit ? "border-red-500/20 bg-red-500/[0.02]" : ""}`}
+                // FLEX-1 faz com que distribuam o espaço disponível. MIN-W-[320px] impede que fiquem muito pequenas.
+                className={`flex-1 min-w-[320px] flex flex-col bg-white/[0.01] backdrop-blur-[2px] border border-white/[0.05] rounded-3xl transition-all duration-300 ${isDraggedOver ? "bg-white/[0.03] ring-1 ring-white/20 scale-[1.01]" : ""} ${isOverLimit ? "border-red-500/20 bg-red-500/[0.02]" : ""}`}
               >
                 {/* CABEÇALHO DA COLUNA */}
                 <div
@@ -450,174 +479,203 @@ export default function QuadrosPage() {
                   </div>
                 </div>
 
-                {/* === LISTA DE CARDS PREMIUM === */}
-                <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar min-h-0">
-                  <AnimatePresence>
-                    {columnTasks.map((task) => {
-                      const totalSubtasks = task.checklist?.length || 0;
-                      const completedSubtasks =
-                        task.checklist?.filter((c: any) => c.completed)
-                          .length || 0;
-                      const isAllCompleted =
-                        totalSubtasks > 0 &&
-                        totalSubtasks === completedSubtasks;
-                      const assignees = Array.isArray(task.assignees)
-                        ? task.assignees
-                        : task.assignee
-                          ? [
-                              {
-                                name: task.assignee,
-                                photoURL: task.assigneePhoto,
-                              },
-                            ]
-                          : [];
+                {/* === LISTA DE CARTÕES COM SCROLL INTERNO === */}
+                <div className="flex-1 overflow-y-auto p-3 custom-scrollbar min-h-0">
+                  <div className="space-y-4">
+                    <AnimatePresence>
+                      {columnTasks.map((task) => {
+                        const totalSubtasks = task.checklist?.length || 0;
+                        const completedSubtasks =
+                          task.checklist?.filter((c: any) => c.completed)
+                            .length || 0;
+                        const isAllCompleted =
+                          totalSubtasks > 0 &&
+                          totalSubtasks === completedSubtasks;
+                        const assignees = Array.isArray(task.assignees)
+                          ? task.assignees
+                          : task.assignee
+                            ? [
+                                {
+                                  name: task.assignee,
+                                  photoURL: task.assigneePhoto,
+                                },
+                              ]
+                            : [];
 
-                      return (
-                        <motion.div
-                          layout
-                          layoutId={task.id}
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          key={task.id}
-                          id={`card-${task.id}`}
-                          draggable
-                          onDragStart={(e: any) => handleDragStart(e, task.id)}
-                          onDragEnd={() => handleDragEnd(task.id)}
-                          onClick={() => setSelectedTask(task)}
-                          className="group relative bg-[#0D0D0F] border border-white/[0.04] hover:border-indigo-500/30 p-6 rounded-[2rem] cursor-grab active:cursor-grabbing transition-all duration-300 shadow-xl hover:shadow-[0_20px_40px_-10px_rgba(79,70,229,0.15)] hover:-translate-y-1.5 overflow-hidden"
-                        >
-                          {/* LINHA LATERAL DE PRIORIDADE */}
-                          <div
-                            className={`absolute left-0 top-0 bottom-0 w-[3px] opacity-60 group-hover:opacity-100 transition-opacity ${getPriorityAccent(task.priority)}`}
-                          />
-
-                          {/* EFEITO GLOW INTERNO NO HOVER */}
-                          <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-
-                          {/* CABEÇALHO DO CARD (ID + EPIC + PRIORIDADE) */}
-                          <div className="flex items-center justify-between mb-4 relative z-10">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
-                                {task.key || task.taskKey || "TSK"}
-                              </span>
-                              {task.epicName && (
-                                <>
-                                  <span className="w-1 h-1 rounded-full bg-zinc-700" />
-                                  <span
-                                    className="text-[9px] font-bold text-zinc-400 truncate max-w-[100px] group-hover:text-zinc-300"
-                                    title={task.epicName}
-                                  >
-                                    {task.epicName}
-                                  </span>
-                                </>
-                              )}
-                            </div>
-
+                        return (
+                          <motion.div
+                            layout
+                            layoutId={task.id}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            key={task.id}
+                            id={`card-${task.id}`}
+                            draggable
+                            onDragStart={(e: any) =>
+                              handleDragStart(e, task.id)
+                            }
+                            onDragEnd={() => handleDragEnd(task.id)}
+                            onClick={() => setSelectedTask(task)}
+                            className="group relative bg-[#0D0D0F] border border-white/[0.04] hover:border-indigo-500/30 p-6 rounded-[2rem] cursor-grab active:cursor-grabbing transition-all duration-300 shadow-xl hover:shadow-[0_20px_40px_-10px_rgba(79,70,229,0.15)] hover:-translate-y-1.5 overflow-hidden"
+                          >
                             <div
-                              className={`px-2.5 py-1 rounded-xl text-[8px] font-black uppercase border backdrop-blur-md ${getPriorityStyles(task.priority)}`}
-                            >
-                              {task.priority || "Normal"}
-                            </div>
-                          </div>
+                              className={`absolute left-0 top-0 bottom-0 w-[3px] opacity-60 group-hover:opacity-100 transition-opacity z-20 ${getPriorityAccent(task.priority)}`}
+                            />
 
-                          {/* TÍTULO DO CARD */}
-                          <h4 className="text-[15px] font-bold text-zinc-100 leading-snug mb-5 group-hover:text-white transition-colors relative z-10">
-                            {task.title}
-                          </h4>
-
-                          {/* BARRA DE PROGRESSO DE CHECKLISTS (NOVA LÓGICA) */}
-                          {totalSubtasks > 0 && (
-                            <div className="mb-5 relative z-10 bg-white/[0.02] border border-white/[0.03] p-3 rounded-2xl">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="flex items-center gap-1.5 text-[9px] font-black text-zinc-500 uppercase tracking-widest">
-                                  <ListChecks size={12} /> Subtarefas
-                                </span>
-                                <span
-                                  className={`text-[10px] font-black ${isAllCompleted ? "text-emerald-400" : "text-zinc-400"}`}
-                                >
-                                  {completedSubtasks}/{totalSubtasks}
-                                </span>
-                              </div>
-                              <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full transition-all duration-700 ${isAllCompleted ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.6)]"}`}
-                                  style={{
-                                    width: `${(completedSubtasks / totalSubtasks) * 100}%`,
-                                  }}
+                            {task.coverImage && (
+                              <div className="-mx-6 -mt-6 mb-5 h-36 relative shrink-0 overflow-hidden border-b border-white/[0.05] rounded-t-[2rem]">
+                                <img
+                                  src={task.coverImage}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                  alt="Capa"
                                 />
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0F] via-transparent to-transparent opacity-90" />
+                              </div>
+                            )}
+
+                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+
+                            <div className="flex items-center justify-between mb-4 relative z-10">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
+                                  {task.key || task.taskKey || "TSK"}
+                                </span>
+                                {task.clientId && (
+                                  <>
+                                    <span className="w-1 h-1 rounded-full bg-zinc-700" />
+                                    <span className="text-[9px] font-bold text-zinc-400 group-hover:text-zinc-300 flex items-center gap-1">
+                                      <Briefcase size={10} />
+                                      Cliente
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={(e) => handleDeleteTask(e, task.id)}
+                                  className="opacity-0 group-hover:opacity-100 p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                                  title="Apagar Cartão"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+
+                                <div
+                                  className={`px-2.5 py-1 rounded-xl text-[8px] font-black uppercase border backdrop-blur-md ${getPriorityStyles(task.priority)}`}
+                                >
+                                  {task.priority || "Normal"}
+                                </div>
                               </div>
                             </div>
-                          )}
 
-                          {/* RODAPÉ DO CARD */}
-                          <div className="flex items-center justify-between pt-4 border-t border-white/[0.04] relative z-10">
-                            <div className="flex items-center gap-3 text-zinc-500">
-                              {task.points && (
-                                <div className="flex items-center justify-center px-2 py-1 bg-white/[0.03] border border-white/5 rounded-lg text-[10px] font-black text-indigo-300">
-                                  {task.points} pts
-                                </div>
-                              )}
+                            <h4 className="text-[15px] font-bold text-zinc-100 leading-snug mb-5 group-hover:text-white transition-colors relative z-10">
+                              {task.title}
+                            </h4>
 
-                              {task.branch && (
-                                <div
-                                  className="flex items-center gap-1.5 px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded-lg text-[10px] font-mono font-bold"
-                                  title={`Branch: ${task.branch}`}
-                                >
-                                  <GitBranch size={10} />{" "}
-                                  <span className="max-w-[60px] truncate">
-                                    {task.branch}
+                            {totalSubtasks > 0 && (
+                              <div className="mb-5 relative z-10 bg-white/[0.02] border border-white/[0.03] p-3 rounded-2xl">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="flex items-center gap-1.5 text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+                                    <ListChecks size={12} /> Subtarefas
+                                  </span>
+                                  <span
+                                    className={`text-[10px] font-black ${isAllCompleted ? "text-emerald-400" : "text-zinc-400"}`}
+                                  >
+                                    {completedSubtasks}/{totalSubtasks}
                                   </span>
                                 </div>
-                              )}
-
-                              {task.attachmentsCount > 0 && (
-                                <div className="flex items-center gap-1 text-[11px] font-black text-zinc-400">
-                                  <Paperclip size={12} />{" "}
-                                  {task.attachmentsCount}
+                                <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-700 ${isAllCompleted ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.6)]"}`}
+                                    style={{
+                                      width: `${(completedSubtasks / totalSubtasks) * 100}%`,
+                                    }}
+                                  />
                                 </div>
-                              )}
-                            </div>
+                              </div>
+                            )}
 
-                            {/* AVATARES DA EQUIPA */}
-                            <div className="flex -space-x-2">
-                              {assignees.length > 0 ? (
-                                assignees
-                                  .slice(0, 3)
-                                  .map((a: any, i: number) => (
-                                    <img
-                                      key={i}
-                                      src={a.photo || a.photoURL}
-                                      className="w-7 h-7 rounded-xl border-2 border-[#0D0D0F] object-cover ring-1 ring-white/[0.05] relative z-10 hover:z-20 hover:scale-110 hover:-translate-y-1 transition-all shadow-lg"
-                                      title={a.name}
-                                      alt=""
-                                    />
-                                  ))
-                              ) : (
-                                <div className="w-7 h-7 rounded-xl border-2 border-[#0D0D0F] bg-zinc-800 flex items-center justify-center relative z-10">
-                                  <span className="text-[9px] font-black text-zinc-500">
-                                    ?
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
+                            <div className="flex items-center justify-between pt-4 border-t border-white/[0.04] relative z-10">
+                              <div className="flex items-center gap-3 text-zinc-500">
+                                {task.points && (
+                                  <div className="flex items-center justify-center px-2 py-1 bg-white/[0.03] border border-white/5 rounded-lg text-[10px] font-black text-indigo-300">
+                                    {task.points} pts
+                                  </div>
+                                )}
+                                {task.branch && (
+                                  <div
+                                    className="flex items-center gap-1.5 px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded-lg text-[10px] font-mono font-bold"
+                                    title={`Branch: ${task.branch}`}
+                                  >
+                                    <GitBranch size={10} />{" "}
+                                    <span className="max-w-[60px] truncate">
+                                      {task.branch}
+                                    </span>
+                                  </div>
+                                )}
+                                {task.attachmentsCount > 0 && (
+                                  <div className="flex items-center gap-1 text-[11px] font-black text-zinc-400">
+                                    <Paperclip size={12} />{" "}
+                                    {task.attachmentsCount}
+                                  </div>
+                                )}
+                              </div>
 
-                  {/* ESPAÇO VAZIO (PLACEHOLDER) */}
-                  {columnTasks.length === 0 && (
-                    <div className="h-28 border-2 border-dashed border-white/[0.05] rounded-[2rem] flex flex-col items-center justify-center text-zinc-600 bg-white/[0.01] transition-colors">
-                      <div className={`p-2 rounded-xl bg-white/[0.02] mb-2`}>
-                        <Plus size={16} />
-                      </div>
-                      <span className="text-[9px] font-black uppercase tracking-widest opacity-50">
-                        Mover para aqui
+                              <div className="flex -space-x-2">
+                                {assignees.length > 0 ? (
+                                  assignees
+                                    .slice(0, 3)
+                                    .map((a: any, i: number) => (
+                                      <img
+                                        key={i}
+                                        src={a.photo || a.photoURL}
+                                        className="w-7 h-7 rounded-xl border-2 border-[#0D0D0F] object-cover ring-1 ring-white/[0.05] relative z-10 hover:z-20 hover:scale-110 hover:-translate-y-1 transition-all shadow-lg"
+                                        title={a.name}
+                                        alt=""
+                                      />
+                                    ))
+                                ) : (
+                                  <div className="w-7 h-7 rounded-xl border-2 border-[#0D0D0F] bg-zinc-800 flex items-center justify-center relative z-10">
+                                    <span className="text-[9px] font-black text-zinc-500">
+                                      ?
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+
+                  {idx === 0 && activeProject.category === "design" && (
+                    <button
+                      onClick={() => setIsCreateModalOpen(true)}
+                      className="mt-4 w-full py-3.5 border border-dashed border-white/[0.08] hover:border-indigo-500/40 hover:bg-indigo-500/5 rounded-[1.5rem] flex items-center justify-center gap-2 text-zinc-500 hover:text-indigo-400 transition-all group shrink-0"
+                    >
+                      <Plus
+                        size={16}
+                        className="group-hover:scale-110 transition-transform"
+                      />
+                      <span className="text-[10px] font-black uppercase tracking-widest">
+                        Adicionar Cartão
                       </span>
-                    </div>
+                    </button>
                   )}
+
+                  {columnTasks.length === 0 &&
+                    (activeProject.category !== "design" || idx !== 0) && (
+                      <div className="mt-4 h-28 border-2 border-dashed border-white/[0.05] rounded-[2rem] flex flex-col items-center justify-center text-zinc-600 bg-white/[0.01] transition-colors shrink-0">
+                        <div className={`p-2 rounded-xl bg-white/[0.02] mb-2`}>
+                          <Plus size={16} />
+                        </div>
+                        <span className="text-[9px] font-black uppercase tracking-widest opacity-50">
+                          Mover para aqui
+                        </span>
+                      </div>
+                    )}
                 </div>
               </div>
             );
@@ -633,6 +691,16 @@ export default function QuadrosPage() {
           activeProjectId={activeProject.id}
         />
       )}
+
+      <CreateTaskModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        projectId={activeProject.id}
+        projectKey={activeProject.key}
+        firstColumnId={firstColumnId}
+        clients={activeProject.clients || []}
+        members={activeProject.members || []}
+      />
     </main>
   );
 }

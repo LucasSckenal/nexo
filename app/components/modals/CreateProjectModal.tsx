@@ -1,386 +1,382 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db, auth } from "../../lib/firebase";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
-  FolderPlus,
   Loader2,
-  Hash,
-  AlignLeft,
+  Code2,
   Palette,
-  LayoutDashboard,
-  ImagePlus,
-  Trash2,
+  FolderPlus,
+  Image as ImageIcon,
+  Smile,
 } from "lucide-react";
-
-// Cores pré-definidas para o utilizador escolher (caso não use imagem)
-const PROJECT_COLORS = [
-  { name: "Indigo", value: "#6366f1", bg: "bg-[#6366f1]" },
-  { name: "Purple", value: "#a855f7", bg: "bg-[#a855f7]" },
-  { name: "Pink", value: "#ec4899", bg: "bg-[#ec4899]" },
-  { name: "Red", value: "#ef4444", bg: "bg-[#ef4444]" },
-  { name: "Orange", value: "#f97316", bg: "bg-[#f97316]" },
-  { name: "Emerald", value: "#10b981", bg: "bg-[#10b981]" },
-  { name: "Blue", value: "#3b82f6", bg: "bg-[#3b82f6]" },
-];
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db, auth } from "../../lib/firebase";
 
 interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
 }
 
 export function CreateProjectModal({
   isOpen,
   onClose,
-  onSuccess,
 }: CreateProjectModalProps) {
+  // Estados Básicos
   const [name, setName] = useState("");
-  const [projectKey, setProjectKey] = useState("");
+  const [key, setKey] = useState("");
   const [description, setDescription] = useState("");
-  const [selectedColor, setSelectedColor] = useState(PROJECT_COLORS[0]);
+  const [category, setCategory] = useState<"programming" | "design">(
+    "programming",
+  );
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Novos estados para a Imagem
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  // Estados do Ícone
+  const [iconType, setIconType] = useState<"emoji" | "image">("emoji");
+  const [projectEmoji, setProjectEmoji] = useState("✨");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  // Gerador Automático da Sigla do Projeto (Project Key)
+  // Auto-gerar a chave (Key) baseada no nome do projeto
   useEffect(() => {
-    if (name && !projectKey) {
-      const words = name.trim().split(/\s+/);
-      let generatedKey = "";
-      if (words.length > 1) {
-        generatedKey = words
-          .slice(0, 3)
-          .map((w) => w[0])
-          .join("");
-      } else {
-        generatedKey = name.substring(0, 3);
-      }
-      setProjectKey(generatedKey.toUpperCase());
+    if (name && !key) {
+      const suggestedKey = name
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .substring(0, 3)
+        .toUpperCase();
+      setKey(suggestedKey);
     }
   }, [name]);
 
-  useEffect(() => {
-    if (name.length === 0) setProjectKey("");
-  }, [name]);
-
-  if (!isOpen) return null;
-
-  // Lógica para processar a escolha da imagem
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Verifica se o ficheiro é muito grande (Ex: limite de 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      setError("A imagem é demasiado grande. O limite é de 2MB.");
+    if (file.size > 2000000) {
+      alert("A imagem não pode ultrapassar 2MB.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
-    // Cria a pré-visualização da imagem (Base64)
+    setIsUploadingLogo(true);
     const reader = new FileReader();
     reader.onloadend = () => {
-      setImagePreview(reader.result as string);
+      setImageUrl(reader.result as string);
+      setIconType("image");
+      setIsUploadingLogo(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     };
     reader.readAsDataURL(file);
   };
 
-  const removeImage = () => {
-    setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handleCreateProject = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    if (!name.trim() || !key.trim() || !auth.currentUser) return;
 
-    if (!projectKey.trim()) {
-      setError("A sigla do projeto é obrigatória.");
-      return;
-    }
-
-    const user = auth.currentUser;
-    if (!user || !user.email) {
-      setError("Precisa de estar com o login feito para criar um projeto.");
-      return;
-    }
-
-    setLoading(true);
+    setIsLoading(true);
 
     try {
-      // Cria o documento no Firestore
+      const user = auth.currentUser;
+
       await addDoc(collection(db, "projects"), {
         name: name.trim(),
-        key: projectKey.trim().toUpperCase(),
+        key: key.trim().toUpperCase(),
         description: description.trim(),
-        color: selectedColor.value,
-        imageUrl: imagePreview, // Guarda a string Base64 da imagem
+        category: category,
+        iconType: iconType,
+        projectEmoji: projectEmoji,
+        imageUrl: imageUrl || "",
         ownerId: user.uid,
         createdAt: serverTimestamp(),
-        status: "active",
-
-        // === NOVA LÓGICA DE SEGURANÇA E MEMBROS ===
         members: [
           {
-            name: user.displayName || user.email.split("@")[0],
+            name: user.displayName || "Proprietário",
             email: user.email,
             role: "admin",
             photoURL:
               user.photoURL ||
-              `https://ui-avatars.com/api/?name=${user.email}&background=27272A&color=fff`,
+              `https://ui-avatars.com/api/?name=${user.displayName}&background=0D0D0D&color=fff`,
             addedAt: new Date().toISOString(),
           },
         ],
         memberEmails: [user.email],
-        // ==========================================
       });
 
-      // Resetar form
+      // Reset total e fechar modal
       setName("");
-      setProjectKey("");
+      setKey("");
       setDescription("");
-      setSelectedColor(PROJECT_COLORS[0]);
-      setImagePreview(null);
-
-      if (onSuccess) onSuccess();
+      setCategory("programming");
+      setIconType("emoji");
+      setProjectEmoji("✨");
+      setImageUrl(null);
       onClose();
-    } catch (err: any) {
-      console.error(err);
-      setError("Erro ao criar o projeto. Tente novamente.");
+    } catch (error) {
+      console.error("Erro ao criar projeto:", error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-[#09090B] border border-[#27272A] w-full max-w-lg rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-        {/* HEADER */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#27272A] bg-[#09090B]">
-          <div className="flex items-center gap-3">
-            {/* Ícone Dinâmico: Mostra a Imagem se existir, senão mostra a cor escolhida */}
-            {imagePreview ? (
-              <img
-                src={imagePreview}
-                alt="Logo do Projeto"
-                className="w-10 h-10 rounded-xl object-cover border border-[#27272A] shadow-inner"
-              />
-            ) : (
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center border shadow-inner transition-colors duration-300"
-                style={{
-                  backgroundColor: `${selectedColor.value}15`,
-                  borderColor: `${selectedColor.value}30`,
-                }}
-              >
-                <FolderPlus size={20} style={{ color: selectedColor.value }} />
-              </div>
-            )}
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="bg-[#0D0D0F] border border-white/10 rounded-[2.5rem] w-full max-w-2xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden relative flex flex-col"
+          >
+            {/* Efeitos de Luz de Fundo */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 blur-[80px] rounded-full pointer-events-none" />
 
-            <div>
-              <h2 className="text-base font-semibold text-white tracking-tight">
-                Criar Novo Projeto
-              </h2>
-              <p className="text-xs text-zinc-500 font-medium mt-0.5">
-                Configure o seu novo espaço de trabalho
+            {/* HEADER DO MODAL */}
+            <div className="px-8 pt-8 pb-6 border-b border-white/[0.05] relative shrink-0">
+              <div className="flex justify-between items-start mb-1">
+                <div>
+                  <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-2">
+                    <FolderPlus size={14} />
+                    <span>Workspace</span>
+                  </div>
+                  <h2 className="text-2xl font-black text-white tracking-tight">
+                    Inicializar Projeto
+                  </h2>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-all"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="text-xs text-zinc-400 leading-relaxed mt-1">
+                Configure os detalhes base do novo espaço e defina o fluxo
+                operacional.
               </p>
             </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-zinc-500 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-[#27272A]"
-          >
-            <X size={20} />
-          </button>
-        </div>
 
-        {/* BODY / FORMULARIO */}
-        <form onSubmit={handleCreateProject} className="flex-1 flex flex-col">
-          <div className="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2">
-                <X size={14} className="shrink-0" /> {error}
+            {/* CORPO DO FORMULÁRIO (COMPACTADO PARA NÃO TER SCROLL) */}
+            <form
+              onSubmit={handleSubmit}
+              className="px-8 py-6 space-y-6 relative flex-1"
+            >
+              {/* === SEÇÃO DO ÍCONE === */}
+              <div className="flex flex-col sm:flex-row items-center gap-5 p-5 bg-white/[0.02] border border-white/5 rounded-[1.5rem]">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleLogoUpload}
+                  className="hidden"
+                  accept="image/*"
+                />
+
+                {/* Visualização do Avatar/Ícone (Tamanho reduzido) */}
+                <div className="w-20 h-20 shrink-0 rounded-2xl flex items-center justify-center text-3xl font-black shadow-2xl relative overflow-hidden border border-white/10 bg-[#121212]">
+                  {isUploadingLogo ? (
+                    <Loader2 size={20} className="animate-spin text-zinc-500" />
+                  ) : iconType === "emoji" ? (
+                    <div className="w-full h-full bg-gradient-to-br from-white/5 to-white/[0.02] flex items-center justify-center">
+                      <span className="drop-shadow-lg scale-110 transform transition-transform hover:scale-125">
+                        {projectEmoji || "✨"}
+                      </span>
+                    </div>
+                  ) : imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt="Logo"
+                      className="w-full h-full object-cover transition-transform hover:scale-110 duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
+                      <span className="text-indigo-400 drop-shadow-md text-base">
+                        {key.substring(0, 2) || "PR"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2.5 flex-1 text-center sm:text-left">
+                  <div>
+                    <h3 className="text-sm font-bold text-white mb-0.5">
+                      Ícone Personalizado
+                    </h3>
+                    <p className="text-[10px] text-zinc-500">
+                      Faça upload de imagem ou escolha um emoji.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-center sm:justify-start gap-2.5 bg-white/[0.03] p-1.5 rounded-xl border border-white/5 w-fit mx-auto sm:mx-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!imageUrl) fileInputRef.current?.click();
+                        else setIconType("image");
+                      }}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${iconType === "image" ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shadow-sm" : "text-zinc-400 hover:bg-white/5 border border-transparent"}`}
+                    >
+                      <ImageIcon size={14} /> Imagem
+                    </button>
+                    <div className="w-px h-4 bg-white/10" />
+                    <div
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all border ${iconType === "emoji" ? "bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-sm" : "text-zinc-400 border-transparent hover:bg-white/5 focus-within:border-white/20"}`}
+                    >
+                      <Smile
+                        size={14}
+                        className={
+                          iconType === "emoji"
+                            ? "text-amber-400"
+                            : "text-zinc-500"
+                        }
+                      />
+                      <input
+                        type="text"
+                        value={projectEmoji}
+                        onChange={(e) => {
+                          setProjectEmoji(e.target.value);
+                          setIconType("emoji");
+                        }}
+                        onFocus={() => setIconType("emoji")}
+                        maxLength={2}
+                        className="bg-transparent w-8 text-center outline-none placeholder:text-zinc-600 focus:w-10 transition-all"
+                        placeholder="😀"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
 
-            <div className="flex flex-col sm:flex-row gap-5">
-              <div className="flex-1 space-y-2">
-                <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider ml-1">
-                  Nome do Projeto
+              {/* === SELEÇÃO DO OBJETIVO === */}
+              <div className="space-y-2.5">
+                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                  Objetivo / Categoria
                 </label>
-                <div className="relative group">
-                  <LayoutDashboard
-                    size={16}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-indigo-400 transition-colors"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setCategory("programming")}
+                    className={`group p-4 rounded-[1.5rem] border text-left transition-all relative overflow-hidden ${
+                      category === "programming"
+                        ? "bg-indigo-500/10 border-indigo-500/50 ring-1 ring-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.15)]"
+                        : "bg-white/[0.02] border-white/5 text-zinc-500 hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <div
+                      className={`mb-3 p-2.5 rounded-xl w-fit transition-colors ${category === "programming" ? "bg-indigo-500 text-white shadow-md" : "bg-white/5 text-zinc-500 group-hover:text-zinc-300"}`}
+                    >
+                      <Code2 size={16} />
+                    </div>
+                    <span
+                      className={`text-sm font-black block mb-0.5 ${category === "programming" ? "text-white" : "group-hover:text-zinc-300"}`}
+                    >
+                      Engenharia & Software
+                    </span>
+                    <span className="text-[10px] leading-relaxed block opacity-60 font-medium">
+                      Fluxo com Backlog e Sprints.
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCategory("design")}
+                    className={`group p-4 rounded-[1.5rem] border text-left transition-all relative overflow-hidden ${
+                      category === "design"
+                        ? "bg-purple-500/10 border-purple-500/50 ring-1 ring-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.15)]"
+                        : "bg-white/[0.02] border-white/5 text-zinc-500 hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <div
+                      className={`mb-3 p-2.5 rounded-xl w-fit transition-colors ${category === "design" ? "bg-purple-500 text-white shadow-md" : "bg-white/5 text-zinc-500 group-hover:text-zinc-300"}`}
+                    >
+                      <Palette size={16} />
+                    </div>
+                    <span
+                      className={`text-sm font-black block mb-0.5 ${category === "design" ? "text-white" : "group-hover:text-zinc-300"}`}
+                    >
+                      Design & Criatividade
+                    </span>
+                    <span className="text-[10px] leading-relaxed block opacity-60 font-medium">
+                      Fluxo contínuo e flexível.
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* INPUTS DE NOME E CHAVE */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div className="space-y-2 sm:col-span-2">
+                  <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                    Nome do Projeto
+                  </label>
                   <input
                     type="text"
-                    autoFocus
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-[#121214] border border-[#27272A] text-white rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600 shadow-inner"
-                    placeholder="Ex: App iOS V2"
+                    placeholder="Ex: App de Gestão"
+                    className="w-full bg-white/[0.03] border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
                   />
                 </div>
-              </div>
-
-              <div className="w-full sm:w-32 space-y-2">
-                <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider ml-1">
-                  Sigla (Key)
-                </label>
-                <div className="relative group">
-                  <Hash
-                    size={16}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-indigo-400 transition-colors"
-                  />
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                    Chave (ID)
+                  </label>
                   <input
                     type="text"
                     required
-                    value={projectKey}
-                    onChange={(e) =>
-                      setProjectKey(e.target.value.toUpperCase())
-                    }
                     maxLength={5}
-                    className="w-full bg-[#121214] border border-[#27272A] text-white rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600 shadow-inner uppercase font-mono"
-                    placeholder="APP"
+                    value={key}
+                    onChange={(e) => setKey(e.target.value.toUpperCase())}
+                    placeholder="Ex: APPGF"
+                    className="w-full bg-white/[0.03] border border-white/10 text-indigo-400 font-black rounded-xl px-4 py-3.5 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-zinc-600 uppercase"
                   />
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider ml-1">
-                Descrição{" "}
-                <span className="text-zinc-600 lowercase font-normal">
-                  (opcional)
-                </span>
-              </label>
-              <div className="relative group">
-                <AlignLeft
-                  size={16}
-                  className="absolute left-3.5 top-3.5 text-zinc-500 group-focus-within:text-indigo-400 transition-colors"
-                />
+              {/* DESCRIÇÃO */}
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                  Descrição Breve
+                </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  className="w-full bg-[#121214] border border-[#27272A] text-white rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-600 resize-none shadow-inner"
-                  placeholder="Qual o objetivo principal deste projeto?..."
+                  placeholder="Qual o propósito principal deste projeto?"
+                  rows={2}
+                  className="w-full bg-white/[0.03] border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-zinc-600 resize-none custom-scrollbar"
                 />
               </div>
-            </div>
+            </form>
 
-            {/* SECÇÃO VISUAL: IMAGEM E COR */}
-            <div className="pt-4 border-t border-[#27272A] grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {/* UPLOAD DE IMAGEM */}
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider ml-1">
-                  <ImagePlus size={14} /> Logo do Projeto
-                </label>
-
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={fileInputRef}
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-
-                {!imagePreview ? (
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full h-16 rounded-xl border-2 border-dashed border-[#27272A] hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all flex flex-col items-center justify-center gap-1 text-zinc-500 hover:text-indigo-400 group"
-                  >
-                    <ImagePlus
-                      size={18}
-                      className="group-hover:scale-110 transition-transform"
-                    />
-                    <span className="text-xs font-medium">Fazer upload</span>
-                  </button>
+            {/* RODAPÉ FIXED */}
+            <div className="px-8 py-6 border-t border-white/[0.05] flex items-center justify-between shrink-0 bg-[#0D0D0F]">
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isLoading}
+                onClick={handleSubmit}
+                className="bg-white text-black hover:bg-zinc-200 px-8 py-3.5 rounded-[1rem] text-[10px] font-black uppercase tracking-[0.1em] transition-all flex items-center gap-2.5 disabled:opacity-50 shadow-[0_10px_20px_rgba(255,255,255,0.1)] active:scale-95"
+              >
+                {isLoading ? (
+                  <Loader2 size={16} className="animate-spin" />
                 ) : (
-                  <div className="relative w-max group">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-16 h-16 rounded-xl object-cover border border-[#27272A] shadow-md"
-                    />
-                    <button
-                      type="button"
-                      onClick={removeImage}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600 hover:scale-110"
-                      title="Remover imagem"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
+                  <FolderPlus size={16} strokeWidth={2.5} />
                 )}
-              </div>
-
-              {/* SELETOR DE COR */}
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider ml-1">
-                  <Palette size={14} /> Cor Destaque
-                </label>
-                <div className="flex flex-wrap gap-2.5">
-                  {PROJECT_COLORS.map((color) => (
-                    <button
-                      key={color.name}
-                      type="button"
-                      onClick={() => setSelectedColor(color)}
-                      className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
-                        selectedColor.name === color.name
-                          ? "ring-2 ring-offset-2 ring-offset-[#09090B] scale-110"
-                          : "hover:scale-110 opacity-70 hover:opacity-100"
-                      }`}
-                      style={{
-                        backgroundColor: color.value,
-                        ringColor: color.value,
-                      }}
-                      title={color.name}
-                    >
-                      {selectedColor.name === color.name && (
-                        <div className="w-2 h-2 bg-white rounded-full opacity-80" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                Criar Projeto
+              </button>
             </div>
-          </div>
-
-          {/* FOOTER */}
-          <div className="p-5 border-t border-[#27272A] bg-[#121214] flex items-center justify-end gap-3 rounded-b-2xl shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-white text-black hover:bg-zinc-200 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-[0_0_15px_rgba(255,255,255,0.1)] flex items-center gap-2 disabled:opacity-50"
-            >
-              {loading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                "Criar Projeto"
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

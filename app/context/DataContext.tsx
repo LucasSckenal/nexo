@@ -8,7 +8,7 @@ import {
   ReactNode,
 } from "react";
 import { collection, query, onSnapshot, where } from "firebase/firestore";
-import { db, auth } from "../lib/firebase"; // Ajuste o caminho se necessário
+import { db, auth } from "../lib/firebase";
 
 interface DataContextType {
   projects: any[];
@@ -25,6 +25,18 @@ const DataContext = createContext<DataContextType>({
 export function DataProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<any[]>([]);
   const [activeProject, setActiveProject] = useState<any | null>(null);
+
+  // 1. Função wrapper que atualiza o estado e também guarda no disco do navegador
+  const handleSetActiveProject = (project: any) => {
+    setActiveProject(project);
+    if (typeof window !== "undefined") {
+      if (project?.id) {
+        localStorage.setItem("@Keepe:lastActiveProjectId", project.id);
+      } else {
+        localStorage.removeItem("@Keepe:lastActiveProjectId");
+      }
+    }
+  };
 
   useEffect(() => {
     // Ouve as mudanças de autenticação
@@ -49,22 +61,62 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         setProjects(projectsData);
 
-        // Se ainda não houver projeto ativo selecionado, seleciona o primeiro
-        if (projectsData.length > 0 && !activeProject) {
-          setActiveProject(projectsData[0]);
-        } else if (projectsData.length === 0) {
-          setActiveProject(null);
-        }
+        // Usamos callback no setter para garantir que temos sempre o valor mais atual do estado
+        setActiveProject((currentActive) => {
+          // Se já houver um projeto ativo na sessão, procuramos a sua versão mais recente no snapshot (caso tenha sido editado)
+          if (currentActive) {
+            const updatedActive = projectsData.find(
+              (p) => p.id === currentActive.id,
+            );
+            if (updatedActive) return updatedActive;
+          }
+
+          // Se não houver projeto ativo (ex: o utilizador acabou de dar F5)
+          if (projectsData.length > 0) {
+            // Vamos procurar se havia algo guardado no navegador
+            const savedProjectId =
+              typeof window !== "undefined"
+                ? localStorage.getItem("@Keepe:lastActiveProjectId")
+                : null;
+
+            if (savedProjectId) {
+              const projectToRestore = projectsData.find(
+                (p) => p.id === savedProjectId,
+              );
+              if (projectToRestore) {
+                return projectToRestore; // Restaura o projeto que estavas a ver!
+              }
+            }
+
+            // Se o projeto guardado foi apagado ou se for o primeiro acesso de sempre, devolve o primeiro da lista
+            if (typeof window !== "undefined") {
+              localStorage.setItem(
+                "@Keepe:lastActiveProjectId",
+                projectsData[0].id,
+              );
+            }
+            return projectsData[0];
+          }
+
+          // Se o utilizador não tiver nenhum projeto
+          return null;
+        });
       });
 
       return () => unsubscribeProjects();
     });
 
     return () => unsubscribeAuth();
-  }, []); // Sem dependência no activeProject para evitar loops infinitos
+  }, []);
 
   return (
-    <DataContext.Provider value={{ projects, activeProject, setActiveProject }}>
+    <DataContext.Provider
+      value={{
+        projects,
+        activeProject,
+        setActiveProject: handleSetActiveProject, // Expor a função modificada
+      }}
+    >
       {children}
     </DataContext.Provider>
   );

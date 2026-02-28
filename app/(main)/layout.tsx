@@ -54,6 +54,7 @@ import {
   Edit2,
   LogOut as LogOutIcon,
   Camera,
+  Briefcase,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -622,13 +623,26 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               active={pathname === "/"}
               collapsed={isCollapsed}
             />
-            <NavItem
-              href="/backlog"
-              icon={<ListTodo size={18} />}
-              label="Backlog"
-              active={pathname === "/backlog"}
-              collapsed={isCollapsed}
-            />
+
+            {/* LÓGICA DE SEPARAÇÃO: Só mostra o Backlog se NÃO for de Design */}
+            {activeProject?.category !== "design" && (
+              <NavItem
+                href="/backlog"
+                icon={<ListTodo size={18} />}
+                label="Backlog"
+                active={pathname === "/backlog"}
+                collapsed={isCollapsed}
+              />
+            )}
+            {activeProject?.category === "design" && (
+              <NavItem
+                href="/clientes"
+                icon={<Briefcase size={18} />}
+                label="Clientes"
+                active={pathname === "/clientes"}
+                collapsed={isCollapsed}
+              />
+            )}
             <NavItem
               href="/quadros"
               icon={<Kanban size={18} />}

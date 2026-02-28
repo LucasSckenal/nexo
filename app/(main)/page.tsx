@@ -276,7 +276,10 @@ export default function DashboardPage() {
                         >
                           <AlertTriangle size={12} className="text-red-500" />
                           <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">
-                            {criticalTasks.length} {criticalTasks.length === 1 ? "Crítica" : "Críticas"}
+                            {criticalTasks.length}{" "}
+                            {criticalTasks.length === 1
+                              ? "Crítica"
+                              : "Críticas"}
                           </span>
                         </motion.div>
                       ) : (
@@ -288,7 +291,10 @@ export default function DashboardPage() {
                           className="flex items-center gap-2"
                         >
                           <motion.div
-                            animate={{ opacity: [0.4, 1, 0.4], scale: [0.9, 1.1, 0.9] }}
+                            animate={{
+                              opacity: [0.4, 1, 0.4],
+                              scale: [0.9, 1.1, 0.9],
+                            }}
                             transition={{
                               duration: 2,
                               repeat: Infinity,
@@ -303,8 +309,8 @@ export default function DashboardPage() {
                       )}
                     </AnimatePresence>
                   </div>
-                  
-                  <Link 
+
+                  <Link
                     href="/quadros"
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-indigo-400 bg-indigo-500/5 border border-indigo-500/10 hover:bg-indigo-500/10 transition-colors uppercase tracking-widest"
                   >
@@ -370,15 +376,17 @@ export default function DashboardPage() {
                               Prioridade
                             </span>
                             <div className="flex flex-wrap gap-2">
-                              {["low", "medium", "high", "critical"].map((p) => (
-                                <button
-                                  key={p}
-                                  onClick={() => togglePriorityFilter(p)}
-                                  className={`px-2 py-1 text-[10px] font-bold uppercase rounded border transition-colors ${selectedPriorities.includes(p) ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30" : "bg-transparent text-zinc-500 border-white/10 hover:border-white/20"}`}
-                                >
-                                  {p}
-                                </button>
-                              ))}
+                              {["low", "medium", "high", "critical"].map(
+                                (p) => (
+                                  <button
+                                    key={p}
+                                    onClick={() => togglePriorityFilter(p)}
+                                    className={`px-2 py-1 text-[10px] font-bold uppercase rounded border transition-colors ${selectedPriorities.includes(p) ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30" : "bg-transparent text-zinc-500 border-white/10 hover:border-white/20"}`}
+                                  >
+                                    {p}
+                                  </button>
+                                ),
+                              )}
                             </div>
                           </div>
 
@@ -409,7 +417,10 @@ export default function DashboardPage() {
                                     </span>
                                   </div>
                                   {selectedAssignees.includes(m.name) && (
-                                    <Check size={12} className="text-indigo-400" />
+                                    <Check
+                                      size={12}
+                                      className="text-indigo-400"
+                                    />
                                   )}
                                 </button>
                               ))}
@@ -427,14 +438,53 @@ export default function DashboardPage() {
                     <AnimatePresence mode="popLayout">
                       {filteredTasks.length > 0 ? (
                         filteredTasks.map((task, idx) => {
+                          // 1. Definição de Cores com o novo efeito "Glow"
                           const priorityColors: Record<string, any> = {
-                            critical: { bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/20", line: "bg-red-500" },
-                            high: { bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/20", line: "bg-orange-500" },
-                            medium: { bg: "bg-yellow-500/10", text: "text-yellow-400", border: "border-yellow-500/20", line: "bg-yellow-500" },
-                            low: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20", line: "bg-emerald-500" },
-                            default: { bg: "bg-zinc-800/30", text: "text-zinc-400", border: "border-zinc-700/30", line: "bg-zinc-600" },
+                            critical: {
+                              bg: "bg-red-500/10",
+                              text: "text-red-400",
+                              border: "border-red-500/20",
+                              line: "bg-red-500",
+                              glow: "group-hover:shadow-[inset_0_0_30px_rgba(239,68,68,0.05)]",
+                              gradient: "from-red-500/5",
+                            },
+                            high: {
+                              bg: "bg-orange-500/10",
+                              text: "text-orange-400",
+                              border: "border-orange-500/20",
+                              line: "bg-orange-500",
+                              glow: "group-hover:shadow-[inset_0_0_30px_rgba(249,115,22,0.05)]",
+                              gradient: "from-orange-500/5",
+                            },
+                            medium: {
+                              bg: "bg-yellow-500/10",
+                              text: "text-yellow-400",
+                              border: "border-yellow-500/20",
+                              line: "bg-yellow-500",
+                              glow: "group-hover:shadow-[inset_0_0_30px_rgba(234,179,8,0.05)]",
+                              gradient: "from-yellow-500/5",
+                            },
+                            low: {
+                              bg: "bg-emerald-500/10",
+                              text: "text-emerald-400",
+                              border: "border-emerald-500/20",
+                              line: "bg-emerald-500",
+                              glow: "group-hover:shadow-[inset_0_0_30px_rgba(16,185,129,0.05)]",
+                              gradient: "from-emerald-500/5",
+                            },
+                            default: {
+                              bg: "bg-zinc-800/30",
+                              text: "text-zinc-400",
+                              border: "border-zinc-700/30",
+                              line: "bg-zinc-600",
+                              glow: "group-hover:shadow-[inset_0_0_30px_rgba(255,255,255,0.02)]",
+                              gradient: "from-white/5",
+                            },
                           };
-                          const pStyle = priorityColors[task.priority?.toLowerCase() || "default"];
+                          const pStyle =
+                            priorityColors[
+                              task.priority?.toLowerCase() || "default"
+                            ];
 
                           return (
                             <motion.div
@@ -443,56 +493,84 @@ export default function DashboardPage() {
                               initial={{ opacity: 0, y: 20 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, scale: 0.95 }}
-                              transition={{ duration: 0.3, delay: idx * 0.05 }}
-                              className="group relative bg-[#0A0A0A] border border-white/[0.05] hover:border-white/[0.1] rounded-[1.2rem] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-300 shadow-sm hover:shadow-xl cursor-pointer"
+                              transition={{
+                                duration: 0.4,
+                                delay: idx * 0.05,
+                                ease: "easeOut",
+                              }}
+                              className={`group relative bg-[#0A0A0C] border border-white/[0.04] hover:border-white/[0.08] rounded-[1.5rem] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-5 transition-all duration-500 cursor-pointer overflow-hidden ${pStyle.glow}`}
                             >
-                              {/* Barra de destaque lateral da prioridade */}
-                              <div className={`absolute left-0 top-0 bottom-0 w-1 ${pStyle.line} opacity-40 group-hover:opacity-100 transition-opacity duration-300 rounded-l-[1.2rem]`} />
+                              {/* Efeito de Gradiente de Fundo no Hover */}
+                              <div
+                                className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-r ${pStyle.gradient} to-transparent pointer-events-none`}
+                              />
 
-                              <div className="flex items-center gap-4 pl-3">
-                                <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 transition-colors ${pStyle.bg} ${pStyle.border}`}>
-                                  <CheckSquare size={16} className={pStyle.text} />
+                              {/* Barra de destaque lateral (agora mais fina e elegante) */}
+                              <div
+                                className={`absolute left-0 top-0 bottom-0 w-[3px] ${pStyle.line} opacity-30 group-hover:opacity-100 transition-all duration-500`}
+                              />
+
+                              {/* === ESQUERDA: Ícone e Título === */}
+                              <div className="flex items-start sm:items-center gap-4 relative z-10">
+                                <div
+                                  className={`mt-1 sm:mt-0 w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 transition-all duration-500 group-hover:scale-110 ${pStyle.bg} ${pStyle.border}`}
+                                >
+                                  <CheckSquare
+                                    size={18}
+                                    className={pStyle.text}
+                                  />
                                 </div>
+
                                 <div className="flex flex-col gap-1.5">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-mono text-zinc-500 tracking-widest">{task.taskKey}</span>
-                                    <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${pStyle.bg} ${pStyle.border} ${pStyle.text}`}>
+                                  <div className="flex items-center gap-2.5">
+                                    <span className="text-[10px] font-mono text-zinc-500 group-hover:text-zinc-400 transition-colors tracking-widest">
+                                      {task.taskKey}
+                                    </span>
+                                    <span className="w-1 h-1 rounded-full bg-white/10" />
+                                    <span
+                                      className={`text-[9px] font-black uppercase tracking-[0.15em] px-2 py-0.5 rounded-md border ${pStyle.bg} ${pStyle.border} ${pStyle.text}`}
+                                    >
                                       {task.priority || "Normal"}
                                     </span>
                                   </div>
-                                  <span className="text-[13px] font-bold text-zinc-200 group-hover:text-white transition-colors line-clamp-1">
+                                  <span className="text-[14px] font-bold text-zinc-300 group-hover:text-white transition-colors line-clamp-1 tracking-tight">
                                     {task.title}
                                   </span>
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-5 sm:pl-0 pl-[3.25rem]">
-                                {/* Epic */}
+                              {/* === DIREITA: Badges e Avatar === */}
+                              <div className="flex items-center gap-4 sm:gap-6 pl-14 sm:pl-0 relative z-10">
+                                {/* Epic Badge */}
                                 {task.epic && (
-                                  <span className="hidden md:inline-flex text-[9px] font-black uppercase tracking-widest px-2 py-1 bg-white/[0.03] text-zinc-400 rounded-md border border-white/5 truncate max-w-[80px]">
+                                  <span className="hidden lg:inline-flex text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 bg-[#121214] text-zinc-400 group-hover:text-zinc-300 rounded-lg border border-white/[0.03] group-hover:border-white/[0.08] transition-all truncate max-w-[100px]">
                                     {task.epic}
                                   </span>
                                 )}
 
-                                {/* Points */}
-                                <div className="w-8 flex justify-center">
-                                  <span className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-bold border ${task.points ? "bg-zinc-800/50 text-zinc-400 border-zinc-700" : "bg-transparent border-dashed border-zinc-700 text-zinc-600"}`}>
+                                {/* Story Points */}
+                                <div className="flex items-center justify-center px-2 py-1 rounded-lg border border-dashed border-white/10 group-hover:border-white/20 bg-white/[0.01] transition-colors min-w-[32px]">
+                                  <span className="text-[11px] font-black text-zinc-500 group-hover:text-zinc-300">
                                     {task.points || "-"}
                                   </span>
                                 </div>
 
-                                {/* Avatar */}
-                                <div className="flex items-center">
+                                <div className="hidden sm:block w-px h-6 bg-white/[0.05]" />
+
+                                {/* Avatar & Ações */}
+                                <div className="flex items-center gap-2">
                                   <img
-                                    src={task.assigneePhoto || `https://ui-avatars.com/api/?name=${task.assignee || "U"}&background=0D0D0D&color=fff`}
-                                    className="w-7 h-7 rounded-full border border-white/10 grayscale group-hover:grayscale-0 transition-all object-cover"
+                                    src={
+                                      task.assigneePhoto ||
+                                      `https://ui-avatars.com/api/?name=${task.assignee || "U"}&background=0D0D0D&color=fff`
+                                    }
+                                    className="w-8 h-8 rounded-full border-2 border-[#0A0A0C] group-hover:border-indigo-500/50 grayscale-[0.5] group-hover:grayscale-0 transition-all duration-500 object-cover shadow-sm"
                                     alt=""
                                     title={task.assignee}
                                   />
-                                </div>
-                                
-                                <div className="text-zinc-600 group-hover:text-white transition-colors">
-                                  <MoreHorizontal size={16} />
+                                  <button className="text-zinc-600 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100 -ml-2 sm:ml-0">
+                                    <MoreHorizontal size={18} />
+                                  </button>
                                 </div>
                               </div>
                             </motion.div>
@@ -502,11 +580,16 @@ export default function DashboardPage() {
                         <motion.div
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          className="h-full flex flex-col items-center justify-center opacity-50 space-y-4 py-20"
+                          className="h-full flex flex-col items-center justify-center opacity-40 space-y-4 py-20"
                         >
-                          <CheckSquare size={32} className="text-zinc-800" />
-                          <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-600 font-bold text-center">
-                            {hasActiveFilters ? "Nenhuma tarefa encontrada para os filtros." : "Sem tarefas ativas"}
+                          <CheckSquare
+                            size={36}
+                            className="text-zinc-700 mb-2"
+                          />
+                          <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-bold text-center">
+                            {hasActiveFilters
+                              ? "Nenhuma tarefa encontrada para os filtros."
+                              : "Sem tarefas ativas"}
                           </span>
                         </motion.div>
                       )}
@@ -653,7 +736,10 @@ export default function DashboardPage() {
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, scale: 0.9 }}
-                                transition={{ duration: 0.3, delay: idx * 0.05 }}
+                                transition={{
+                                  duration: 0.3,
+                                  delay: idx * 0.05,
+                                }}
                                 className="relative pl-12 group"
                               >
                                 <div
@@ -696,7 +782,10 @@ export default function DashboardPage() {
                           })
                         ) : (
                           <div className="flex flex-col items-center justify-center py-10 opacity-30">
-                            <Activity size={32} className="mb-4 text-zinc-600" />
+                            <Activity
+                              size={32}
+                              className="mb-4 text-zinc-600"
+                            />
                             <span className="text-[10px] uppercase tracking-[0.3em] font-black">
                               Nenhuma atividade recente
                             </span>

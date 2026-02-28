@@ -1230,7 +1230,7 @@ export default function SettingsPage() {
           </div>
         )}
       </AnimatePresence>
-    </main>
+    </div>
   );
 }
 
