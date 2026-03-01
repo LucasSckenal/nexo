@@ -1,3 +1,4 @@
+// page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -34,9 +35,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "firebase/auth";
+import { useTheme } from "../context/ThemeContext"; // <-- import adicionado
 
 export default function DashboardPage() {
   const { activeProject } = useData();
+  const { theme } = useTheme(); // <-- obtém o tema atual (não obrigatório para classes, mas pode ser útil)
   const [tasks, setTasks] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
@@ -163,7 +166,7 @@ export default function DashboardPage() {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="flex-1 flex flex-col h-full bg-[#050505] relative overflow-hidden font-sans"
+      className="flex-1 flex flex-col h-full bg-white dark:bg-[#050505] relative overflow-hidden font-sans"
     >
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 z-10">
         <div className="max-w-[1400px] mx-auto space-y-8">
@@ -173,15 +176,15 @@ export default function DashboardPage() {
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
             >
-              <div className="flex items-center gap-3 text-zinc-600 font-bold text-[10px] uppercase tracking-[0.3em]">
+              <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-600 font-bold text-[10px] uppercase tracking-[0.3em]">
                 <Calendar size={12} />
                 <span>{currentDate}</span>
-                <span className="text-zinc-800">/</span>
-                <span className="text-indigo-500/70">
+                <span className="text-zinc-400 dark:text-zinc-800">/</span>
+                <span className="text-indigo-600 dark:text-indigo-500/70">
                   {activeProject?.name || "System Idle"}
                 </span>
               </div>
-              <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter mt-2">
+              <h1 className="text-5xl md:text-6xl font-black text-gray-900 dark:text-white tracking-tighter mt-2">
                 {getGreeting()}, {user?.displayName?.split(" ")[0] || "User"}.
               </h1>
             </motion.div>
@@ -198,42 +201,45 @@ export default function DashboardPage() {
                 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsProjectModalOpen(true)}
-                className="h-[60px] px-8 border border-white/10 text-white/50 rounded-full text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 transition-all relative overflow-hidden group w-full md:w-auto justify-center"
+                className="h-[60px] px-8 border border-gray-300 dark:border-white/10 text-gray-600 dark:text-white/50 rounded-full text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-3 transition-all relative overflow-hidden group w-full md:w-auto justify-center"
               >
                 <span className="relative z-10 flex items-center gap-3">
                   <FolderPlus size={16} /> Inicializar Projeto
                 </span>
-                <div className="absolute inset-0 h-full w-full bg-white/20 skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+                <div className="absolute inset-0 h-full w-full bg-black/10 dark:bg-white/20 skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
               </motion.button>
 
-              <div className="hidden md:block w-px h-12 bg-white/[0.05]" />
+              <div className="hidden md:block w-px h-12 bg-gray-300 dark:bg-white/[0.05]" />
 
               <motion.div
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4, type: "spring" }}
-                className="bg-[#080808] border border-white/[0.03] p-2 pr-4 rounded-full flex items-center gap-4 w-full md:w-auto shadow-[inset_0_2px_15px_rgba(255,255,255,0.01)] group hover:border-white/[0.1] transition-colors"
+                className="bg-gray-100 dark:bg-[#080808] border border-gray-300 dark:border-white/[0.03] p-2 pr-4 rounded-full flex items-center gap-4 w-full md:w-auto shadow-[inset_0_2px_15px_rgba(0,0,0,0.02)] dark:shadow-[inset_0_2px_15px_rgba(255,255,255,0.01)] group hover:border-gray-400 dark:hover:border-white/[0.1] transition-colors"
               >
                 <div className="relative">
                   {user?.photoURL ? (
                     <img
                       src={user.photoURL}
                       alt="Perfil"
-                      className="w-12 h-12 rounded-full border-2 border-white/5 object-cover"
+                      className="w-12 h-12 rounded-full border-2 border-gray-300 dark:border-white/5 object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-indigo-500/10 border-2 border-indigo-500/20 flex items-center justify-center">
-                      <User size={20} className="text-indigo-400" />
+                    <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-500/10 border-2 border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center">
+                      <User
+                        size={20}
+                        className="text-indigo-600 dark:text-indigo-400"
+                      />
                     </div>
                   )}
-                  <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-[3px] border-[#080808] rounded-full" />
+                  <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-[3px] border-gray-100 dark:border-[#080808] rounded-full" />
                 </div>
 
                 <div className="flex flex-col flex-1 min-w-[120px]">
-                  <span className="text-[13px] font-bold text-zinc-200 line-clamp-1">
+                  <span className="text-[13px] font-bold text-gray-800 dark:text-zinc-200 line-clamp-1">
                     {user?.displayName || "Agente Desconhecido"}
                   </span>
-                  <span className="text-[10px] text-zinc-500 font-mono truncate max-w-[150px]">
+                  <span className="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate max-w-[150px]">
                     {user?.email || "acesso.restrito@sys.com"}
                   </span>
                 </div>
@@ -242,7 +248,7 @@ export default function DashboardPage() {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={handleSignOut}
-                  className="w-10 h-10 rounded-full flex items-center justify-center bg-white/[0.02] hover:bg-red-500/10 hover:text-red-400 text-zinc-500 transition-all ml-2"
+                  className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-200 dark:bg-white/[0.02] hover:bg-red-100 dark:hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 text-gray-500 dark:text-zinc-500 transition-all ml-2"
                   title="Desconectar do Sistema"
                 >
                   <LogOut size={16} />
@@ -257,12 +263,12 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3, duration: 0.4 }}
-                className="bg-[#080808] border border-white/[0.03] rounded-[2rem] flex flex-col h-[680px] shadow-[inset_0_2px_20px_rgba(0,0,0,0.5)] flex-1 overflow-hidden"
+                className="bg-gray-100 dark:bg-[#080808] border border-gray-300 dark:border-white/[0.03] rounded-[2rem] flex flex-col h-[680px] shadow-[inset_0_2px_20px_rgba(0,0,0,0.02)] dark:shadow-[inset_0_2px_20px_rgba(0,0,0,0.5)] flex-1 overflow-hidden"
               >
                 {/* Cabeçalho Principal do Monitor */}
-                <div className="p-6 md:p-8 border-b border-white/[0.02] flex items-center justify-between bg-black/20 shrink-0">
+                <div className="p-6 md:p-8 border-b border-gray-300 dark:border-white/[0.02] flex items-center justify-between bg-gray-50 dark:bg-black/20 shrink-0">
                   <div className="flex items-center gap-4">
-                    <h3 className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em]">
+                    <h3 className="text-[11px] font-black text-gray-600 dark:text-zinc-500 uppercase tracking-[0.2em]">
                       Monitor de Tarefas
                     </h3>
                     <AnimatePresence mode="wait">
@@ -272,10 +278,13 @@ export default function DashboardPage() {
                           initial={{ opacity: 0, scale: 0.8 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.8 }}
-                          className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-full"
+                          className="flex items-center gap-2 bg-red-100 dark:bg-red-500/10 border border-red-300 dark:border-red-500/20 px-3 py-1 rounded-full"
                         >
-                          <AlertTriangle size={12} className="text-red-500" />
-                          <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">
+                          <AlertTriangle
+                            size={12}
+                            className="text-red-600 dark:text-red-500"
+                          />
+                          <span className="text-[9px] font-black text-red-700 dark:text-red-400 uppercase tracking-widest">
                             {criticalTasks.length}{" "}
                             {criticalTasks.length === 1
                               ? "Crítica"
@@ -300,9 +309,9 @@ export default function DashboardPage() {
                               repeat: Infinity,
                               ease: "easeInOut",
                             }}
-                            className="w-1.5 h-1.5 rounded-full bg-indigo-500"
+                            className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-500"
                           />
-                          <span className="text-[9px] font-mono text-indigo-500/50 uppercase italic">
+                          <span className="text-[9px] font-mono text-indigo-600/70 dark:text-indigo-500/50 uppercase italic">
                             Live Data
                           </span>
                         </motion.div>
@@ -312,25 +321,25 @@ export default function DashboardPage() {
 
                   <Link
                     href="/quadros"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-indigo-400 bg-indigo-500/5 border border-indigo-500/10 hover:bg-indigo-500/10 transition-colors uppercase tracking-widest"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-indigo-700 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-500/5 border border-indigo-300 dark:border-indigo-500/10 hover:bg-indigo-200 dark:hover:bg-indigo-500/10 transition-colors uppercase tracking-widest"
                   >
                     Ver Kanban <ChevronRight size={12} />
                   </Link>
                 </div>
 
                 {/* Sub-cabeçalho de Filtros e Pesquisa */}
-                <div className="px-6 py-3 border-b border-white/[0.02] bg-[#050505]/30 flex items-center justify-between relative z-50 shrink-0">
+                <div className="px-6 py-3 border-b border-gray-300 dark:border-white/[0.02] bg-gray-50 dark:bg-[#050505]/30 flex items-center justify-between relative z-50 shrink-0">
                   <div className="relative flex-1 max-w-sm flex items-center group">
                     <Search
                       size={14}
-                      className="absolute left-3 text-zinc-600 group-focus-within:text-indigo-400 transition-colors"
+                      className="absolute left-3 text-gray-500 dark:text-zinc-600 group-focus-within:text-indigo-600 dark:group-focus-within:text-indigo-400 transition-colors"
                     />
                     <input
                       type="text"
                       placeholder="Pesquisar tarefas..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-transparent border-none text-[11px] text-zinc-300 pl-9 pr-4 py-1.5 outline-none placeholder:text-zinc-600 focus:ring-0"
+                      className="w-full bg-transparent border-none text-[11px] text-gray-700 dark:text-zinc-300 pl-9 pr-4 py-1.5 outline-none placeholder:text-gray-400 dark:placeholder:text-zinc-600 focus:ring-0"
                     />
                   </div>
 
@@ -340,11 +349,15 @@ export default function DashboardPage() {
                         e.stopPropagation();
                         setIsFilterOpen(!isFilterOpen);
                       }}
-                      className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors rounded-lg ${hasActiveFilters ? "text-indigo-400 bg-indigo-500/10" : "text-zinc-500 hover:text-zinc-300 hover:bg-white/5"}`}
+                      className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors rounded-lg ${
+                        hasActiveFilters
+                          ? "text-indigo-700 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-500/10"
+                          : "text-gray-600 dark:text-zinc-500 hover:text-gray-800 dark:hover:text-zinc-300 hover:bg-gray-200 dark:hover:bg-white/5"
+                      }`}
                     >
                       <Filter size={12} /> Filtros{" "}
                       {hasActiveFilters && (
-                        <span className="ml-1 w-2 h-2 rounded-full bg-indigo-500" />
+                        <span className="ml-1 w-2 h-2 rounded-full bg-indigo-600 dark:bg-indigo-500" />
                       )}
                     </button>
 
@@ -355,16 +368,16 @@ export default function DashboardPage() {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 10 }}
                           onClick={(e) => e.stopPropagation()}
-                          className="absolute top-full mt-2 right-0 w-64 bg-[#0A0A0A]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-4 z-[60] flex flex-col gap-4"
+                          className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-[#0A0A0A]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl p-4 z-[60] flex flex-col gap-4"
                         >
-                          <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                            <span className="text-xs font-bold text-white">
+                          <div className="flex items-center justify-between border-b border-gray-200 dark:border-white/5 pb-2">
+                            <span className="text-xs font-bold text-gray-900 dark:text-white">
                               Filtrar Tarefas
                             </span>
                             {hasActiveFilters && (
                               <button
                                 onClick={clearFilters}
-                                className="text-[10px] text-zinc-500 hover:text-red-400 transition-colors font-bold uppercase"
+                                className="text-[10px] text-gray-500 dark:text-zinc-500 hover:text-red-600 dark:hover:text-red-400 transition-colors font-bold uppercase"
                               >
                                 Limpar
                               </button>
@@ -372,7 +385,7 @@ export default function DashboardPage() {
                           </div>
 
                           <div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2 block">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-2 block">
                               Prioridade
                             </span>
                             <div className="flex flex-wrap gap-2">
@@ -381,7 +394,11 @@ export default function DashboardPage() {
                                   <button
                                     key={p}
                                     onClick={() => togglePriorityFilter(p)}
-                                    className={`px-2 py-1 text-[10px] font-bold uppercase rounded border transition-colors ${selectedPriorities.includes(p) ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30" : "bg-transparent text-zinc-500 border-white/10 hover:border-white/20"}`}
+                                    className={`px-2 py-1 text-[10px] font-bold uppercase rounded border transition-colors ${
+                                      selectedPriorities.includes(p)
+                                        ? "bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-500/30"
+                                        : "bg-transparent text-gray-600 dark:text-zinc-500 border-gray-300 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/20"
+                                    }`}
                                   >
                                     {p}
                                   </button>
@@ -391,7 +408,7 @@ export default function DashboardPage() {
                           </div>
 
                           <div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-2 block">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-zinc-600 mb-2 block">
                               Responsável
                             </span>
                             <div className="flex flex-col gap-1 max-h-32 overflow-y-auto custom-scrollbar">
@@ -399,7 +416,7 @@ export default function DashboardPage() {
                                 <button
                                   key={m.email || m.name}
                                   onClick={() => toggleAssigneeFilter(m.name)}
-                                  className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-white/5 transition-colors group"
+                                  className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group"
                                 >
                                   <div className="flex items-center gap-2">
                                     <img
@@ -411,7 +428,11 @@ export default function DashboardPage() {
                                       alt=""
                                     />
                                     <span
-                                      className={`text-[11px] ${selectedAssignees.includes(m.name) ? "text-indigo-400 font-bold" : "text-zinc-400 group-hover:text-white"}`}
+                                      className={`text-[11px] ${
+                                        selectedAssignees.includes(m.name)
+                                          ? "text-indigo-700 dark:text-indigo-400 font-bold"
+                                          : "text-gray-700 dark:text-zinc-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                                      }`}
                                     >
                                       {m.name}
                                     </span>
@@ -419,7 +440,7 @@ export default function DashboardPage() {
                                   {selectedAssignees.includes(m.name) && (
                                     <Check
                                       size={12}
-                                      className="text-indigo-400"
+                                      className="text-indigo-600 dark:text-indigo-400"
                                     />
                                   )}
                                 </button>
@@ -433,7 +454,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Lista de Tarefas - CARDS MAIS ATRATIVOS */}
-                <div className="p-6 overflow-y-auto flex-1 custom-scrollbar bg-[#050505]/50 relative z-10">
+                <div className="p-6 overflow-y-auto flex-1 custom-scrollbar bg-gray-50 dark:bg-[#050505]/50 relative z-10">
                   <div className="space-y-4">
                     <AnimatePresence mode="popLayout">
                       {filteredTasks.length > 0 ? (
@@ -441,44 +462,47 @@ export default function DashboardPage() {
                           // 1. Definição de Cores com o novo efeito "Glow"
                           const priorityColors: Record<string, any> = {
                             critical: {
-                              bg: "bg-red-500/10",
-                              text: "text-red-400",
-                              border: "border-red-500/20",
-                              line: "bg-red-500",
+                              bg: "bg-red-100 dark:bg-red-500/10",
+                              text: "text-red-700 dark:text-red-400",
+                              border: "border-red-300 dark:border-red-500/20",
+                              line: "bg-red-600 dark:bg-red-500",
                               glow: "group-hover:shadow-[inset_0_0_30px_rgba(239,68,68,0.05)]",
                               gradient: "from-red-500/5",
                             },
                             high: {
-                              bg: "bg-orange-500/10",
-                              text: "text-orange-400",
-                              border: "border-orange-500/20",
-                              line: "bg-orange-500",
+                              bg: "bg-orange-100 dark:bg-orange-500/10",
+                              text: "text-orange-700 dark:text-orange-400",
+                              border:
+                                "border-orange-300 dark:border-orange-500/20",
+                              line: "bg-orange-600 dark:bg-orange-500",
                               glow: "group-hover:shadow-[inset_0_0_30px_rgba(249,115,22,0.05)]",
                               gradient: "from-orange-500/5",
                             },
                             medium: {
-                              bg: "bg-yellow-500/10",
-                              text: "text-yellow-400",
-                              border: "border-yellow-500/20",
-                              line: "bg-yellow-500",
+                              bg: "bg-yellow-100 dark:bg-yellow-500/10",
+                              text: "text-yellow-700 dark:text-yellow-400",
+                              border:
+                                "border-yellow-300 dark:border-yellow-500/20",
+                              line: "bg-yellow-600 dark:bg-yellow-500",
                               glow: "group-hover:shadow-[inset_0_0_30px_rgba(234,179,8,0.05)]",
                               gradient: "from-yellow-500/5",
                             },
                             low: {
-                              bg: "bg-emerald-500/10",
-                              text: "text-emerald-400",
-                              border: "border-emerald-500/20",
-                              line: "bg-emerald-500",
+                              bg: "bg-emerald-100 dark:bg-emerald-500/10",
+                              text: "text-emerald-700 dark:text-emerald-400",
+                              border:
+                                "border-emerald-300 dark:border-emerald-500/20",
+                              line: "bg-emerald-600 dark:bg-emerald-500",
                               glow: "group-hover:shadow-[inset_0_0_30px_rgba(16,185,129,0.05)]",
                               gradient: "from-emerald-500/5",
                             },
                             default: {
-                              bg: "bg-zinc-800/30",
-                              text: "text-zinc-400",
-                              border: "border-zinc-700/30",
-                              line: "bg-zinc-600",
-                              glow: "group-hover:shadow-[inset_0_0_30px_rgba(255,255,255,0.02)]",
-                              gradient: "from-white/5",
+                              bg: "bg-gray-200 dark:bg-zinc-800/30",
+                              text: "text-gray-700 dark:text-zinc-400",
+                              border: "border-gray-400 dark:border-zinc-700/30",
+                              line: "bg-gray-600 dark:bg-zinc-600",
+                              glow: "group-hover:shadow-[inset_0_0_30px_rgba(0,0,0,0.02)] dark:group-hover:shadow-[inset_0_0_30px_rgba(255,255,255,0.02)]",
+                              gradient: "from-black/5 dark:from-white/5",
                             },
                           };
                           const pStyle =
@@ -498,7 +522,7 @@ export default function DashboardPage() {
                                 delay: idx * 0.05,
                                 ease: "easeOut",
                               }}
-                              className={`group relative bg-[#0A0A0C] border border-white/[0.04] hover:border-white/[0.08] rounded-[1.5rem] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-5 transition-all duration-500 cursor-pointer overflow-hidden ${pStyle.glow}`}
+                              className={`group relative bg-white dark:bg-[#0A0A0C] border border-gray-200 dark:border-white/[0.04] hover:border-gray-300 dark:hover:border-white/[0.08] rounded-[1.5rem] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-5 transition-all duration-500 cursor-pointer overflow-hidden ${pStyle.glow}`}
                             >
                               {/* Efeito de Gradiente de Fundo no Hover */}
                               <div
@@ -523,17 +547,17 @@ export default function DashboardPage() {
 
                                 <div className="flex flex-col gap-1.5">
                                   <div className="flex items-center gap-2.5">
-                                    <span className="text-[10px] font-mono text-zinc-500 group-hover:text-zinc-400 transition-colors tracking-widest">
+                                    <span className="text-[10px] font-mono text-gray-500 dark:text-zinc-500 group-hover:text-gray-700 dark:group-hover:text-zinc-400 transition-colors tracking-widest">
                                       {task.taskKey}
                                     </span>
-                                    <span className="w-1 h-1 rounded-full bg-white/10" />
+                                    <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-white/10" />
                                     <span
                                       className={`text-[9px] font-black uppercase tracking-[0.15em] px-2 py-0.5 rounded-md border ${pStyle.bg} ${pStyle.border} ${pStyle.text}`}
                                     >
                                       {task.priority || "Normal"}
                                     </span>
                                   </div>
-                                  <span className="text-[14px] font-bold text-zinc-300 group-hover:text-white transition-colors line-clamp-1 tracking-tight">
+                                  <span className="text-[14px] font-bold text-gray-800 dark:text-zinc-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors line-clamp-1 tracking-tight">
                                     {task.title}
                                   </span>
                                 </div>
@@ -543,19 +567,19 @@ export default function DashboardPage() {
                               <div className="flex items-center gap-4 sm:gap-6 pl-14 sm:pl-0 relative z-10">
                                 {/* Epic Badge */}
                                 {task.epic && (
-                                  <span className="hidden lg:inline-flex text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 bg-[#121214] text-zinc-400 group-hover:text-zinc-300 rounded-lg border border-white/[0.03] group-hover:border-white/[0.08] transition-all truncate max-w-[100px]">
+                                  <span className="hidden lg:inline-flex text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 bg-gray-200 dark:bg-[#121214] text-gray-700 dark:text-zinc-400 group-hover:text-gray-900 dark:group-hover:text-zinc-300 rounded-lg border border-gray-300 dark:border-white/[0.03] group-hover:border-gray-400 dark:group-hover:border-white/[0.08] transition-all truncate max-w-[100px]">
                                     {task.epic}
                                   </span>
                                 )}
 
                                 {/* Story Points */}
-                                <div className="flex items-center justify-center px-2 py-1 rounded-lg border border-dashed border-white/10 group-hover:border-white/20 bg-white/[0.01] transition-colors min-w-[32px]">
-                                  <span className="text-[11px] font-black text-zinc-500 group-hover:text-zinc-300">
+                                <div className="flex items-center justify-center px-2 py-1 rounded-lg border border-dashed border-gray-300 dark:border-white/10 group-hover:border-gray-400 dark:group-hover:border-white/20 bg-gray-50 dark:bg-white/[0.01] transition-colors min-w-[32px]">
+                                  <span className="text-[11px] font-black text-gray-600 dark:text-zinc-500 group-hover:text-gray-800 dark:group-hover:text-zinc-300">
                                     {task.points || "-"}
                                   </span>
                                 </div>
 
-                                <div className="hidden sm:block w-px h-6 bg-white/[0.05]" />
+                                <div className="hidden sm:block w-px h-6 bg-gray-300 dark:bg-white/[0.05]" />
 
                                 {/* Avatar & Ações */}
                                 <div className="flex items-center gap-2">
@@ -564,11 +588,11 @@ export default function DashboardPage() {
                                       task.assigneePhoto ||
                                       `https://ui-avatars.com/api/?name=${task.assignee || "U"}&background=0D0D0D&color=fff`
                                     }
-                                    className="w-8 h-8 rounded-full border-2 border-[#0A0A0C] group-hover:border-indigo-500/50 grayscale-[0.5] group-hover:grayscale-0 transition-all duration-500 object-cover shadow-sm"
+                                    className="w-8 h-8 rounded-full border-2 border-white dark:border-[#0A0A0C] group-hover:border-indigo-500/50 grayscale-[0.5] group-hover:grayscale-0 transition-all duration-500 object-cover shadow-sm"
                                     alt=""
                                     title={task.assignee}
                                   />
-                                  <button className="text-zinc-600 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100 -ml-2 sm:ml-0">
+                                  <button className="text-gray-500 dark:text-zinc-600 hover:text-gray-800 dark:hover:text-white p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100 -ml-2 sm:ml-0">
                                     <MoreHorizontal size={18} />
                                   </button>
                                 </div>
@@ -584,9 +608,9 @@ export default function DashboardPage() {
                         >
                           <CheckSquare
                             size={36}
-                            className="text-zinc-700 mb-2"
+                            className="text-gray-500 dark:text-zinc-700 mb-2"
                           />
-                          <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-bold text-center">
+                          <span className="text-[10px] uppercase tracking-[0.3em] text-gray-600 dark:text-zinc-500 font-bold text-center">
                             {hasActiveFilters
                               ? "Nenhuma tarefa encontrada para os filtros."
                               : "Sem tarefas ativas"}
@@ -605,7 +629,7 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4, type: "spring" }}
                 whileHover={{ scale: 1.01 }}
-                className="bg-[#080808] border border-[#5865F2]/20 rounded-[2rem] p-6 flex flex-col relative overflow-hidden group shadow-[inset_0_2px_20px_rgba(88,101,242,0.05)]"
+                className="bg-gray-100 dark:bg-[#080808] border border-indigo-300 dark:border-[#5865F2]/20 rounded-[2rem] p-6 flex flex-col relative overflow-hidden group shadow-[inset_0_2px_20px_rgba(88,101,242,0.02)] dark:shadow-[inset_0_2px_20px_rgba(88,101,242,0.05)]"
               >
                 <motion.div
                   animate={{
@@ -619,16 +643,19 @@ export default function DashboardPage() {
                     repeatType: "reverse",
                     ease: "easeInOut",
                   }}
-                  className="absolute -top-10 -right-10 w-40 h-40 bg-[#5865F2] rounded-full blur-[80px] pointer-events-none"
+                  className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-400 dark:bg-[#5865F2] rounded-full blur-[80px] pointer-events-none"
                 />
 
                 <div className="flex justify-between items-start mb-4 z-10">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-[#5865F2]/10 flex items-center justify-center border border-[#5865F2]/30 group-hover:border-[#5865F2]/60 transition-colors">
-                      <MessageSquare size={20} className="text-[#5865F2]" />
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-[#5865F2]/10 flex items-center justify-center border border-indigo-300 dark:border-[#5865F2]/30 group-hover:border-indigo-400 dark:group-hover:border-[#5865F2]/60 transition-colors">
+                      <MessageSquare
+                        size={20}
+                        className="text-indigo-700 dark:text-[#5865F2]"
+                      />
                     </div>
                     <div>
-                      <h3 className="text-[11px] font-black text-zinc-300 uppercase tracking-[0.1em]">
+                      <h3 className="text-[11px] font-black text-gray-700 dark:text-zinc-300 uppercase tracking-[0.1em]">
                         Bot do Discord
                       </h3>
                       <div className="flex items-center gap-2 mt-1.5">
@@ -643,17 +670,17 @@ export default function DashboardPage() {
                           transition={{ duration: 2, repeat: Infinity }}
                           className="w-1.5 h-1.5 rounded-full bg-emerald-500"
                         />
-                        <span className="text-[9px] font-mono text-emerald-500/90 uppercase tracking-widest">
+                        <span className="text-[9px] font-mono text-emerald-700 dark:text-emerald-500/90 uppercase tracking-widest">
                           Online
                         </span>
                       </div>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono text-zinc-600">
+                  <span className="text-[10px] font-mono text-gray-500 dark:text-zinc-600">
                     24ms
                   </span>
                 </div>
-                <p className="text-[12px] text-zinc-400 z-10 leading-relaxed">
+                <p className="text-[12px] text-gray-700 dark:text-zinc-400 z-10 leading-relaxed">
                   Sincronização de tarefas e logs de eventos ativas no servidor.
                 </p>
               </motion.div>
@@ -662,27 +689,27 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="bg-[#080808] border border-white/[0.03] rounded-[2rem] flex flex-col flex-1 min-h-[460px] max-h-[550px] overflow-hidden relative"
+                className="bg-gray-100 dark:bg-[#080808] border border-gray-300 dark:border-white/[0.03] rounded-[2rem] flex flex-col flex-1 min-h-[460px] max-h-[550px] overflow-hidden relative"
               >
-                <div className="p-6 md:p-8 border-b border-white/[0.02] bg-black/40 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md">
-                  <h3 className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.2em]">
+                <div className="p-6 md:p-8 border-b border-gray-300 dark:border-white/[0.02] bg-gray-50 dark:bg-black/40 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md">
+                  <h3 className="text-[11px] font-black text-gray-600 dark:text-zinc-500 uppercase tracking-[0.2em]">
                     Histórico de Logs
                   </h3>
-                  <div className="flex items-center gap-2 px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/20">
-                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                    <span className="text-[9px] font-mono text-indigo-400 uppercase tracking-widest">
+                  <div className="flex items-center gap-2 px-2 py-1 rounded bg-indigo-100 dark:bg-indigo-500/10 border border-indigo-300 dark:border-indigo-500/20">
+                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-500 animate-pulse" />
+                    <span className="text-[9px] font-mono text-indigo-700 dark:text-indigo-400 uppercase tracking-widest">
                       Live
                     </span>
                   </div>
                 </div>
 
-                <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1 bg-[#050505]/30 relative z-0">
+                <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1 bg-gray-50 dark:bg-[#050505]/30 relative z-0">
                   <div className="relative">
                     <motion.div
                       initial={{ height: 0 }}
                       animate={{ height: "100%" }}
                       transition={{ duration: 1.5, ease: "easeInOut" }}
-                      className="absolute top-2 bottom-0 left-[15px] w-[2px] bg-gradient-to-b from-indigo-500/50 via-zinc-800/40 to-transparent"
+                      className="absolute top-2 bottom-0 left-[15px] w-[2px] bg-gradient-to-b from-indigo-400/70 dark:from-indigo-500/50 via-gray-300 dark:via-zinc-800/40 to-transparent"
                     >
                       <motion.div
                         animate={{ top: ["0%", "100%"], opacity: [0, 1, 1, 0] }}
@@ -691,7 +718,7 @@ export default function DashboardPage() {
                           repeat: Infinity,
                           ease: "linear",
                         }}
-                        className="absolute left-1/2 -translate-x-1/2 w-[3px] h-16 bg-indigo-400 rounded-full blur-[2px] shadow-[0_0_15px_rgba(99,102,241,0.8)]"
+                        className="absolute left-1/2 -translate-x-1/2 w-[3px] h-16 bg-indigo-600 dark:bg-indigo-400 rounded-full blur-[2px] shadow-[0_0_15px_rgba(99,102,241,0.8)]"
                       />
                     </motion.div>
 
@@ -704,27 +731,33 @@ export default function DashboardPage() {
                             const isMove = log.type === "move";
 
                             let LogIcon = Activity;
-                            let iconColor = "text-blue-400";
-                            let borderColor = "border-blue-500/20";
+                            let iconColor = "text-blue-600 dark:text-blue-400";
+                            let borderColor =
+                              "border-blue-300 dark:border-blue-500/20";
                             let glowColor =
                               "group-hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]";
 
                             if (isCreate) {
                               LogIcon = Plus;
-                              iconColor = "text-emerald-400";
-                              borderColor = "border-emerald-500/20";
+                              iconColor =
+                                "text-emerald-600 dark:text-emerald-400";
+                              borderColor =
+                                "border-emerald-300 dark:border-emerald-500/20";
                               glowColor =
                                 "group-hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]";
                             } else if (isDelete) {
                               LogIcon = Trash2;
-                              iconColor = "text-red-400";
-                              borderColor = "border-red-500/20";
+                              iconColor = "text-red-600 dark:text-red-400";
+                              borderColor =
+                                "border-red-300 dark:border-red-500/20";
                               glowColor =
                                 "group-hover:shadow-[0_0_15px_rgba(239,68,68,0.2)]";
                             } else if (isMove) {
                               LogIcon = LayoutPanelLeft;
-                              iconColor = "text-purple-400";
-                              borderColor = "border-purple-500/20";
+                              iconColor =
+                                "text-purple-600 dark:text-purple-400";
+                              borderColor =
+                                "border-purple-300 dark:border-purple-500/20";
                               glowColor =
                                 "group-hover:shadow-[0_0_15px_rgba(168,85,247,0.2)]";
                             }
@@ -743,37 +776,37 @@ export default function DashboardPage() {
                                 className="relative pl-12 group"
                               >
                                 <div
-                                  className={`absolute left-0 top-0 w-8 h-8 rounded-xl border flex items-center justify-center bg-[#050505] transition-all duration-300 group-hover:scale-110 ${borderColor} ${glowColor} z-10`}
+                                  className={`absolute left-0 top-0 w-8 h-8 rounded-xl border flex items-center justify-center bg-white dark:bg-[#050505] transition-all duration-300 group-hover:scale-110 ${borderColor} ${glowColor} z-10`}
                                 >
                                   <LogIcon size={14} className={iconColor} />
                                 </div>
 
-                                <motion.div className="flex flex-col bg-white/[0.01] border border-white/[0.02] rounded-2xl p-4 group-hover:bg-white/[0.03] group-hover:border-white/[0.06] transition-all duration-300">
+                                <motion.div className="flex flex-col bg-white dark:bg-white/[0.01] border border-gray-200 dark:border-white/[0.02] rounded-2xl p-4 group-hover:bg-gray-50 dark:group-hover:bg-white/[0.03] group-hover:border-gray-300 dark:group-hover:border-white/[0.06] transition-all duration-300">
                                   <div className="flex items-center gap-3 mb-2">
                                     {log.userPhoto ? (
                                       <img
                                         src={log.userPhoto}
                                         alt=""
-                                        className="w-5 h-5 rounded-full grayscale group-hover:grayscale-0 transition-all border border-white/10"
+                                        className="w-5 h-5 rounded-full grayscale group-hover:grayscale-0 transition-all border border-gray-300 dark:border-white/10"
                                       />
                                     ) : (
-                                      <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center border border-white/10">
+                                      <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-zinc-800 flex items-center justify-center border border-gray-300 dark:border-white/10">
                                         <User
                                           size={10}
-                                          className="text-zinc-400"
+                                          className="text-gray-600 dark:text-zinc-400"
                                         />
                                       </div>
                                     )}
-                                    <span className="text-[12px] text-zinc-200 font-bold tracking-wide">
+                                    <span className="text-[12px] text-gray-800 dark:text-zinc-200 font-bold tracking-wide">
                                       {log.userName}
                                     </span>
-                                    <div className="w-1 h-1 rounded-full bg-zinc-700" />
-                                    <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
+                                    <div className="w-1 h-1 rounded-full bg-gray-400 dark:bg-zinc-700" />
+                                    <span className="text-[10px] font-mono text-gray-500 dark:text-zinc-500 uppercase tracking-widest group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                       {formatTime(log.timestamp)}
                                     </span>
                                   </div>
 
-                                  <div className="text-[13px] text-zinc-400 leading-relaxed pl-3 border-l-2 border-white/5 ml-1 mt-1 group-hover:border-indigo-500/30 transition-colors">
+                                  <div className="text-[13px] text-gray-700 dark:text-zinc-400 leading-relaxed pl-3 border-l-2 border-gray-300 dark:border-white/5 ml-1 mt-1 group-hover:border-indigo-400 dark:group-hover:border-indigo-500/30 transition-colors">
                                     {log.content}
                                   </div>
                                 </motion.div>
@@ -784,9 +817,9 @@ export default function DashboardPage() {
                           <div className="flex flex-col items-center justify-center py-10 opacity-30">
                             <Activity
                               size={32}
-                              className="mb-4 text-zinc-600"
+                              className="text-gray-500 dark:text-zinc-600 mb-4"
                             />
-                            <span className="text-[10px] uppercase tracking-[0.3em] font-black">
+                            <span className="text-[10px] uppercase tracking-[0.3em] font-black text-gray-600 dark:text-zinc-500">
                               Nenhuma atividade recente
                             </span>
                           </div>
@@ -796,7 +829,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="h-12 bg-gradient-to-t from-[#080808] to-transparent absolute bottom-0 left-0 right-0 pointer-events-none z-10" />
+                <div className="h-12 bg-gradient-to-t from-gray-100 dark:from-[#080808] to-transparent absolute bottom-0 left-0 right-0 pointer-events-none z-10" />
               </motion.div>
             </div>
           </div>

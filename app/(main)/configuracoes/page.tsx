@@ -141,6 +141,9 @@ export default function SettingsPage() {
     number | null
   >(null);
 
+  // NOVO ESTADO: Controle do Modal de Exclusão de Coluna
+  const [columnToDelete, setColumnToDelete] = useState<number | null>(null);
+
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
@@ -281,7 +284,6 @@ export default function SettingsPage() {
     reader.readAsDataURL(file);
   };
 
-  // AQUI ESTÁ A CORREÇÃO MÁGICA PARA O BANNER ATIVAR O BOTÃO DE SALVAR!
   const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || uploadingBannerIndex === null) return;
@@ -293,7 +295,6 @@ export default function SettingsPage() {
     const reader = new FileReader();
     reader.onloadend = () => {
       const newCols = [...boardColumns];
-      // Criar uma cópia profunda da coluna para forçar o React a ver a mudança
       newCols[uploadingBannerIndex] = {
         ...newCols[uploadingBannerIndex],
         bannerUrl: reader.result as string,
@@ -380,22 +381,28 @@ export default function SettingsPage() {
     };
     setBoardColumns([...boardColumns, newCol]);
   };
+
   const updateColumn = (index: number, field: string, value: string) => {
     const newCols = [...boardColumns];
     newCols[index] = { ...newCols[index], [field]: value };
     setBoardColumns(newCols);
   };
-  const removeColumn = (index: number) => {
-    if (
-      confirm(
-        "Apagar coluna? As tarefas não serão apagadas, mas deixarão de aparecer.",
-      )
-    ) {
+
+  // NOVAS FUNÇÕES: Confirmar e Executar a deleção da Coluna
+  const confirmDeleteColumn = (index: number) => {
+    setColumnToDelete(index);
+  };
+
+  const handleExecuteDelete = () => {
+    if (columnToDelete !== null) {
       const newCols = [...boardColumns];
-      newCols.splice(index, 1);
+      newCols.splice(columnToDelete, 1);
       setBoardColumns(newCols);
+      setColumnToDelete(null);
+      showToast("Coluna removida do quadro.");
     }
   };
+
   const moveColumn = (index: number, direction: "up" | "down") => {
     if (direction === "up" && index === 0) return;
     if (direction === "down" && index === boardColumns.length - 1) return;
@@ -465,7 +472,12 @@ export default function SettingsPage() {
       <header className="shrink-0 border-b border-white/[0.08] bg-[#050505]/60 backdrop-blur-xl px-10 py-8 flex items-center justify-between z-20">
         <div>
           <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] uppercase tracking-[0.4em] mb-2">
-            <Settings size={12} />
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            >
+              <Settings size={12} />
+            </motion.div>
             <span>Project Settings</span>
           </div>
           <h1 className="text-4xl font-black text-white tracking-tighter">
@@ -670,7 +682,7 @@ export default function SettingsPage() {
               </motion.div>
             )}
 
-            {/* ABA QUADRO KANBAN (COM BANNERS DESTACADOS) */}
+            {/* ABA QUADRO KANBAN */}
             {activeTab === "board" && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -857,7 +869,7 @@ export default function SettingsPage() {
 
                           <div className="pl-6 border-l border-white/5 flex items-center">
                             <button
-                              onClick={() => removeColumn(idx)}
+                              onClick={() => confirmDeleteColumn(idx)}
                               className="text-zinc-600 hover:text-red-400 p-3 rounded-2xl hover:bg-red-400/10 transition-all"
                               title="Apagar Coluna"
                             >
@@ -1226,6 +1238,53 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DE EXCLUSÃO DE COLUNA */}
+      <AnimatePresence>
+        {columnToDelete !== null && (
+          <div className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-[#0D0D0F] border border-red-500/20 rounded-[2.5rem] w-full max-w-md shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden"
+            >
+              <div className="p-10 text-center">
+                <div className="w-20 h-20 bg-red-500/10 border border-red-500/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                  <Trash2 size={32} className="text-red-500" />
+                </div>
+
+                <h2 className="text-2xl font-black text-white tracking-tight mb-3">
+                  Eliminar Coluna?
+                </h2>
+                <p className="text-sm text-zinc-500 leading-relaxed mb-8">
+                  Tem certeza que deseja apagar a coluna{" "}
+                  <span className="text-white font-bold">
+                    "{boardColumns[columnToDelete]?.title}"
+                  </span>
+                  ? As tarefas não serão apagadas, mas deixarão de estar
+                  visíveis neste quadro.
+                </p>
+
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={handleExecuteDelete}
+                    className="w-full bg-red-500 hover:bg-red-600 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-lg shadow-red-500/20"
+                  >
+                    Confirmar Exclusão
+                  </button>
+                  <button
+                    onClick={() => setColumnToDelete(null)}
+                    className="w-full bg-white/[0.03] hover:bg-white/[0.08] text-zinc-400 hover:text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </div>
         )}

@@ -1,28 +1,52 @@
-/* * Importação principal do framework Tailwind CSS.
- * Na versão 4, esta única diretiva substitui as antigas declarações de base, components e utilities.
- */
+/* globals.css */
 @import "tailwindcss";
 
-/* * Configuração do Tema Global do Projeto
- * Utiliza a abordagem CSS-first para estruturar a paleta de cores personalizada.
- * As variáveis definidas neste bloco habilitam automaticamente o uso das classes 
- * utilitárias nos componentes React (ex: bg-bgMain, text-textPrimary).
- */
-@theme {
-  --color-bgMain: #09090b;
-  --color-bgSurface: #18181b;
-  --color-bgSurfaceHover: #27272a;
-  --color-borderSubtle: #27272a;
-  --color-textPrimary: #fafafa;
-  --color-textSecondary: #a1a1aa;
-  --color-accentPurple: #8b5cf6;
-  --color-accentPurpleDark: #7c3aed;
+@layer base {
+
+  /* Tema claro (padrão) */
+  :root {
+    --bg-main: #f4f4f5;
+    /* zinc-100 */
+    --bg-surface: #e4e4e7;
+    /* zinc-200 */
+    --bg-surface-hover: #d4d4d8;
+    /* zinc-300 */
+    --border-subtle: #d4d4d8;
+    --text-primary: #09090b;
+    /* zinc-950 */
+    --text-secondary: #52525b;
+    /* zinc-600 */
+    --accent-purple: #8b5cf6;
+    --accent-purple-dark: #7c3aed;
+    color-scheme: light;
+  }
+
+  /* Tema escuro (quando a classe .dark estiver presente) */
+  .dark {
+    --bg-main: #09090b;
+    /* zinc-950 */
+    --bg-surface: #18181b;
+    /* zinc-900 */
+    --bg-surface-hover: #27272a;
+    /* zinc-800 */
+    --border-subtle: #27272a;
+    --text-primary: #fafafa;
+    /* zinc-50 */
+    --text-secondary: #a1a1aa;
+    /* zinc-400 */
+    --accent-purple: #8b5cf6;
+    --accent-purple-dark: #7c3aed;
+    color-scheme: dark;
+  }
 }
 
-/* * Estilos base da aplicação aplicados no root.
- * Garante que o navegador interprete o fundo escuro nativamente, 
- * evitando flashes brancos durante o carregamento da página.
- */
-:root {
-  color-scheme: dark;
+@theme {
+  --color-bgMain: var(--bg-main);
+  --color-bgSurface: var(--bg-surface);
+  --color-bgSurfaceHover: var(--bg-surface-hover);
+  --color-borderSubtle: var(--border-subtle);
+  --color-textPrimary: var(--text-primary);
+  --color-textSecondary: var(--text-secondary);
+  --color-accentPurple: var(--accent-purple);
+  --color-accentPurpleDark: var(--accent-purple-dark);
 }

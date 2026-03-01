@@ -47,14 +47,16 @@ import { motion, AnimatePresence } from "framer-motion";
 const Toggle = ({
   active,
   onClick,
+  theme,
 }: {
   active: boolean;
   onClick: () => void;
+  theme: string;
 }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`w-10 h-6 rounded-full flex items-center transition-all px-1 ${active ? "bg-indigo-500" : "bg-white/10"}`}
+    className={`w-10 h-6 rounded-full flex items-center transition-all px-1 ${active ? "bg-indigo-500" : theme === "dark" ? "bg-white/10" : "bg-black/10"}`}
   >
     <div
       className={`w-4 h-4 rounded-full bg-white transition-all shadow-md ${active ? "translate-x-4" : "translate-x-0"}`}
@@ -103,6 +105,51 @@ export default function UserProfilePage() {
     msg: string;
     type: "success" | "error";
   }>({ show: false, msg: "", type: "success" });
+
+  // --- SINCRONIZAÇÃO DE FUNDO DO BODY ---
+  useEffect(() => {
+    const root = window.document.documentElement;
+    const body = window.document.body;
+
+    if (theme === "light") {
+      root.classList.remove("dark");
+      root.classList.add("light");
+      body.style.backgroundColor = "#FAFAFA"; // Fundo claro geral
+      body.style.color = "#09090B";
+    } else {
+      root.classList.remove("light");
+      root.classList.add("dark");
+      body.style.backgroundColor = "#09090B"; // Fundo escuro geral
+      body.style.color = "#FAFAFA";
+    }
+  }, [theme]);
+
+  // --- DICIONÁRIO DE ESTILOS DINÂMICOS ---
+  const ui = {
+    // Mudei de "bg-transparent" para "bg-[#FAFAFA]" (um cinza super claro/quase branco)
+    wrapper:
+      theme === "dark"
+        ? "bg-[#050505] text-zinc-200"
+        : "bg-[#FAFAFA] text-zinc-800",
+
+    card:
+      theme === "dark"
+        ? "bg-[#0A0A0A] border-white/5"
+        : "bg-white border-zinc-200 shadow-sm",
+    input:
+      theme === "dark"
+        ? "bg-[#050505] border-white/10 text-white focus:border-indigo-500"
+        : "bg-zinc-50 border-zinc-300 text-zinc-900 focus:border-indigo-500",
+    textTitle: theme === "dark" ? "text-white" : "text-zinc-900",
+    textMuted: theme === "dark" ? "text-zinc-500" : "text-zinc-500",
+    iconBox:
+      theme === "dark"
+        ? "bg-white/[0.02] border-white/5 text-zinc-500 group-focus-within:text-white"
+        : "bg-zinc-100 border-zinc-200 text-zinc-500 group-focus-within:text-zinc-900",
+    padding: density === "compact" ? "p-4" : "p-8",
+    gap: density === "compact" ? "gap-4" : "gap-6",
+    statValue: density === "compact" ? "text-2xl" : "text-4xl",
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -227,13 +274,17 @@ export default function UserProfilePage() {
 
   if (isLoading)
     return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+      <div
+        className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-[#050505]" : "bg-white"}`}
+      >
         <Loader2 size={48} className="text-indigo-500 animate-spin" />
       </div>
     );
 
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-200 p-8 pb-32 relative custom-scrollbar w-full">
+    <div
+      className={`min-h-screen p-8 pb-32 relative custom-scrollbar w-full transition-colors duration-500 ${ui.wrapper}`}
+    >
       {/* Toast Notification */}
       <AnimatePresence>
         {toast.show && (
@@ -244,7 +295,7 @@ export default function UserProfilePage() {
             className="fixed top-8 left-1/2 -translate-x-1/2 z-[200]"
           >
             <div
-              className={`flex items-center gap-3 px-6 py-3 rounded-full border backdrop-blur-md ${toast.type === "success" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-400"}`}
+              className={`flex items-center gap-3 px-6 py-3 rounded-full border backdrop-blur-md bg-white ${toast.type === "success" ? "border-emerald-500/20 text-emerald-500" : "border-red-500/20 text-red-500"}`}
             >
               {toast.type === "success" ? (
                 <CheckCircle2 size={16} />
@@ -260,10 +311,10 @@ export default function UserProfilePage() {
       {/* Header */}
       <div className="w-full max-w-[1000px] mx-auto mb-10 pt-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight">
+          <h1 className={`text-3xl font-black tracking-tight ${ui.textTitle}`}>
             Meu Perfil
           </h1>
-          <p className="text-zinc-500 text-sm">
+          <p className={`text-sm ${ui.textMuted}`}>
             Gerencie sua identidade, preferências e conexões.
           </p>
         </div>
@@ -289,24 +340,28 @@ export default function UserProfilePage() {
             label="Geral"
             active={activeTab === "general"}
             onClick={() => setActiveTab("general")}
+            theme={theme}
           />
           <TabButton
             icon={<Palette size={18} />}
             label="Preferências"
             active={activeTab === "preferences"}
             onClick={() => setActiveTab("preferences")}
+            theme={theme}
           />
           <TabButton
             icon={<BarChart3 size={18} />}
             label="Estatísticas"
             active={activeTab === "stats"}
             onClick={() => setActiveTab("stats")}
+            theme={theme}
           />
           <TabButton
             icon={<ShieldCheck size={18} />}
             label="Segurança & Apps"
             active={activeTab === "security"}
             onClick={() => setActiveTab("security")}
+            theme={theme}
           />
         </nav>
 
@@ -323,17 +378,21 @@ export default function UserProfilePage() {
                 className="space-y-6"
               >
                 {/* BLOCO 1: INFORMAÇÕES PESSOAIS */}
-                <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-8 shadow-2xl">
+                <div
+                  className={`${ui.card} border rounded-3xl p-8 transition-all`}
+                >
                   <div className="flex flex-col sm:flex-row gap-8 items-start sm:items-center mb-8">
                     <div
                       className="relative group cursor-pointer shrink-0"
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white/10 bg-zinc-800 flex items-center justify-center">
+                      <div
+                        className={`w-24 h-24 rounded-full overflow-hidden border-2 flex items-center justify-center ${theme === "dark" ? "border-white/10 bg-zinc-800" : "border-zinc-200 bg-zinc-100"}`}
+                      >
                         {isUploadingLogo ? (
                           <Loader2
                             size={32}
-                            className="animate-spin text-indigo-400"
+                            className="animate-spin text-indigo-500"
                           />
                         ) : (
                           <img
@@ -354,12 +413,12 @@ export default function UserProfilePage() {
                       />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-white">
+                      <h2 className={`text-2xl font-bold ${ui.textTitle}`}>
                         {displayName || "Desenvolvedor"}
                       </h2>
-                      <p className="text-zinc-500 text-sm mb-2">{email}</p>
+                      <p className={`text-sm mb-2 ${ui.textMuted}`}>{email}</p>
                       {joinedAt && (
-                        <p className="text-indigo-400/60 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                        <p className="text-indigo-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
                           <Calendar size={12} /> Membro desde {joinedAt}
                         </p>
                       )}
@@ -368,111 +427,130 @@ export default function UserProfilePage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                      <label
+                        className={`text-[10px] font-black uppercase tracking-widest ml-1 ${ui.textMuted}`}
+                      >
                         Nome Completo
                       </label>
                       <input
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
-                        className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:border-indigo-500 outline-none transition-all"
+                        className={`w-full border rounded-xl px-4 py-3.5 text-sm outline-none transition-all ${ui.input}`}
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                      <label
+                        className={`text-[10px] font-black uppercase tracking-widest ml-1 ${ui.textMuted}`}
+                      >
                         Cargo / Especialidade
                       </label>
-                      <div className="relative">
-                        <select
-                          value={role}
-                          onChange={(e) => setRole(e.target.value)}
-                          className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:border-indigo-500 outline-none appearance-none cursor-pointer"
-                        >
-                          <option value="" disabled>
-                            Selecione...
-                          </option>
-                          <option value="Frontend Developer">
-                            Frontend Developer
-                          </option>
-                          <option value="Backend Developer">
-                            Backend Developer
-                          </option>
-                          <option value="Fullstack Developer">
-                            Fullstack Developer
-                          </option>
-                          <option value="UI/UX Designer">UI/UX Designer</option>
-                          <option value="Product Manager">
-                            Product Manager
-                          </option>
-                          <option value="Outro">Outro</option>
-                        </select>
-                      </div>
+                      <select
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
+                        className={`w-full border rounded-xl px-4 py-3.5 text-sm outline-none appearance-none cursor-pointer ${ui.input}`}
+                      >
+                        <option value="" disabled>
+                          Selecione...
+                        </option>
+                        <option value="Frontend Developer">
+                          Frontend Developer
+                        </option>
+                        <option value="Backend Developer">
+                          Backend Developer
+                        </option>
+                        <option value="Fullstack Developer">
+                          Fullstack Developer
+                        </option>
+                        <option value="UI/UX Designer">UI/UX Designer</option>
+                        <option value="Product Manager">Product Manager</option>
+                        <option value="Outro">Outro</option>
+                      </select>
                     </div>
                   </div>
                 </div>
 
-                {/* BLOCO 2: REDES SOCIAIS E LINKS (SEPARADO) */}
-                <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-8 shadow-2xl">
+                {/* BLOCO 2: REDES SOCIAIS */}
+                <div
+                  className={`${ui.card} border rounded-3xl p-8 transition-all`}
+                >
                   <div className="mb-6">
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                      <Zap size={18} className="text-indigo-400" /> Presença
+                    <h3
+                      className={`text-lg font-bold flex items-center gap-2 ${ui.textTitle}`}
+                    >
+                      <Zap size={18} className="text-indigo-500" /> Presença
                       Digital
                     </h3>
-                    <p className="text-sm text-zinc-500 mt-1">
+                    <p className={`text-sm mt-1 ${ui.textMuted}`}>
                       Conecte seus perfis para a equipe te encontrar facilmente.
                     </p>
                   </div>
 
                   <div className="space-y-4">
-                    {/* Input LinkedIn */}
-                    <div className="flex items-center gap-4 bg-[#050505] border border-white/5 p-2 pr-4 rounded-2xl focus-within:border-blue-500/50 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all group">
-                      <div className="w-12 h-12 shrink-0 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-zinc-500 group-focus-within:text-blue-400 group-focus-within:bg-blue-500/10 transition-colors">
+                    <div
+                      className={`flex items-center gap-4 border p-2 pr-4 rounded-2xl focus-within:border-blue-500/50 focus-within:ring-4 focus-within:ring-blue-500/10 transition-all group ${ui.input}`}
+                    >
+                      <div
+                        className={`w-12 h-12 shrink-0 rounded-xl border flex items-center justify-center group-focus-within:text-blue-500 group-focus-within:bg-blue-500/10 transition-colors ${ui.iconBox}`}
+                      >
                         <Linkedin size={20} />
                       </div>
                       <div className="flex-1 py-1">
-                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest group-focus-within:text-blue-400 transition-colors">
+                        <label
+                          className={`text-[10px] font-black uppercase tracking-widest group-focus-within:text-blue-500 transition-colors ${ui.textMuted}`}
+                        >
                           LinkedIn
                         </label>
                         <input
                           value={linkedin}
                           onChange={(e) => setLinkedin(e.target.value)}
                           placeholder="linkedin.com/in/seu-perfil"
-                          className="w-full bg-transparent text-sm text-white outline-none placeholder:text-zinc-700 mt-0.5"
+                          className={`w-full bg-transparent text-sm outline-none mt-0.5 ${ui.textTitle}`}
                         />
                       </div>
                     </div>
 
-                    {/* Input GitHub */}
-                    <div className="flex items-center gap-4 bg-[#050505] border border-white/5 p-2 pr-4 rounded-2xl focus-within:border-white/20 focus-within:ring-4 focus-within:ring-white/5 transition-all group">
-                      <div className="w-12 h-12 shrink-0 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-zinc-500 group-focus-within:text-white group-focus-within:bg-white/10 transition-colors">
+                    <div
+                      className={`flex items-center gap-4 border p-2 pr-4 rounded-2xl focus-within:border-zinc-500/50 focus-within:ring-4 focus-within:ring-zinc-500/10 transition-all group ${ui.input}`}
+                    >
+                      <div
+                        className={`w-12 h-12 shrink-0 rounded-xl border flex items-center justify-center group-focus-within:text-zinc-800 dark:group-focus-within:text-white group-focus-within:bg-zinc-500/10 transition-colors ${ui.iconBox}`}
+                      >
                         <Github size={20} />
                       </div>
                       <div className="flex-1 py-1">
-                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest group-focus-within:text-white transition-colors">
+                        <label
+                          className={`text-[10px] font-black uppercase tracking-widest group-focus-within:text-zinc-800 dark:group-focus-within:text-white transition-colors ${ui.textMuted}`}
+                        >
                           GitHub
                         </label>
                         <input
                           value={github}
                           onChange={(e) => setGithub(e.target.value)}
                           placeholder="github.com/usuario"
-                          className="w-full bg-transparent text-sm text-white outline-none placeholder:text-zinc-700 mt-0.5"
+                          className={`w-full bg-transparent text-sm outline-none mt-0.5 ${ui.textTitle}`}
                         />
                       </div>
                     </div>
 
-                    {/* Input Instagram */}
-                    <div className="flex items-center gap-4 bg-[#050505] border border-white/5 p-2 pr-4 rounded-2xl focus-within:border-pink-500/50 focus-within:ring-4 focus-within:ring-pink-500/10 transition-all group">
-                      <div className="w-12 h-12 shrink-0 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-zinc-500 group-focus-within:text-pink-500 group-focus-within:bg-pink-500/10 transition-colors">
+                    <div
+                      className={`flex items-center gap-4 border p-2 pr-4 rounded-2xl focus-within:border-pink-500/50 focus-within:ring-4 focus-within:ring-pink-500/10 transition-all group ${ui.input}`}
+                    >
+                      <div
+                        className={`w-12 h-12 shrink-0 rounded-xl border flex items-center justify-center group-focus-within:text-pink-500 group-focus-within:bg-pink-500/10 transition-colors ${ui.iconBox}`}
+                      >
                         <Instagram size={20} />
                       </div>
                       <div className="flex-1 py-1">
-                        <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest group-focus-within:text-pink-500 transition-colors">
+                        <label
+                          className={`text-[10px] font-black uppercase tracking-widest group-focus-within:text-pink-500 transition-colors ${ui.textMuted}`}
+                        >
                           Instagram
                         </label>
                         <input
                           value={instagram}
                           onChange={(e) => setInstagram(e.target.value)}
                           placeholder="@seu.perfil"
-                          className="w-full bg-transparent text-sm text-white outline-none placeholder:text-zinc-700 mt-0.5"
+                          className={`w-full bg-transparent text-sm outline-none mt-0.5 ${ui.textTitle}`}
                         />
                       </div>
                     </div>
@@ -490,15 +568,21 @@ export default function UserProfilePage() {
                 exit={{ opacity: 0, x: -10 }}
                 className="space-y-6"
               >
-                {/* Status & Fuso Horário */}
-                <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-8 shadow-2xl">
-                  <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                    <Clock size={18} className="text-indigo-400" />{" "}
+                {/* Status & Fuso */}
+                <div
+                  className={`${ui.card} border rounded-3xl p-8 transition-all`}
+                >
+                  <h3
+                    className={`text-lg font-bold mb-6 flex items-center gap-2 ${ui.textTitle}`}
+                  >
+                    <Clock size={18} className="text-indigo-500" />{" "}
                     Disponibilidade
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">
+                      <label
+                        className={`text-xs font-black uppercase tracking-widest ${ui.textMuted}`}
+                      >
                         Status Atual
                       </label>
                       <div className="flex gap-2">
@@ -506,23 +590,25 @@ export default function UserProfilePage() {
                           value={statusEmoji}
                           onChange={(e) => setStatusEmoji(e.target.value)}
                           maxLength={2}
-                          className="w-16 bg-[#050505] border border-white/10 rounded-xl text-center text-xl outline-none focus:border-indigo-500"
+                          className={`w-16 border rounded-xl text-center text-xl outline-none ${ui.input}`}
                         />
                         <input
                           value={statusText}
                           onChange={(e) => setStatusText(e.target.value)}
-                          className="flex-1 bg-[#050505] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white outline-none focus:border-indigo-500"
+                          className={`flex-1 border rounded-xl px-4 py-3.5 text-sm outline-none ${ui.input}`}
                         />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">
+                      <label
+                        className={`text-xs font-black uppercase tracking-widest ${ui.textMuted}`}
+                      >
                         Fuso Horário
                       </label>
                       <select
                         value={timezone}
                         onChange={(e) => setTimezone(e.target.value)}
-                        className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white outline-none cursor-pointer appearance-none"
+                        className={`w-full border rounded-xl px-4 py-3.5 text-sm outline-none cursor-pointer appearance-none ${ui.input}`}
                       >
                         <option value="America/Sao_Paulo">
                           Brasília (GMT-3)
@@ -535,97 +621,122 @@ export default function UserProfilePage() {
                 </div>
 
                 {/* Notificações */}
-                <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-8 shadow-2xl">
-                  <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                    <Bell size={18} className="text-indigo-400" /> Notificações
+                <div
+                  className={`${ui.card} border rounded-3xl p-8 transition-all`}
+                >
+                  <h3
+                    className={`text-lg font-bold mb-6 flex items-center gap-2 ${ui.textTitle}`}
+                  >
+                    <Bell size={18} className="text-indigo-500" /> Notificações
                     de E-mail
                   </h3>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-[#050505] border border-white/5 rounded-2xl">
+                    <div
+                      className={`flex items-center justify-between p-4 border rounded-2xl ${ui.input}`}
+                    >
                       <div>
-                        <p className="text-sm font-bold text-white">
+                        <p className={`text-sm font-bold ${ui.textTitle}`}>
                           Tarefas Atribuídas
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className={`text-xs ${ui.textMuted}`}>
                           Avisar quando eu receber novas demandas.
                         </p>
                       </div>
                       <Toggle
                         active={notifAssign}
                         onClick={() => setNotifAssign(!notifAssign)}
+                        theme={theme}
                       />
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-[#050505] border border-white/5 rounded-2xl">
+                    <div
+                      className={`flex items-center justify-between p-4 border rounded-2xl ${ui.input}`}
+                    >
                       <div>
-                        <p className="text-sm font-bold text-white">
+                        <p className={`text-sm font-bold ${ui.textTitle}`}>
                           Menções em Chat
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className={`text-xs ${ui.textMuted}`}>
                           Notificar quando meu @ for citado.
                         </p>
                       </div>
                       <Toggle
                         active={notifMention}
                         onClick={() => setNotifMention(!notifMention)}
+                        theme={theme}
                       />
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-[#050505] border border-white/5 rounded-2xl">
+                    <div
+                      className={`flex items-center justify-between p-4 border rounded-2xl ${ui.input}`}
+                    >
                       <div>
-                        <p className="text-sm font-bold text-white">
+                        <p className={`text-sm font-bold ${ui.textTitle}`}>
                           Mudança de Status
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className={`text-xs ${ui.textMuted}`}>
                           Avisar quando moverem as minhas tarefas.
                         </p>
                       </div>
                       <Toggle
                         active={notifStatus}
                         onClick={() => setNotifStatus(!notifStatus)}
+                        theme={theme}
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Interface */}
-                <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-8 shadow-2xl">
-                  <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                    <Layout size={18} className="text-indigo-400" /> Interface
+                <div
+                  className={`${ui.card} border rounded-3xl p-8 transition-all`}
+                >
+                  <h3
+                    className={`text-lg font-bold mb-6 flex items-center gap-2 ${ui.textTitle}`}
+                  >
+                    <Layout size={18} className="text-indigo-500" /> Interface
                     (Quadro)
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+                      <label
+                        className={`text-[10px] font-black uppercase tracking-widest ${ui.textMuted}`}
+                      >
                         Tema
                       </label>
-                      <div className="flex bg-[#050505] border border-white/5 rounded-xl p-1">
+                      <div
+                        className={`flex border rounded-xl p-1 ${theme === "dark" ? "bg-[#050505] border-white/5" : "bg-zinc-100 border-zinc-200"}`}
+                      >
                         <button
                           onClick={() => setTheme("dark")}
-                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${theme === "dark" ? "bg-white/10 text-white" : "text-zinc-500"}`}
+                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${theme === "dark" ? "bg-indigo-500 text-white shadow-md" : "text-zinc-500"}`}
                         >
                           <Moon size={14} /> Escuro
                         </button>
                         <button
                           onClick={() => setTheme("light")}
-                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${theme === "light" ? "bg-white/10 text-white" : "text-zinc-500"}`}
+                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${theme === "light" ? "bg-indigo-500 text-white shadow-md" : "text-zinc-500"}`}
                         >
                           <Sun size={14} /> Claro
                         </button>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
-                        Densidade de Cards
+                      <label
+                        className={`text-[10px] font-black uppercase tracking-widest ${ui.textMuted}`}
+                      >
+                        Densidade
                       </label>
-                      <div className="flex bg-[#050505] border border-white/5 rounded-xl p-1">
+                      <div
+                        className={`flex border rounded-xl p-1 ${theme === "dark" ? "bg-[#050505] border-white/5" : "bg-zinc-100 border-zinc-200"}`}
+                      >
                         <button
                           onClick={() => setDensity("compact")}
-                          className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${density === "compact" ? "bg-white/10 text-white" : "text-zinc-500"}`}
+                          className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${density === "compact" ? "bg-indigo-500 text-white shadow-md" : "text-zinc-500"}`}
                         >
                           Compacto
                         </button>
                         <button
                           onClick={() => setDensity("detailed")}
-                          className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${density === "detailed" ? "bg-white/10 text-white" : "text-zinc-500"}`}
+                          className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${density === "detailed" ? "bg-indigo-500 text-white shadow-md" : "text-zinc-500"}`}
                         >
                           Detalhado
                         </button>
@@ -646,35 +757,57 @@ export default function UserProfilePage() {
                 className="space-y-6"
               >
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-[#0A0A0A] border border-white/5 p-6 rounded-3xl relative overflow-hidden group">
+                  <div
+                    className={`${ui.card} border p-6 rounded-3xl relative overflow-hidden group transition-all`}
+                  >
                     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px] rounded-full" />
-                    <CheckCircle2 size={24} className="text-indigo-400 mb-4" />
-                    <h4 className="text-4xl font-black text-white mb-1">124</h4>
-                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                    <CheckCircle2 size={24} className="text-indigo-500 mb-4" />
+                    <h4 className={`text-4xl font-black mb-1 ${ui.textTitle}`}>
+                      124
+                    </h4>
+                    <p
+                      className={`text-xs font-bold uppercase tracking-widest ${ui.textMuted}`}
+                    >
                       Tarefas Concluídas
                     </p>
                   </div>
-                  <div className="bg-[#0A0A0A] border border-white/5 p-6 rounded-3xl relative overflow-hidden">
+                  <div
+                    className={`${ui.card} border p-6 rounded-3xl relative overflow-hidden transition-all`}
+                  >
                     <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[50px] rounded-full" />
-                    <Zap size={24} className="text-emerald-400 mb-4" />
-                    <h4 className="text-4xl font-black text-white mb-1">450</h4>
-                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                    <Zap size={24} className="text-emerald-500 mb-4" />
+                    <h4 className={`text-4xl font-black mb-1 ${ui.textTitle}`}>
+                      450
+                    </h4>
+                    <p
+                      className={`text-xs font-bold uppercase tracking-widest ${ui.textMuted}`}
+                    >
                       Story Points
                     </p>
                   </div>
-                  <div className="bg-[#0A0A0A] border border-white/5 p-6 rounded-3xl relative overflow-hidden">
-                    <Activity size={24} className="text-amber-400 mb-4" />
-                    <h4 className="text-4xl font-black text-white mb-1">
-                      12 <span className="text-lg text-zinc-500">dias</span>
+                  <div
+                    className={`${ui.card} border p-6 rounded-3xl relative overflow-hidden transition-all`}
+                  >
+                    <Activity size={24} className="text-amber-500 mb-4" />
+                    <h4 className={`text-4xl font-black mb-1 ${ui.textTitle}`}>
+                      12 <span className={`text-lg ${ui.textMuted}`}>dias</span>
                     </h4>
-                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                    <p
+                      className={`text-xs font-bold uppercase tracking-widest ${ui.textMuted}`}
+                    >
                       Sequência de Entregas
                     </p>
                   </div>
-                  <div className="bg-[#0A0A0A] border border-white/5 p-6 rounded-3xl relative overflow-hidden">
-                    <Briefcase size={24} className="text-purple-400 mb-4" />
-                    <h4 className="text-4xl font-black text-white mb-1">4</h4>
-                    <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                  <div
+                    className={`${ui.card} border p-6 rounded-3xl relative overflow-hidden transition-all`}
+                  >
+                    <Briefcase size={24} className="text-purple-500 mb-4" />
+                    <h4 className={`text-4xl font-black mb-1 ${ui.textTitle}`}>
+                      4
+                    </h4>
+                    <p
+                      className={`text-xs font-bold uppercase tracking-widest ${ui.textMuted}`}
+                    >
                       Projetos Ativos
                     </p>
                   </div>
@@ -682,7 +815,7 @@ export default function UserProfilePage() {
               </motion.div>
             )}
 
-            {/* --- ABA SEGURANÇA E INTEGRAÇÕES --- */}
+            {/* --- ABA SEGURANÇA --- */}
             {activeTab === "security" && (
               <motion.div
                 key="security"
@@ -691,17 +824,23 @@ export default function UserProfilePage() {
                 exit={{ opacity: 0, x: -10 }}
                 className="space-y-6"
               >
-                <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-8 shadow-2xl">
-                  <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                    <Lock size={18} className="text-indigo-400" /> Acesso e
+                <div
+                  className={`${ui.card} border rounded-3xl p-8 transition-all`}
+                >
+                  <h3
+                    className={`text-lg font-bold mb-6 flex items-center gap-2 ${ui.textTitle}`}
+                  >
+                    <Lock size={18} className="text-indigo-500" /> Acesso e
                     Senha
                   </h3>
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 bg-[#050505] border border-white/5 rounded-2xl mb-4 gap-4">
+                  <div
+                    className={`flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 border rounded-2xl mb-4 gap-4 ${ui.input}`}
+                  >
                     <div>
-                      <p className="text-sm font-bold text-white">
+                      <p className={`text-sm font-bold ${ui.textTitle}`}>
                         Redefinir Senha
                       </p>
-                      <p className="text-xs text-zinc-500">
+                      <p className={`text-xs ${ui.textMuted}`}>
                         Enviaremos um link de recuperação para o seu email.
                       </p>
                     </div>
@@ -714,43 +853,48 @@ export default function UserProfilePage() {
                           showToast("Erro.", "error");
                         }
                       }}
-                      className="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0"
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0"
                     >
                       Enviar E-mail
                     </button>
                   </div>
 
-                  <div className="mt-8 pt-6 border-t border-white/5">
-                    <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-4">
+                  {/* Sessões */}
+                  <div className="mt-8 pt-6 border-t border-zinc-200 dark:border-white/5">
+                    <h4
+                      className={`text-xs font-black uppercase tracking-widest mb-4 ${ui.textMuted}`}
+                    >
                       Sessões Ativas
                     </h4>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-2xl">
                         <div className="flex items-center gap-4">
-                          <Monitor size={20} className="text-indigo-400" />
+                          <Monitor size={20} className="text-indigo-500" />
                           <div>
-                            <p className="text-sm font-bold text-white">
+                            <p className={`text-sm font-bold ${ui.textTitle}`}>
                               Computador Local • Chrome
                             </p>
-                            <p className="text-xs text-indigo-400">
+                            <p className="text-xs text-indigo-500">
                               Sessão Atual
                             </p>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between p-4 bg-[#050505] border border-white/5 rounded-2xl">
+                      <div
+                        className={`flex items-center justify-between p-4 border rounded-2xl ${ui.input}`}
+                      >
                         <div className="flex items-center gap-4">
                           <Smartphone size={20} className="text-zinc-500" />
                           <div>
-                            <p className="text-sm font-bold text-zinc-300">
+                            <p className={`text-sm font-bold ${ui.textTitle}`}>
                               Telemóvel • Safari
                             </p>
-                            <p className="text-xs text-zinc-600">
+                            <p className={`text-xs ${ui.textMuted}`}>
                               Último acesso ontem
                             </p>
                           </div>
                         </div>
-                        <button className="text-[10px] font-black uppercase text-zinc-600 hover:text-red-400 transition-colors">
+                        <button className="text-[10px] font-black uppercase text-zinc-500 hover:text-red-500 transition-colors">
                           Sair
                         </button>
                       </div>
@@ -758,39 +902,33 @@ export default function UserProfilePage() {
                   </div>
                 </div>
 
-                <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-8 shadow-2xl">
-                  <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-                    <Zap size={18} className="text-indigo-400" /> Integrações
+                <div
+                  className={`${ui.card} border rounded-3xl p-8 transition-all`}
+                >
+                  <h3
+                    className={`text-lg font-bold mb-6 flex items-center gap-2 ${ui.textTitle}`}
+                  >
+                    <Zap size={18} className="text-indigo-500" /> Integrações
                     Pessoais
                   </h3>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-5 bg-[#050505] border border-white/5 rounded-2xl">
+                    <div
+                      className={`flex items-center justify-between p-5 border rounded-2xl ${ui.input}`}
+                    >
                       <div className="flex items-center gap-4">
-                        <Slack size={24} className="text-white" />
+                        <Slack size={24} className={ui.textTitle} />
                         <div>
-                          <p className="text-sm font-bold text-white">Slack</p>
-                          <p className="text-xs text-zinc-500">
+                          <p className={`text-sm font-bold ${ui.textTitle}`}>
+                            Slack
+                          </p>
+                          <p className={`text-xs ${ui.textMuted}`}>
                             Receba notificações via DM.
                           </p>
                         </div>
                       </div>
-                      <button className="bg-white/5 hover:bg-white/10 text-zinc-300 px-4 py-2 rounded-lg text-xs font-bold transition-all border border-white/5">
-                        Conectar
-                      </button>
-                    </div>
-                    <div className="flex items-center justify-between p-5 bg-[#050505] border border-white/5 rounded-2xl">
-                      <div className="flex items-center gap-4">
-                        <Calendar size={24} className="text-white" />
-                        <div>
-                          <p className="text-sm font-bold text-white">
-                            Google Calendar
-                          </p>
-                          <p className="text-xs text-zinc-500">
-                            Sincronize prazos das tarefas.
-                          </p>
-                        </div>
-                      </div>
-                      <button className="bg-white/5 hover:bg-white/10 text-zinc-300 px-4 py-2 rounded-lg text-xs font-bold transition-all border border-white/5">
+                      <button
+                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border ${theme === "dark" ? "bg-white/5 border-white/5 text-zinc-300" : "bg-zinc-200 border-zinc-300 text-zinc-700"}`}
+                      >
                         Conectar
                       </button>
                     </div>
@@ -819,13 +957,21 @@ export default function UserProfilePage() {
   );
 }
 
-function TabButton({ icon, label, active, onClick }: any) {
+function TabButton({ icon, label, active, onClick, theme }: any) {
+  const activeStyle = active
+    ? theme === "dark"
+      ? "bg-white/5 text-white border-white/10 shadow-sm"
+      : "bg-white text-zinc-900 border-zinc-200 shadow-md"
+    : theme === "dark"
+      ? "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.02] border-transparent"
+      : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-200/50 border-transparent";
+
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-5 py-4 rounded-xl text-[13px] font-bold transition-all ${active ? "bg-white/5 text-white border border-white/10 shadow-sm" : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.02] border border-transparent"}`}
+      className={`w-full flex items-center gap-3 px-5 py-4 rounded-xl text-[13px] font-bold transition-all border ${activeStyle}`}
     >
-      <div className={active ? "text-indigo-400" : "text-zinc-600"}>{icon}</div>
+      <div className={active ? "text-indigo-500" : "text-zinc-500"}>{icon}</div>
       {label}
     </button>
   );

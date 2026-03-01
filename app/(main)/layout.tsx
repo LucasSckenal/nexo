@@ -57,6 +57,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ThemeProvider } from "../context/ThemeContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -66,14 +67,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className="dark" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning>
       <body
-        className={`${inter.className} bg-[#000000] text-[#FAFAFA] antialiased`}
+        className={`${inter.className} h-screen overflow-hidden transition-colors duration-500`}
       >
         <DataProvider>
-          <div className="flex w-full h-screen overflow-hidden p-3 gap-3 relative">
-            <LayoutContent>{children}</LayoutContent>
-          </div>
+          <ThemeProvider>
+            <div className="flex w-full h-screen overflow-hidden p-3 gap-3 relative">
+              <LayoutContent>{children}</LayoutContent>
+            </div>
+          </ThemeProvider>
         </DataProvider>
       </body>
     </html>
@@ -507,7 +510,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-6.5 top-10 z-[100] bg-[#0A0A0A] border border-white/10 rounded-full p-1.5 text-zinc-500 hover:text-purple-400 hover:border-purple-500/50 transition-all shadow-xl backdrop-blur-md group"
+          className="absolute -right-6.5 top-10 z-[100]  border border-white/10 rounded-full p-1.5 text-zinc-500 hover:text-purple-400 hover:border-purple-500/50 transition-all shadow-xl backdrop-blur-md group"
         >
           {isCollapsed ? (
             <ChevronRight
@@ -773,7 +776,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ÁREA PRINCIPAL DA PÁGINA */}
-      <main className="flex-1 bg-[#050505] rounded-[2.5rem] border border-white/[0.05] overflow-hidden relative shadow-[0_0_50px_rgba(0,0,0,0.8)] z-10">
+      <main className="flex-1  rounded-[2.5rem] border border-white/[0.05] overflow-hidden relative shadow-[0_0_50px_rgba(0,0,0,0.8)] z-10">
         <div className="h-full overflow-y-auto custom-scrollbar p-1">
           {children}
         </div>
