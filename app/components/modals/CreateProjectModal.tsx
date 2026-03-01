@@ -40,7 +40,6 @@ export function CreateProjectModal({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-gerar a chave (Key) baseada no nome do projeto
   useEffect(() => {
     if (name && !key) {
       const suggestedKey = name
@@ -104,7 +103,6 @@ export function CreateProjectModal({
         memberEmails: [user.email],
       });
 
-      // Reset total e fechar modal
       setName("");
       setKey("");
       setDescription("");
@@ -128,44 +126,40 @@ export function CreateProjectModal({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-[#0D0D0F] border border-white/10 rounded-[2.5rem] w-full max-w-2xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden relative flex flex-col"
+            className="bg-bgPanel border border-borderFocus rounded-[2.5rem] w-full max-w-2xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden relative flex flex-col"
           >
-            {/* Efeitos de Luz de Fundo */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 blur-[80px] rounded-full pointer-events-none" />
 
-            {/* HEADER DO MODAL */}
-            <div className="px-8 pt-8 pb-6 border-b border-white/[0.05] relative shrink-0">
+            <div className="px-8 pt-8 pb-6 border-b border-borderSubtle relative shrink-0">
               <div className="flex justify-between items-start mb-1">
                 <div>
                   <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-2">
                     <FolderPlus size={14} />
                     <span>Workspace</span>
                   </div>
-                  <h2 className="text-2xl font-black text-white tracking-tight">
+                  <h2 className="text-2xl font-black text-textPrimary tracking-tight">
                     Inicializar Projeto
                   </h2>
                 </div>
                 <button
                   onClick={onClose}
-                  className="text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-full transition-all"
+                  className="text-textMuted hover:text-textPrimary bg-bgGlass hover:bg-bgGlassHover p-2 rounded-full transition-all"
                 >
                   <X size={18} />
                 </button>
               </div>
-              <p className="text-xs text-zinc-400 leading-relaxed mt-1">
+              <p className="text-xs text-textSecondary leading-relaxed mt-1">
                 Configure os detalhes base do novo espaço e defina o fluxo
                 operacional.
               </p>
             </div>
 
-            {/* CORPO DO FORMULÁRIO (COMPACTADO PARA NÃO TER SCROLL) */}
             <form
               onSubmit={handleSubmit}
               className="px-8 py-6 space-y-6 relative flex-1"
             >
-              {/* === SEÇÃO DO ÍCONE === */}
-              <div className="flex flex-col sm:flex-row items-center gap-5 p-5 bg-white/[0.02] border border-white/5 rounded-[1.5rem]">
+              <div className="flex flex-col sm:flex-row items-center gap-5 p-5 bg-bgGlass border border-borderSubtle rounded-[1.5rem]">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -174,12 +168,11 @@ export function CreateProjectModal({
                   accept="image/*"
                 />
 
-                {/* Visualização do Avatar/Ícone (Tamanho reduzido) */}
-                <div className="w-20 h-20 shrink-0 rounded-2xl flex items-center justify-center text-3xl font-black shadow-2xl relative overflow-hidden border border-white/10 bg-[#121212]">
+                <div className="w-20 h-20 shrink-0 rounded-2xl flex items-center justify-center text-3xl font-black shadow-2xl relative overflow-hidden border border-borderFocus bg-bgSurface">
                   {isUploadingLogo ? (
-                    <Loader2 size={20} className="animate-spin text-zinc-500" />
+                    <Loader2 size={20} className="animate-spin text-textMuted" />
                   ) : iconType === "emoji" ? (
-                    <div className="w-full h-full bg-gradient-to-br from-white/5 to-white/[0.02] flex items-center justify-center">
+                    <div className="w-full h-full bg-gradient-to-br from-bgGlassHover to-bgGlass flex items-center justify-center">
                       <span className="drop-shadow-lg scale-110 transform transition-transform hover:scale-125">
                         {projectEmoji || "✨"}
                       </span>
@@ -201,35 +194,35 @@ export function CreateProjectModal({
 
                 <div className="space-y-2.5 flex-1 text-center sm:text-left">
                   <div>
-                    <h3 className="text-sm font-bold text-white mb-0.5">
+                    <h3 className="text-sm font-bold text-textPrimary mb-0.5">
                       Ícone Personalizado
                     </h3>
-                    <p className="text-[10px] text-zinc-500">
+                    <p className="text-[10px] text-textMuted">
                       Faça upload de imagem ou escolha um emoji.
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-center sm:justify-start gap-2.5 bg-white/[0.03] p-1.5 rounded-xl border border-white/5 w-fit mx-auto sm:mx-0">
+                  <div className="flex items-center justify-center sm:justify-start gap-2.5 bg-bgGlassHover p-1.5 rounded-xl border border-borderSubtle w-fit mx-auto sm:mx-0">
                     <button
                       type="button"
                       onClick={() => {
                         if (!imageUrl) fileInputRef.current?.click();
                         else setIconType("image");
                       }}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${iconType === "image" ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shadow-sm" : "text-zinc-400 hover:bg-white/5 border border-transparent"}`}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${iconType === "image" ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shadow-sm" : "text-textMuted hover:bg-bgGlassHover border border-transparent"}`}
                     >
                       <ImageIcon size={14} /> Imagem
                     </button>
-                    <div className="w-px h-4 bg-white/10" />
+                    <div className="w-px h-4 bg-borderFocus" />
                     <div
-                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all border ${iconType === "emoji" ? "bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-sm" : "text-zinc-400 border-transparent hover:bg-white/5 focus-within:border-white/20"}`}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all border ${iconType === "emoji" ? "bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-sm" : "text-textMuted border-transparent hover:bg-bgGlassHover focus-within:border-borderFocus"}`}
                     >
                       <Smile
                         size={14}
                         className={
                           iconType === "emoji"
                             ? "text-amber-400"
-                            : "text-zinc-500"
+                            : "text-textMuted"
                         }
                       />
                       <input
@@ -241,7 +234,7 @@ export function CreateProjectModal({
                         }}
                         onFocus={() => setIconType("emoji")}
                         maxLength={2}
-                        className="bg-transparent w-8 text-center outline-none placeholder:text-zinc-600 focus:w-10 transition-all"
+                        className="bg-transparent w-8 text-center outline-none placeholder:text-textFaint focus:w-10 transition-all text-textPrimary"
                         placeholder="😀"
                       />
                     </div>
@@ -249,9 +242,8 @@ export function CreateProjectModal({
                 </div>
               </div>
 
-              {/* === SELEÇÃO DO OBJETIVO === */}
               <div className="space-y-2.5">
-                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                <label className="text-[9px] font-black text-textMuted uppercase tracking-widest ml-1">
                   Objetivo / Categoria
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -261,16 +253,16 @@ export function CreateProjectModal({
                     className={`group p-4 rounded-[1.5rem] border text-left transition-all relative overflow-hidden ${
                       category === "programming"
                         ? "bg-indigo-500/10 border-indigo-500/50 ring-1 ring-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.15)]"
-                        : "bg-white/[0.02] border-white/5 text-zinc-500 hover:bg-white/[0.04]"
+                        : "bg-bgGlass border-borderSubtle text-textMuted hover:bg-bgGlassHover"
                     }`}
                   >
                     <div
-                      className={`mb-3 p-2.5 rounded-xl w-fit transition-colors ${category === "programming" ? "bg-indigo-500 text-white shadow-md" : "bg-white/5 text-zinc-500 group-hover:text-zinc-300"}`}
+                      className={`mb-3 p-2.5 rounded-xl w-fit transition-colors ${category === "programming" ? "bg-indigo-500 text-white shadow-md" : "bg-bgGlassHover text-textMuted group-hover:text-textSecondary"}`}
                     >
                       <Code2 size={16} />
                     </div>
                     <span
-                      className={`text-sm font-black block mb-0.5 ${category === "programming" ? "text-white" : "group-hover:text-zinc-300"}`}
+                      className={`text-sm font-black block mb-0.5 ${category === "programming" ? "text-textPrimary" : "group-hover:text-textSecondary"}`}
                     >
                       Engenharia & Software
                     </span>
@@ -285,16 +277,16 @@ export function CreateProjectModal({
                     className={`group p-4 rounded-[1.5rem] border text-left transition-all relative overflow-hidden ${
                       category === "design"
                         ? "bg-purple-500/10 border-purple-500/50 ring-1 ring-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.15)]"
-                        : "bg-white/[0.02] border-white/5 text-zinc-500 hover:bg-white/[0.04]"
+                        : "bg-bgGlass border-borderSubtle text-textMuted hover:bg-bgGlassHover"
                     }`}
                   >
                     <div
-                      className={`mb-3 p-2.5 rounded-xl w-fit transition-colors ${category === "design" ? "bg-purple-500 text-white shadow-md" : "bg-white/5 text-zinc-500 group-hover:text-zinc-300"}`}
+                      className={`mb-3 p-2.5 rounded-xl w-fit transition-colors ${category === "design" ? "bg-purple-500 text-white shadow-md" : "bg-bgGlassHover text-textMuted group-hover:text-textSecondary"}`}
                     >
                       <Palette size={16} />
                     </div>
                     <span
-                      className={`text-sm font-black block mb-0.5 ${category === "design" ? "text-white" : "group-hover:text-zinc-300"}`}
+                      className={`text-sm font-black block mb-0.5 ${category === "design" ? "text-textPrimary" : "group-hover:text-textSecondary"}`}
                     >
                       Design & Criatividade
                     </span>
@@ -305,10 +297,9 @@ export function CreateProjectModal({
                 </div>
               </div>
 
-              {/* INPUTS DE NOME E CHAVE */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <div className="space-y-2 sm:col-span-2">
-                  <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                  <label className="text-[9px] font-black text-textMuted uppercase tracking-widest ml-1">
                     Nome do Projeto
                   </label>
                   <input
@@ -317,11 +308,11 @@ export function CreateProjectModal({
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Ex: App de Gestão"
-                    className="w-full bg-white/[0.03] border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
+                    className="w-full bg-bgGlassHover border border-borderFocus text-textPrimary rounded-xl px-4 py-3.5 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-textFaint"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                  <label className="text-[9px] font-black text-textMuted uppercase tracking-widest ml-1">
                     Chave (ID)
                   </label>
                   <input
@@ -331,14 +322,13 @@ export function CreateProjectModal({
                     value={key}
                     onChange={(e) => setKey(e.target.value.toUpperCase())}
                     placeholder="Ex: APPGF"
-                    className="w-full bg-white/[0.03] border border-white/10 text-indigo-400 font-black rounded-xl px-4 py-3.5 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-zinc-600 uppercase"
+                    className="w-full bg-bgGlassHover border border-borderFocus text-indigo-400 font-black rounded-xl px-4 py-3.5 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-textFaint uppercase"
                   />
                 </div>
               </div>
 
-              {/* DESCRIÇÃO */}
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                <label className="text-[9px] font-black text-textMuted uppercase tracking-widest ml-1">
                   Descrição Breve
                 </label>
                 <textarea
@@ -346,17 +336,16 @@ export function CreateProjectModal({
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Qual o propósito principal deste projeto?"
                   rows={2}
-                  className="w-full bg-white/[0.03] border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-zinc-600 resize-none custom-scrollbar"
+                  className="w-full bg-bgGlassHover border border-borderFocus text-textPrimary rounded-xl px-4 py-3 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-textFaint resize-none custom-scrollbar"
                 />
               </div>
             </form>
 
-            {/* RODAPÉ FIXED */}
-            <div className="px-8 py-6 border-t border-white/[0.05] flex items-center justify-between shrink-0 bg-[#0D0D0F]">
+            <div className="px-8 py-6 border-t border-borderSubtle flex items-center justify-between shrink-0 bg-bgPanel">
               <button
                 type="button"
                 onClick={onClose}
-                className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+                className="text-[10px] font-black uppercase tracking-widest text-textMuted hover:text-textPrimary transition-colors"
               >
                 Cancelar
               </button>
@@ -364,7 +353,7 @@ export function CreateProjectModal({
                 type="submit"
                 disabled={isLoading}
                 onClick={handleSubmit}
-                className="bg-white text-black hover:bg-zinc-200 px-8 py-3.5 rounded-[1rem] text-[10px] font-black uppercase tracking-[0.1em] transition-all flex items-center gap-2.5 disabled:opacity-50 shadow-[0_10px_20px_rgba(255,255,255,0.1)] active:scale-95"
+                className="bg-textPrimary text-bgMain hover:opacity-90 px-8 py-3.5 rounded-[1rem] text-[10px] font-black uppercase tracking-[0.1em] transition-all flex items-center gap-2.5 disabled:opacity-50 shadow-[0_10px_20px_rgba(0,0,0,0.1)] active:scale-95"
               >
                 {isLoading ? (
                   <Loader2 size={16} className="animate-spin" />

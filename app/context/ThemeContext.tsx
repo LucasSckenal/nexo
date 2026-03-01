@@ -19,13 +19,25 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [density, setDensity] = useState<Density>("detailed");
 
   useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") as Theme;
+    const savedDensity = localStorage.getItem("density") as Density;
+    if (savedTheme) setTheme(savedTheme);
+    if (savedDensity) setDensity(savedDensity);
+  }, []);
+
+  useEffect(() => {
     const root = window.document.documentElement;
     if (theme === "light") {
       root.classList.remove("dark");
     } else {
       root.classList.add("dark");
     }
+    localStorage.setItem("theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem("density", density);
+  }, [density]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, density, setDensity }}>

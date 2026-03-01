@@ -17,8 +17,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" >
-      <body className={`${inter.className} h-screen overflow-hidden`}>
+    // suppressHydrationWarning evita avisos do Next.js quando o ThemeProvider injeta a classe "dark" no cliente
+    <html lang="pt-BR" suppressHydrationWarning>
+      <body
+        className={`${inter.className} bg-bgMain text-textPrimary h-screen overflow-hidden transition-colors duration-500`}
+      >
+        {/* ThemeProvider agora envolve toda a aplicação na raiz */}
         <ThemeProvider>
           <GitHubProvider>{children}</GitHubProvider>
         </ThemeProvider>

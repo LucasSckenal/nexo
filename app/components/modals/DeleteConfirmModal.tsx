@@ -37,7 +37,7 @@ export function DeleteConfirmModal({
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="relative w-full max-w-md bg-[#0D0D0F] border border-red-500/20 rounded-[2.5rem] shadow-2xl overflow-hidden p-10 text-center"
+            className="relative w-full max-w-md bg-bgPanel border border-red-500/20 rounded-[2.5rem] shadow-2xl overflow-hidden p-10 text-center"
           >
             {/* Efeito de Brilho Vermelho no fundo */}
             <div className="absolute -top-24 -left-24 w-48 h-48 bg-red-500/10 blur-[80px] rounded-full pointer-events-none" />
@@ -49,12 +49,12 @@ export function DeleteConfirmModal({
             </div>
 
             <div className="space-y-3 mb-10">
-              <h3 className="text-2xl font-black text-white tracking-tighter">
+              <h3 className="text-2xl font-black text-textPrimary tracking-tighter">
                 {title}
               </h3>
-              <p className="text-zinc-500 text-sm font-medium leading-relaxed">
+              <p className="text-textMuted text-sm font-medium leading-relaxed">
                 Estás prestes a excluir{" "}
-                <span className="text-zinc-200 font-bold">"{itemTitle}"</span>.
+                <span className="text-textPrimary font-bold">"{itemTitle}"</span>.
                 Esta ação é irreversível e todos os dados associados serão
                 perdidos.
               </p>
@@ -80,7 +80,7 @@ export function DeleteConfirmModal({
               <button
                 disabled={isLoading}
                 onClick={onClose}
-                className="w-full bg-white/[0.03] hover:bg-white/[0.08] text-zinc-400 hover:text-white py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all"
+                className="w-full bg-bgSurfaceHover hover:bg-bgSurfaceActive text-textSecondary hover:text-textPrimary py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all"
               >
                 Cancelar
               </button>

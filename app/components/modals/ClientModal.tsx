@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { doc, updateDoc } from "firebase/firestore";
-import { db } from "../../lib/firebase"; // Ajuste o caminho conforme necessário
+import { db } from "../../lib/firebase"; 
 import { Briefcase, X, Plus, Loader2, Image as ImageIcon } from "lucide-react";
 
 interface ClientModalProps {
@@ -37,7 +37,6 @@ export function ClientModal({
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Efeito para preencher os dados quando abre para Editar ou limpar quando abre para Criar
   useEffect(() => {
     if (isOpen) {
       if (clientToEdit) {
@@ -97,7 +96,6 @@ export function ClientModal({
       let updatedClients;
 
       if (clientToEdit) {
-        // MODO EDIÇÃO: Atualiza o cliente específico na array
         updatedClients = currentClients.map((c: any) =>
           c.id === clientToEdit.id
             ? {
@@ -113,7 +111,6 @@ export function ClientModal({
             : c,
         );
       } else {
-        // MODO CRIAÇÃO: Adiciona um novo à array
         const newClient = {
           id: `client-${Date.now()}`,
           name: clientName.trim(),
@@ -149,24 +146,24 @@ export function ClientModal({
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="bg-[#0D0D0F] border border-white/10 rounded-[2.5rem] w-full max-w-xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden relative max-h-[90vh] flex flex-col"
+            className="bg-bgPanel border border-borderFocus rounded-[2.5rem] w-full max-w-xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden relative max-h-[90vh] flex flex-col"
           >
             <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/10 blur-[80px] rounded-full pointer-events-none" />
 
-            <div className="p-8 border-b border-white/[0.05] relative shrink-0">
+            <div className="p-8 border-b border-borderSubtle relative shrink-0">
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <div className="flex items-center gap-2 text-purple-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-2">
                     <Briefcase size={14} />
                     <span>Base de Dados</span>
                   </div>
-                  <h2 className="text-2xl font-black text-white tracking-tight">
+                  <h2 className="text-2xl font-black text-textPrimary tracking-tight">
                     {clientToEdit ? "Editar Cliente" : "Adicionar Cliente"}
                   </h2>
                 </div>
                 <button
                   onClick={onClose}
-                  className="text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 p-2.5 rounded-full transition-all"
+                  className="text-textMuted hover:text-textPrimary bg-bgGlass hover:bg-bgGlassHover p-2.5 rounded-full transition-all"
                 >
                   <X size={20} />
                 </button>
@@ -177,8 +174,7 @@ export function ClientModal({
               onSubmit={handleSaveClient}
               className="p-8 space-y-6 relative overflow-y-auto custom-scrollbar flex-1"
             >
-              {/* LOGOTIPO DO CLIENTE */}
-              <div className="flex items-center gap-5 p-4 bg-white/[0.02] border border-white/5 rounded-[1.5rem] mb-2">
+              <div className="flex items-center gap-5 p-4 bg-bgGlass border border-borderSubtle rounded-[1.5rem] mb-2">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -186,9 +182,9 @@ export function ClientModal({
                   className="hidden"
                   accept="image/*"
                 />
-                <div className="w-16 h-16 shrink-0 rounded-2xl flex items-center justify-center text-xl font-black shadow-inner relative overflow-hidden border border-white/10 bg-[#121212]">
+                <div className="w-16 h-16 shrink-0 rounded-2xl flex items-center justify-center text-xl font-black shadow-inner relative overflow-hidden border border-borderFocus bg-bgSurface">
                   {isUploadingLogo ? (
-                    <Loader2 size={20} className="animate-spin text-zinc-500" />
+                    <Loader2 size={20} className="animate-spin text-textMuted" />
                   ) : clientLogo ? (
                     <img
                       src={clientLogo}
@@ -196,14 +192,14 @@ export function ClientModal({
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <Briefcase size={24} className="text-zinc-600" />
+                    <Briefcase size={24} className="text-textFaint" />
                   )}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-[11px] font-bold text-white mb-0.5">
+                  <h3 className="text-[11px] font-bold text-textPrimary mb-0.5">
                     Identidade Visual
                   </h3>
-                  <p className="text-[10px] text-zinc-500 mb-2">
+                  <p className="text-[10px] text-textMuted mb-2">
                     Formato quadrado. Máximo 2MB.
                   </p>
                   <div className="flex gap-2">
@@ -218,7 +214,7 @@ export function ClientModal({
                       <button
                         type="button"
                         onClick={() => setClientLogo(null)}
-                        className="text-[10px] text-zinc-500 hover:text-red-400 transition-colors px-2"
+                        className="text-[10px] text-textMuted hover:text-red-400 transition-colors px-2"
                       >
                         Remover
                       </button>
@@ -227,10 +223,9 @@ export function ClientModal({
                 </div>
               </div>
 
-              {/* Nome e Status */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <div className="space-y-2.5 sm:col-span-2">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                  <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1">
                     Nome da Empresa / Cliente *
                   </label>
                   <input
@@ -239,35 +234,34 @@ export function ClientModal({
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
                     placeholder="Ex: Acme Corp"
-                    className="w-full bg-white/[0.03] border border-white/10 text-white rounded-2xl px-5 py-4 text-sm focus:border-purple-500/50 outline-none transition-all placeholder:text-zinc-600"
+                    className="w-full bg-bgGlassHover border border-borderFocus text-textPrimary rounded-2xl px-5 py-4 text-sm focus:border-purple-500/50 outline-none transition-all placeholder:text-textFaint"
                   />
                 </div>
                 <div className="space-y-2.5">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                  <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1">
                     Status
                   </label>
                   <select
                     value={clientStatus}
                     onChange={(e: any) => setClientStatus(e.target.value)}
-                    className="w-full bg-white/[0.03] border border-white/10 text-white rounded-2xl px-4 py-4 text-sm focus:border-purple-500/50 outline-none transition-all appearance-none cursor-pointer"
+                    className="w-full bg-bgGlassHover border border-borderFocus text-textPrimary rounded-2xl px-4 py-4 text-sm focus:border-purple-500/50 outline-none transition-all appearance-none cursor-pointer"
                   >
-                    <option value="ativo" className="bg-[#0D0D0F]">
+                    <option value="ativo" className="bg-bgPanel">
                       Ativo
                     </option>
-                    <option value="lead" className="bg-[#0D0D0F]">
+                    <option value="lead" className="bg-bgPanel">
                       Lead (Potencial)
                     </option>
-                    <option value="inativo" className="bg-[#0D0D0F]">
+                    <option value="inativo" className="bg-bgPanel">
                       Inativo
                     </option>
                   </select>
                 </div>
               </div>
 
-              {/* Contatos */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-2.5">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                  <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1">
                     E-mail
                   </label>
                   <input
@@ -275,11 +269,11 @@ export function ClientModal({
                     value={clientEmail}
                     onChange={(e) => setClientEmail(e.target.value)}
                     placeholder="contato@acme.com"
-                    className="w-full bg-white/[0.03] border border-white/10 text-white rounded-2xl px-5 py-4 text-sm focus:border-purple-500/50 outline-none transition-all placeholder:text-zinc-600"
+                    className="w-full bg-bgGlassHover border border-borderFocus text-textPrimary rounded-2xl px-5 py-4 text-sm focus:border-purple-500/50 outline-none transition-all placeholder:text-textFaint"
                   />
                 </div>
                 <div className="space-y-2.5">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                  <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1">
                     Telefone / Celular
                   </label>
                   <input
@@ -287,14 +281,13 @@ export function ClientModal({
                     value={clientPhone}
                     onChange={(e) => setClientPhone(e.target.value)}
                     placeholder="+55 11 99999-9999"
-                    className="w-full bg-white/[0.03] border border-white/10 text-white rounded-2xl px-5 py-4 text-sm focus:border-purple-500/50 outline-none transition-all placeholder:text-zinc-600"
+                    className="w-full bg-bgGlassHover border border-borderFocus text-textPrimary rounded-2xl px-5 py-4 text-sm focus:border-purple-500/50 outline-none transition-all placeholder:text-textFaint"
                   />
                 </div>
               </div>
 
-              {/* Website */}
               <div className="space-y-2.5">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1">
                   Website ou Portfólio
                 </label>
                 <input
@@ -302,13 +295,12 @@ export function ClientModal({
                   value={clientWebsite}
                   onChange={(e) => setClientWebsite(e.target.value)}
                   placeholder="www.acme.com"
-                  className="w-full bg-white/[0.03] border border-white/10 text-white rounded-2xl px-5 py-4 text-sm focus:border-purple-500/50 outline-none transition-all placeholder:text-zinc-600"
+                  className="w-full bg-bgGlassHover border border-borderFocus text-textPrimary rounded-2xl px-5 py-4 text-sm focus:border-purple-500/50 outline-none transition-all placeholder:text-textFaint"
                 />
               </div>
 
-              {/* Observações */}
               <div className="space-y-2.5">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1">
                   Observações e Detalhes
                 </label>
                 <textarea
@@ -316,16 +308,16 @@ export function ClientModal({
                   onChange={(e) => setClientNotes(e.target.value)}
                   placeholder="Indique aqui detalhes do projeto, necessidades do cliente, orçamentos, etc."
                   rows={3}
-                  className="w-full bg-white/[0.03] border border-white/10 text-white rounded-2xl px-5 py-4 text-sm focus:border-purple-500/50 outline-none transition-all placeholder:text-zinc-600 resize-none custom-scrollbar"
+                  className="w-full bg-bgGlassHover border border-borderFocus text-textPrimary rounded-2xl px-5 py-4 text-sm focus:border-purple-500/50 outline-none transition-all placeholder:text-textFaint resize-none custom-scrollbar"
                 />
               </div>
             </form>
 
-            <div className="p-8 border-t border-white/[0.05] flex items-center justify-between shrink-0 bg-[#0D0D0F]">
+            <div className="p-8 border-t border-borderSubtle flex items-center justify-between shrink-0 bg-bgPanel">
               <button
                 type="button"
                 onClick={onClose}
-                className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+                className="text-[10px] font-black uppercase tracking-widest text-textMuted hover:text-textPrimary transition-colors"
               >
                 Cancelar
               </button>

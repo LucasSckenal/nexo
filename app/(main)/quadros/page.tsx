@@ -49,9 +49,9 @@ const DEFAULT_COLUMNS = [
 const getColumnColorClasses = (colorName: string) => {
   const colors: Record<string, { border: string; bg: string; text: string }> = {
     zinc: {
-      border: "border-zinc-500/30",
-      bg: "bg-zinc-500/10",
-      text: "text-zinc-400",
+      border: "border-textMuted/30",
+      bg: "bg-textMuted/10",
+      text: "text-textMuted",
     },
     indigo: {
       border: "border-indigo-500/30",
@@ -98,7 +98,7 @@ const getPriorityStyles = (priority: string) => {
     case "low":
       return "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
     default:
-      return "text-zinc-400 bg-zinc-500/10 border-zinc-500/20";
+      return "text-textMuted bg-bgSurfaceHover border-borderFocus";
   }
 };
 
@@ -113,7 +113,7 @@ const getPriorityAccent = (priority: string) => {
     case "low":
       return "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]";
     default:
-      return "bg-zinc-600";
+      return "bg-textMuted";
   }
 };
 
@@ -293,14 +293,13 @@ export default function QuadrosPage() {
       : Math.round((completedSprintTasks / totalSprintTasks) * 100);
 
   return (
-    // Removida a div absoluta. O main com flex-1 flex flex-col h-full preenche o ecrã nativamente.
-    <main className="flex-1 flex flex-col h-full bg-[#000000] relative overflow-hidden">
+    <main className="flex-1 flex flex-col h-full bg-bgDeep text-textPrimary relative overflow-hidden">
       {/* Efeitos de Fundo */}
       <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-indigo-600/10 blur-[140px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-20%] left-[10%] w-[500px] h-[500px] bg-purple-600/10 blur-[150px] rounded-full pointer-events-none" />
 
       {/* HEADER DO QUADRO */}
-      <header className="shrink-0 px-8 py-6 border-b border-white/[0.05] bg-white/[0.01] backdrop-blur-2xl flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-20">
+      <header className="shrink-0 px-8 py-6 border-b border-borderGlass bg-bgGlass backdrop-blur-2xl flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-20">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] uppercase tracking-[0.4em]">
@@ -314,7 +313,7 @@ export default function QuadrosPage() {
 
             {activeSprint?.endDate && activeProject.category !== "design" && (
               <div
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.03] border ${getDaysRemaining(activeSprint.endDate)?.includes("Atrasada") ? "border-red-500/30 text-red-400" : "border-white/[0.05] text-zinc-400"} text-[9px] font-black uppercase tracking-widest shadow-sm`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full bg-bgGlassHover border ${getDaysRemaining(activeSprint.endDate)?.includes("Atrasada") ? "border-red-500/30 text-red-400" : "border-borderGlass text-textSecondary"} text-[9px] font-black uppercase tracking-widest shadow-sm`}
               >
                 <Clock size={10} />
                 <span>{getDaysRemaining(activeSprint.endDate)}</span>
@@ -323,37 +322,37 @@ export default function QuadrosPage() {
           </div>
 
           <div className="flex flex-col md:flex-row md:items-end gap-8">
-            <h1 className="text-4xl font-black text-white tracking-tighter leading-none">
+            <h1 className="text-4xl font-black text-textPrimary tracking-tighter leading-none">
               {activeProject.category === "design"
                 ? "Quadro de Design"
                 : activeSprint?.name || "Quadro Kanban"}
             </h1>
 
-            <div className="flex items-center gap-4 bg-white/[0.02] border border-white/[0.05] rounded-2xl px-5 py-2.5 backdrop-blur-md">
+            <div className="flex items-center gap-4 bg-bgGlassHover border border-borderGlass rounded-2xl px-5 py-2.5 backdrop-blur-md">
               <div className="flex flex-col gap-1.5">
                 <div className="flex justify-between items-center w-32">
-                  <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+                  <span className="text-[9px] font-black text-textMuted uppercase tracking-widest">
                     Progresso
                   </span>
                   <span className="text-[10px] font-bold text-emerald-400">
                     {sprintProgress}%
                   </span>
                 </div>
-                <div className="w-full bg-black/60 rounded-full h-1.5 overflow-hidden shadow-inner">
+                <div className="w-full bg-bgSurfaceActive rounded-full h-1.5 overflow-hidden shadow-inner">
                   <div
                     className="bg-emerald-500 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                     style={{ width: `${sprintProgress}%` }}
                   />
                 </div>
               </div>
-              <div className="flex flex-col border-l border-white/10 pl-4">
-                <div className="text-[13px] font-black text-white leading-none">
+              <div className="flex flex-col border-l border-borderFocus pl-4">
+                <div className="text-[13px] font-black text-textPrimary leading-none">
                   {completedSprintTasks}{" "}
-                  <span className="text-[10px] text-zinc-600 font-bold">
+                  <span className="text-[10px] text-textFaint font-bold">
                     / {totalSprintTasks}
                   </span>
                 </div>
-                <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mt-1">
+                <span className="text-[8px] font-black text-textMuted uppercase tracking-widest mt-1">
                   Tarefas
                 </span>
               </div>
@@ -365,29 +364,29 @@ export default function QuadrosPage() {
           <div className="relative group hidden lg:block">
             <Search
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-indigo-400 transition-colors"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted group-focus-within:text-indigo-400 transition-colors"
             />
             <input
               type="text"
               placeholder="Procurar tarefas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-64 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-sm text-white placeholder-zinc-500 focus:border-indigo-500/50 outline-none transition-all"
+              className="w-64 bg-bgGlassHover backdrop-blur-md border border-borderFocus rounded-2xl py-3 pl-10 pr-4 text-sm text-textPrimary placeholder:text-textMuted focus:border-indigo-500/50 outline-none transition-all"
             />
           </div>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-white text-black hover:bg-zinc-200 px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-[0_10px_30px_rgba(255,255,255,0.05)] active:scale-95 whitespace-nowrap"
+            className="bg-textPrimary text-bgMain hover:opacity-90 px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-[0_10px_30px_rgba(255,255,255,0.05)] active:scale-95 whitespace-nowrap"
           >
             <Plus size={16} strokeWidth={3} /> Nova Tarefa
           </button>
         </div>
       </header>
 
-      {/* ÁREA DE SCROLL PRINCIPAL - A magia do flex-1 e min-w-[] acontece aqui */}
+      {/* ÁREA DE SCROLL PRINCIPAL */}
       <div className="flex-1 flex gap-6 px-8 py-6 overflow-x-auto overflow-y-hidden custom-scrollbar relative z-10 min-h-0">
         {isLoading ? (
-          <div className="w-full h-full flex items-center justify-center text-zinc-500">
+          <div className="w-full h-full flex items-center justify-center text-textMuted">
             <Loader2 size={24} className="animate-spin text-indigo-500" />
           </div>
         ) : (
@@ -406,12 +405,11 @@ export default function QuadrosPage() {
                 onDragOver={(e) => handleDragOver(e, column.id)}
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, column.id)}
-                // FLEX-1 faz com que distribuam o espaço disponível. MIN-W-[320px] impede que fiquem muito pequenas.
-                className={`flex-1 min-w-[320px] flex flex-col bg-white/[0.01] backdrop-blur-[2px] border border-white/[0.05] rounded-3xl transition-all duration-300 ${isDraggedOver ? "bg-white/[0.03] ring-1 ring-white/20 scale-[1.01]" : ""} ${isOverLimit ? "border-red-500/20 bg-red-500/[0.02]" : ""}`}
+                className={`flex-1 min-w-[320px] flex flex-col bg-bgGlass backdrop-blur-[2px] border border-borderGlass rounded-3xl transition-all duration-300 ${isDraggedOver ? "bg-bgGlassHover ring-1 ring-borderFocus scale-[1.01]" : ""} ${isOverLimit ? "border-red-500/20 bg-red-500/[0.02]" : ""}`}
               >
                 {/* CABEÇALHO DA COLUNA */}
                 <div
-                  className={`relative flex items-end justify-between border-b border-white/[0.05] shrink-0 bg-white/[0.01] backdrop-blur-md rounded-t-3xl overflow-hidden transition-all duration-300 ${column.bannerUrl ? "h-28 p-5" : "p-5"}`}
+                  className={`relative flex items-end justify-between border-b border-borderGlass shrink-0 bg-bgGlass backdrop-blur-md rounded-t-3xl overflow-hidden transition-all duration-300 ${column.bannerUrl ? "h-28 p-5" : "p-5"}`}
                 >
                   {column.bannerUrl && (
                     <>
@@ -419,7 +417,7 @@ export default function QuadrosPage() {
                         className="absolute inset-0 bg-cover bg-center z-0 transition-transform duration-700 hover:scale-110"
                         style={{ backgroundImage: `url(${column.bannerUrl})` }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/60 to-transparent z-0" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-bgPanel via-bgPanel/60 to-transparent z-0" />
                     </>
                   )}
 
@@ -434,7 +432,7 @@ export default function QuadrosPage() {
                       />
                     )}
                     <h3
-                      className={`text-[13px] font-black uppercase tracking-widest drop-shadow-md ${column.bannerUrl ? "text-white" : "text-zinc-200"}`}
+                      className={`text-[13px] font-black uppercase tracking-widest drop-shadow-md text-textPrimary`}
                     >
                       {column.title}
                     </h3>
@@ -458,7 +456,7 @@ export default function QuadrosPage() {
                         onKeyDown={(e) =>
                           e.key === "Enter" && handleSaveLimit(column.id)
                         }
-                        className="w-14 bg-[#1A1A1E] border border-indigo-500/50 rounded-md py-0.5 px-1.5 text-[11px] text-center font-bold text-white outline-none focus:ring-1"
+                        className="w-14 bg-bgElement border border-indigo-500/50 rounded-md py-0.5 px-1.5 text-[11px] text-center font-bold text-textPrimary outline-none focus:ring-1"
                       />
                     ) : (
                       <div
@@ -466,7 +464,7 @@ export default function QuadrosPage() {
                           setEditingLimitCol(column.id);
                           setTempLimit(column.limit?.toString() || "0");
                         }}
-                        className={`cursor-pointer hover:scale-105 px-2.5 py-0.5 rounded-lg text-[11px] font-black tracking-wider transition-all backdrop-blur-md ${isOverLimit ? "bg-red-500/20 text-red-300 border border-red-500/30" : `bg-black/40 text-white border border-white/10 hover:bg-black/60`}`}
+                        className={`cursor-pointer hover:scale-105 px-2.5 py-0.5 rounded-lg text-[11px] font-black tracking-wider transition-all backdrop-blur-md ${isOverLimit ? "bg-red-500/20 text-red-300 border border-red-500/30" : `bg-bgSurfaceActive text-textPrimary border border-borderFocus hover:brightness-110`}`}
                       >
                         {columnTasks.length}{" "}
                         {hasLimit ? (
@@ -517,20 +515,20 @@ export default function QuadrosPage() {
                             }
                             onDragEnd={() => handleDragEnd(task.id)}
                             onClick={() => setSelectedTask(task)}
-                            className="group relative bg-[#0D0D0F] border border-white/[0.04] hover:border-indigo-500/30 p-6 rounded-[2rem] cursor-grab active:cursor-grabbing transition-all duration-300 shadow-xl hover:shadow-[0_20px_40px_-10px_rgba(79,70,229,0.15)] hover:-translate-y-1.5 overflow-hidden"
+                            className="group relative bg-bgCard border border-borderGlass hover:border-indigo-500/30 p-6 rounded-[2rem] cursor-grab active:cursor-grabbing transition-all duration-300 shadow-xl hover:shadow-[0_20px_40px_-10px_rgba(79,70,229,0.15)] hover:-translate-y-1.5 overflow-hidden"
                           >
                             <div
                               className={`absolute left-0 top-0 bottom-0 w-[3px] opacity-60 group-hover:opacity-100 transition-opacity z-20 ${getPriorityAccent(task.priority)}`}
                             />
 
                             {task.coverImage && (
-                              <div className="-mx-6 -mt-6 mb-5 h-36 relative shrink-0 overflow-hidden border-b border-white/[0.05] rounded-t-[2rem]">
+                              <div className="-mx-6 -mt-6 mb-5 h-36 relative shrink-0 overflow-hidden border-b border-borderGlass rounded-t-[2rem]">
                                 <img
                                   src={task.coverImage}
                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                   alt="Capa"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0F] via-transparent to-transparent opacity-90" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-bgCard via-transparent to-transparent opacity-90" />
                               </div>
                             )}
 
@@ -538,13 +536,13 @@ export default function QuadrosPage() {
 
                             <div className="flex items-center justify-between mb-4 relative z-10">
                               <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
+                                <span className="text-[10px] font-black text-textMuted uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
                                   {task.key || task.taskKey || "TSK"}
                                 </span>
                                 {task.clientId && (
                                   <>
-                                    <span className="w-1 h-1 rounded-full bg-zinc-700" />
-                                    <span className="text-[9px] font-bold text-zinc-400 group-hover:text-zinc-300 flex items-center gap-1">
+                                    <span className="w-1 h-1 rounded-full bg-textMuted" />
+                                    <span className="text-[9px] font-bold text-textSecondary group-hover:text-textPrimary flex items-center gap-1">
                                       <Briefcase size={10} />
                                       Cliente
                                     </span>
@@ -555,7 +553,7 @@ export default function QuadrosPage() {
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={(e) => handleDeleteTask(e, task.id)}
-                                  className="opacity-0 group-hover:opacity-100 p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                                  className="opacity-0 group-hover:opacity-100 p-1.5 text-textMuted hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
                                   title="Apagar Cartão"
                                 >
                                   <Trash2 size={14} />
@@ -569,23 +567,23 @@ export default function QuadrosPage() {
                               </div>
                             </div>
 
-                            <h4 className="text-[15px] font-bold text-zinc-100 leading-snug mb-5 group-hover:text-white transition-colors relative z-10">
+                            <h4 className="text-[15px] font-bold text-textPrimary leading-snug mb-5 group-hover:brightness-125 transition-all relative z-10">
                               {task.title}
                             </h4>
 
                             {totalSubtasks > 0 && (
-                              <div className="mb-5 relative z-10 bg-white/[0.02] border border-white/[0.03] p-3 rounded-2xl">
+                              <div className="mb-5 relative z-10 bg-bgGlass border border-borderGlass p-3 rounded-2xl">
                                 <div className="flex items-center justify-between mb-2">
-                                  <span className="flex items-center gap-1.5 text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+                                  <span className="flex items-center gap-1.5 text-[9px] font-black text-textMuted uppercase tracking-widest">
                                     <ListChecks size={12} /> Subtarefas
                                   </span>
                                   <span
-                                    className={`text-[10px] font-black ${isAllCompleted ? "text-emerald-400" : "text-zinc-400"}`}
+                                    className={`text-[10px] font-black ${isAllCompleted ? "text-emerald-400" : "text-textSecondary"}`}
                                   >
                                     {completedSubtasks}/{totalSubtasks}
                                   </span>
                                 </div>
-                                <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden">
+                                <div className="h-1.5 w-full bg-bgSurfaceActive rounded-full overflow-hidden">
                                   <div
                                     className={`h-full rounded-full transition-all duration-700 ${isAllCompleted ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.6)]"}`}
                                     style={{
@@ -596,10 +594,10 @@ export default function QuadrosPage() {
                               </div>
                             )}
 
-                            <div className="flex items-center justify-between pt-4 border-t border-white/[0.04] relative z-10">
-                              <div className="flex items-center gap-3 text-zinc-500">
+                            <div className="flex items-center justify-between pt-4 border-t border-borderGlass relative z-10">
+                              <div className="flex items-center gap-3 text-textMuted">
                                 {task.points && (
-                                  <div className="flex items-center justify-center px-2 py-1 bg-white/[0.03] border border-white/5 rounded-lg text-[10px] font-black text-indigo-300">
+                                  <div className="flex items-center justify-center px-2 py-1 bg-bgGlassHover border border-borderGlass rounded-lg text-[10px] font-black text-indigo-400">
                                     {task.points} pts
                                   </div>
                                 )}
@@ -615,7 +613,7 @@ export default function QuadrosPage() {
                                   </div>
                                 )}
                                 {task.attachmentsCount > 0 && (
-                                  <div className="flex items-center gap-1 text-[11px] font-black text-zinc-400">
+                                  <div className="flex items-center gap-1 text-[11px] font-black text-textSecondary">
                                     <Paperclip size={12} />{" "}
                                     {task.attachmentsCount}
                                   </div>
@@ -630,14 +628,14 @@ export default function QuadrosPage() {
                                       <img
                                         key={i}
                                         src={a.photo || a.photoURL}
-                                        className="w-7 h-7 rounded-xl border-2 border-[#0D0D0F] object-cover ring-1 ring-white/[0.05] relative z-10 hover:z-20 hover:scale-110 hover:-translate-y-1 transition-all shadow-lg"
+                                        className="w-7 h-7 rounded-xl border-2 border-bgCard object-cover ring-1 ring-borderGlass relative z-10 hover:z-20 hover:scale-110 hover:-translate-y-1 transition-all shadow-lg"
                                         title={a.name}
                                         alt=""
                                       />
                                     ))
                                 ) : (
-                                  <div className="w-7 h-7 rounded-xl border-2 border-[#0D0D0F] bg-zinc-800 flex items-center justify-center relative z-10">
-                                    <span className="text-[9px] font-black text-zinc-500">
+                                  <div className="w-7 h-7 rounded-xl border-2 border-bgCard bg-bgSurfaceActive flex items-center justify-center relative z-10">
+                                    <span className="text-[9px] font-black text-textMuted">
                                       ?
                                     </span>
                                   </div>
@@ -653,7 +651,7 @@ export default function QuadrosPage() {
                   {idx === 0 && activeProject.category === "design" && (
                     <button
                       onClick={() => setIsCreateModalOpen(true)}
-                      className="mt-4 w-full py-3.5 border border-dashed border-white/[0.08] hover:border-indigo-500/40 hover:bg-indigo-500/5 rounded-[1.5rem] flex items-center justify-center gap-2 text-zinc-500 hover:text-indigo-400 transition-all group shrink-0"
+                      className="mt-4 w-full py-3.5 border border-dashed border-borderFocus hover:border-indigo-500/40 hover:bg-indigo-500/5 rounded-[1.5rem] flex items-center justify-center gap-2 text-textMuted hover:text-indigo-400 transition-all group shrink-0"
                     >
                       <Plus
                         size={16}
@@ -667,8 +665,8 @@ export default function QuadrosPage() {
 
                   {columnTasks.length === 0 &&
                     (activeProject.category !== "design" || idx !== 0) && (
-                      <div className="mt-4 h-28 border-2 border-dashed border-white/[0.05] rounded-[2rem] flex flex-col items-center justify-center text-zinc-600 bg-white/[0.01] transition-colors shrink-0">
-                        <div className={`p-2 rounded-xl bg-white/[0.02] mb-2`}>
+                      <div className="mt-4 h-28 border-2 border-dashed border-borderGlass rounded-[2rem] flex flex-col items-center justify-center text-textFaint bg-bgGlass transition-colors shrink-0">
+                        <div className={`p-2 rounded-xl bg-bgGlassHover mb-2`}>
                           <Plus size={16} />
                         </div>
                         <span className="text-[9px] font-black uppercase tracking-widest opacity-50">

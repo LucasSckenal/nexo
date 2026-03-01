@@ -1,41 +1,57 @@
-/* globals.css */
 @import "tailwindcss";
 
 @layer base {
-
   /* Tema claro (padrão) */
   :root {
-    --bg-main: #f4f4f5;
-    /* zinc-100 */
-    --bg-surface: #e4e4e7;
-    /* zinc-200 */
-    --bg-surface-hover: #d4d4d8;
-    /* zinc-300 */
-    --border-subtle: #d4d4d8;
-    --text-primary: #09090b;
-    /* zinc-950 */
-    --text-secondary: #52525b;
-    /* zinc-600 */
+    --bg-main: #f4f4f5; /* zinc-100 */
+    --bg-surface: #ffffff; /* white */
+    --bg-panel: #ffffff; /* white */
+    --bg-surface-hover: #e4e4e7; /* zinc-200 */
+    --bg-surface-active: #d4d4d8; /* zinc-300 */
+    --border-subtle: #e4e4e7; /* zinc-200 */
+    --border-focus: #d4d4d8; /* zinc-300 */
+    --text-primary: #09090b; /* zinc-950 */
+    --text-secondary: #52525b; /* zinc-600 */
+    --text-muted: #71717a; /* zinc-500 */
+    --text-faint: #a1a1aa; /* zinc-400 */
     --accent-purple: #8b5cf6;
     --accent-purple-dark: #7c3aed;
+
+    /* VARIÁVEIS EXTRAS KANBAN/ANALISES (Modo Claro) */
+    --bg-deep: #f8f8f8; 
+    --bg-glass: rgba(0, 0, 0, 0.02); 
+    --bg-glass-hover: rgba(0, 0, 0, 0.04); 
+    --border-glass: rgba(0, 0, 0, 0.06); 
+    --bg-card: #ffffff; 
+    --bg-element: #e4e4e7; 
+
     color-scheme: light;
   }
 
-  /* Tema escuro (quando a classe .dark estiver presente) */
+  /* Tema escuro */
   .dark {
-    --bg-main: #09090b;
-    /* zinc-950 */
-    --bg-surface: #18181b;
-    /* zinc-900 */
-    --bg-surface-hover: #27272a;
-    /* zinc-800 */
-    --border-subtle: #27272a;
+    --bg-main: #09090B; /* O fundo base mantido exatamente como você pediu */
+    --bg-surface: #121214; /* Superfícies levemente mais claras para dar contraste */
+    --bg-panel: #18181B; /* Para modais e painéis suspensos */
+    --bg-surface-hover: rgba(255, 255, 255, 0.06); /* Efeito de hover translúcido */
+    --bg-surface-active: rgba(255, 255, 255, 0.1);
+    --border-subtle: rgba(255, 255, 255, 0.06); /* Borda visível mas sutil */
+    --border-focus: rgba(255, 255, 255, 0.15); /* Borda forte ao clicar/focar */
     --text-primary: #fafafa;
-    /* zinc-50 */
     --text-secondary: #a1a1aa;
-    /* zinc-400 */
+    --text-muted: #71717a;
+    --text-faint: #52525b;
     --accent-purple: #8b5cf6;
     --accent-purple-dark: #7c3aed;
+
+    /* VARIÁVEIS EXTRAS KANBAN/ANALISES (Modo Escuro) */
+    --bg-deep: #050505;
+    --bg-glass: rgba(255, 255, 255, 0.02);
+    --bg-glass-hover: rgba(255, 255, 255, 0.05);
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --bg-card: #121214;
+    --bg-element: #1A1A1E;
+
     color-scheme: dark;
   }
 }
@@ -43,10 +59,23 @@
 @theme {
   --color-bgMain: var(--bg-main);
   --color-bgSurface: var(--bg-surface);
+  --color-bgPanel: var(--bg-panel);
   --color-bgSurfaceHover: var(--bg-surface-hover);
+  --color-bgSurfaceActive: var(--bg-surface-active);
   --color-borderSubtle: var(--border-subtle);
+  --color-borderFocus: var(--border-focus);
   --color-textPrimary: var(--text-primary);
   --color-textSecondary: var(--text-secondary);
+  --color-textMuted: var(--text-muted);
+  --color-textFaint: var(--text-faint);
   --color-accentPurple: var(--accent-purple);
   --color-accentPurpleDark: var(--accent-purple-dark);
+
+  /* Novas extensões semânticas */
+  --color-bgDeep: var(--bg-deep);
+  --color-bgGlass: var(--bg-glass);
+  --color-bgGlassHover: var(--bg-glass-hover);
+  --color-borderGlass: var(--border-glass);
+  --color-bgCard: var(--bg-card);
+  --color-bgElement: var(--bg-element);
 }

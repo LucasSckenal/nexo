@@ -26,7 +26,7 @@ interface CreateTaskModalProps {
   projectKey: string;
   firstColumnId: string;
   clients: any[];
-  members: any[]; // <-- Nova prop para receber os membros do projeto
+  members: any[];
 }
 
 export function CreateTaskModal({
@@ -40,7 +40,6 @@ export function CreateTaskModal({
 }: CreateTaskModalProps) {
   const [isLoading, setIsLoading] = useState(false);
 
-  // Estados Básicos
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<
@@ -48,17 +47,14 @@ export function CreateTaskModal({
   >("medium");
   const [selectedClient, setSelectedClient] = useState("");
 
-  // Estado dos Responsáveis
   const [selectedAssignees, setSelectedAssignees] = useState<any[]>([]);
   const [isAssigneeOpen, setIsAssigneeOpen] = useState(false);
 
-  // Estados de Subtarefas (Checklist)
   const [subtasks, setSubtasks] = useState<
     { id: string; title: string; completed: boolean }[]
   >([]);
   const [newSubtask, setNewSubtask] = useState("");
 
-  // Estados do Anexo / Imagem de Capa
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -130,7 +126,7 @@ export function CreateTaskModal({
         priority: priority,
         taskKey: taskKey,
         clientId: selectedClient || null,
-        assignees: selectedAssignees, // <-- Salva os responsáveis aqui
+        assignees: selectedAssignees,
         checklist: subtasks,
         coverImage: coverImage,
         attachmentsCount: coverImage ? 1 : 0,
@@ -138,7 +134,6 @@ export function CreateTaskModal({
         updatedAt: serverTimestamp(),
       });
 
-      // Reset e fechar
       setTitle("");
       setDescription("");
       setPriority("medium");
@@ -163,24 +158,24 @@ export function CreateTaskModal({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-[#0D0D0F] border border-white/10 rounded-[2.5rem] w-full max-w-2xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden relative flex flex-col max-h-[90vh]"
+            className="bg-bgPanel border border-borderFocus rounded-[2.5rem] w-full max-w-2xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden relative flex flex-col max-h-[90vh]"
           >
             <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" />
 
-            <div className="p-6 border-b border-white/[0.05] relative shrink-0">
+            <div className="p-6 border-b border-borderSubtle relative shrink-0">
               <div className="flex justify-between items-start mb-1">
                 <div>
                   <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] uppercase tracking-[0.3em] mb-1.5">
                     <Target size={14} />
                     <span>Nova Demanda</span>
                   </div>
-                  <h2 className="text-2xl font-black text-white tracking-tight">
+                  <h2 className="text-2xl font-black text-textPrimary tracking-tight">
                     Criar Cartão Visual
                   </h2>
                 </div>
                 <button
                   onClick={onClose}
-                  className="text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 p-2.5 rounded-full transition-all"
+                  className="text-textMuted hover:text-textPrimary bg-bgGlass hover:bg-bgGlassHover p-2.5 rounded-full transition-all"
                 >
                   <X size={20} />
                 </button>
@@ -193,7 +188,7 @@ export function CreateTaskModal({
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1 flex items-center gap-2">
                     O que precisa ser feito? *
                   </label>
                   <input
@@ -203,26 +198,26 @@ export function CreateTaskModal({
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Ex: Layout da Landing Page..."
-                    className="w-full bg-white/[0.03] border border-white/10 text-white rounded-2xl px-5 py-3.5 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-zinc-600 font-medium"
+                    className="w-full bg-bgGlassHover border border-borderFocus text-textPrimary rounded-2xl px-5 py-3.5 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-textFaint font-medium"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1 flex items-center gap-2">
                     <Briefcase size={12} /> Cliente Associado
                   </label>
                   <select
                     value={selectedClient}
                     onChange={(e) => setSelectedClient(e.target.value)}
-                    className="w-full bg-white/[0.03] border border-white/10 text-white rounded-2xl px-4 py-3.5 text-sm focus:border-indigo-500/50 outline-none transition-all appearance-none cursor-pointer"
+                    className="w-full bg-bgGlassHover border border-borderFocus text-textPrimary rounded-2xl px-4 py-3.5 text-sm focus:border-indigo-500/50 outline-none transition-all appearance-none cursor-pointer"
                   >
-                    <option value="" className="bg-[#0D0D0F]">
+                    <option value="" className="bg-bgPanel">
                       Sem cliente associado
                     </option>
                     {clients.map((client) => (
                       <option
                         key={client.id}
                         value={client.id}
-                        className="bg-[#0D0D0F]"
+                        className="bg-bgPanel"
                       >
                         {client.name}
                       </option>
@@ -231,10 +226,9 @@ export function CreateTaskModal({
                 </div>
               </div>
 
-              {/* === PRIORIDADE E RESPONSÁVEIS === */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/[0.01] border border-white/[0.03] p-4 rounded-[1.5rem]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-bgGlass border border-borderSubtle p-4 rounded-[1.5rem]">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1 flex items-center gap-2">
                     <Flag size={12} /> Prioridade
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -266,7 +260,7 @@ export function CreateTaskModal({
                           className={`py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
                             priority === p
                               ? activeColors[p]
-                              : `border-white/5 bg-white/[0.02] text-zinc-500 ${colors[p]}`
+                              : `border-borderSubtle bg-bgGlassHover text-textMuted ${colors[p]}`
                           }`}
                         >
                           {labels[p]}
@@ -277,13 +271,13 @@ export function CreateTaskModal({
                 </div>
 
                 <div className="space-y-2 relative">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1 flex items-center gap-2">
                     <UserPlus size={12} /> Responsáveis
                   </label>
-                  <div className="flex items-center gap-3 bg-[#0A0A0C] border border-white/10 p-2.5 rounded-2xl h-[52px]">
+                  <div className="flex items-center gap-3 bg-bgSurface border border-borderFocus p-2.5 rounded-2xl h-[52px]">
                     <div className="flex -space-x-2 overflow-hidden px-2 flex-1">
                       {selectedAssignees.length === 0 && (
-                        <span className="text-xs text-zinc-500 italic py-1">
+                        <span className="text-xs text-textMuted italic py-1">
                           Nenhum responsável
                         </span>
                       )}
@@ -291,7 +285,7 @@ export function CreateTaskModal({
                         <img
                           key={i}
                           src={a.photo}
-                          className="w-7 h-7 rounded-full border-2 border-[#0A0A0C] object-cover"
+                          className="w-7 h-7 rounded-full border-2 border-bgSurface object-cover"
                           title={a.name}
                           alt=""
                         />
@@ -300,22 +294,21 @@ export function CreateTaskModal({
                     <button
                       type="button"
                       onClick={() => setIsAssigneeOpen(!isAssigneeOpen)}
-                      className="flex items-center justify-center w-8 h-8 rounded-xl bg-white/5 hover:bg-indigo-500/20 hover:text-indigo-400 text-zinc-400 transition-colors shrink-0"
+                      className="flex items-center justify-center w-8 h-8 rounded-xl bg-bgGlassHover hover:bg-indigo-500/20 hover:text-indigo-400 text-textMuted transition-colors shrink-0"
                     >
                       <Plus size={14} />
                     </button>
                   </div>
 
-                  {/* Dropdown de Membros */}
                   <AnimatePresence>
                     {isAssigneeOpen && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
-                        className="absolute top-full mt-2 right-0 w-64 bg-[#121214] border border-white/10 rounded-2xl shadow-2xl p-2 z-[310] backdrop-blur-xl"
+                        className="absolute top-full mt-2 right-0 w-64 bg-bgSurface border border-borderFocus rounded-2xl shadow-2xl p-2 z-[310] backdrop-blur-xl"
                       >
-                        <div className="text-[9px] font-bold text-zinc-500 p-3 uppercase tracking-widest border-b border-white/5 mb-2">
+                        <div className="text-[9px] font-bold text-textMuted p-3 uppercase tracking-widest border-b border-borderSubtle mb-2">
                           Atribuir à Equipe
                         </div>
                         {members.map((member: any) => (
@@ -323,7 +316,7 @@ export function CreateTaskModal({
                             type="button"
                             key={member.email}
                             onClick={() => toggleAssignee(member)}
-                            className="w-full flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition-all"
+                            className="w-full flex items-center justify-between p-3 hover:bg-bgGlassHover rounded-xl transition-all"
                           >
                             <div className="flex items-center gap-3">
                               <img
@@ -331,7 +324,7 @@ export function CreateTaskModal({
                                 className="w-7 h-7 rounded-lg object-cover"
                                 alt=""
                               />
-                              <span className="text-xs text-zinc-300 font-bold">
+                              <span className="text-xs text-textSecondary font-bold">
                                 {member.name}
                               </span>
                             </div>
@@ -348,9 +341,8 @@ export function CreateTaskModal({
                 </div>
               </div>
 
-              {/* === IMAGEM DE CAPA === */}
-              <div className="space-y-2 bg-white/[0.01] border border-white/[0.03] p-4 rounded-[1.5rem]">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-2 mb-2">
+              <div className="space-y-2 bg-bgGlass border border-borderSubtle p-4 rounded-[1.5rem]">
+                <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1 flex items-center gap-2 mb-2">
                   <ImageIcon size={12} /> Imagem de Capa do Cartão (Opcional)
                 </label>
 
@@ -363,7 +355,7 @@ export function CreateTaskModal({
                 />
 
                 {coverImage ? (
-                  <div className="relative w-full h-32 rounded-xl overflow-hidden border border-white/10 group">
+                  <div className="relative w-full h-32 rounded-xl overflow-hidden border border-borderFocus group">
                     <img
                       src={coverImage}
                       className="w-full h-full object-cover"
@@ -382,7 +374,7 @@ export function CreateTaskModal({
                   <button
                     type="button"
                     onClick={() => coverInputRef.current?.click()}
-                    className="w-full py-6 border-2 border-dashed border-white/[0.05] hover:border-indigo-500/50 hover:bg-indigo-500/5 rounded-xl flex flex-col items-center justify-center gap-2 text-zinc-500 hover:text-indigo-400 transition-all"
+                    className="w-full py-6 border-2 border-dashed border-borderSubtle hover:border-indigo-500/50 hover:bg-indigo-500/5 rounded-xl flex flex-col items-center justify-center gap-2 text-textMuted hover:text-indigo-400 transition-all"
                   >
                     {isUploadingCover ? (
                       <Loader2 size={20} className="animate-spin" />
@@ -401,9 +393,8 @@ export function CreateTaskModal({
                 )}
               </div>
 
-              {/* === DESCRIÇÃO === */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1 flex items-center gap-2">
                   <AlignLeft size={12} /> Descrição
                 </label>
                 <textarea
@@ -411,13 +402,12 @@ export function CreateTaskModal({
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Adicione os detalhes completos, briefing ou requisitos da tarefa..."
                   rows={2}
-                  className="w-full bg-white/[0.03] border border-white/10 text-white rounded-2xl px-5 py-3.5 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-zinc-600 resize-none custom-scrollbar"
+                  className="w-full bg-bgGlassHover border border-borderFocus text-textPrimary rounded-2xl px-5 py-3.5 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-textFaint resize-none custom-scrollbar"
                 />
               </div>
 
-              {/* === SUBTAREFAS (CHECKLIST) === */}
-              <div className="space-y-2 bg-white/[0.01] border border-white/[0.03] p-4 rounded-[1.5rem]">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 flex items-center gap-2 mb-2">
+              <div className="space-y-2 bg-bgGlass border border-borderSubtle p-4 rounded-[1.5rem]">
+                <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1 flex items-center gap-2 mb-2">
                   <ListChecks size={12} /> Subtarefas / Checklist
                 </label>
 
@@ -431,12 +421,12 @@ export function CreateTaskModal({
                       e.key === "Enter" &&
                       (e.preventDefault(), handleAddSubtask())
                     }
-                    className="flex-1 bg-[#0A0A0C] border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
+                    className="flex-1 bg-bgSurface border border-borderFocus text-textPrimary rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-textFaint"
                   />
                   <button
                     type="button"
                     onClick={handleAddSubtask}
-                    className="bg-white/5 hover:bg-white/10 text-white p-2.5 rounded-xl transition-all"
+                    className="bg-bgGlassHover hover:bg-bgSurfaceActive text-textPrimary p-2.5 rounded-xl transition-all"
                   >
                     <Plus size={16} />
                   </button>
@@ -447,15 +437,15 @@ export function CreateTaskModal({
                     {subtasks.map((st) => (
                       <div
                         key={st.id}
-                        className="flex items-center justify-between bg-white/[0.03] border border-white/5 px-3 py-2.5 rounded-xl group"
+                        className="flex items-center justify-between bg-bgGlassHover border border-borderSubtle px-3 py-2.5 rounded-xl group"
                       >
-                        <span className="text-[13px] text-zinc-300">
+                        <span className="text-[13px] text-textSecondary">
                           {st.title}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleRemoveSubtask(st.id)}
-                          className="text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                          className="text-textMuted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -466,11 +456,11 @@ export function CreateTaskModal({
               </div>
             </form>
 
-            <div className="p-6 border-t border-white/[0.05] flex items-center justify-between shrink-0 bg-[#0D0D0F]">
+            <div className="p-6 border-t border-borderSubtle flex items-center justify-between shrink-0 bg-bgPanel">
               <button
                 type="button"
                 onClick={onClose}
-                className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+                className="text-[10px] font-black uppercase tracking-widest text-textMuted hover:text-textPrimary transition-colors"
               >
                 Cancelar
               </button>

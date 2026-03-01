@@ -138,9 +138,8 @@ export function TaskModal({
     setIsCreatingBranch(false);
   };
 
-  // === FUNÇÃO PARA GERAR SUB-TAREFAS COM IA (AGORA REAL) ===
+  // === FUNÇÃO PARA GERAR SUB-TAREFAS COM IA ===
   const handleGenerateAISubtasks = async () => {
-    console.log("Botão clicado! Título:", taskForm.title); // <--- DEBUG 1
     if (!taskForm.title?.trim()) {
       alert(
         "Por favor, preencha o título da tarefa para a IA entender o contexto.",
@@ -168,7 +167,7 @@ export function TaskModal({
       setTaskForm((prev: any) => ({
         ...prev,
         description: data.description || prev.description,
-        points: data.points || prev.points, // A IA agora preenche os botões de pontos!
+        points: data.points || prev.points,
         checklist: [
           ...(prev.checklist || []),
           ...(data.subtasks?.map((st: string, idx: number) => ({
@@ -201,31 +200,31 @@ export function TaskModal({
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.95, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-[#050505] border border-white/10 w-full max-w-5xl rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative"
+          className="bg-bgMain border border-borderFocus w-full max-w-5xl rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden relative"
         >
           {/* Brilho decorativo no topo */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-[200px] bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
 
           {/* HEADER DO MODAL */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/[0.02] shrink-0 relative z-10">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-borderSubtle bg-bgGlass shrink-0 relative z-10">
             <div className="flex items-center gap-3">
               <div className="bg-indigo-500/20 text-indigo-400 p-2 rounded-xl">
                 <LayoutList size={18} />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-white">
+                <h2 className="text-sm font-bold text-textPrimary">
                   {editingId
                     ? `A Editar Issue: ${editingId.slice(0, 8)}`
                     : "Criar Nova Issue"}
                 </h2>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-0.5">
+                <p className="text-[10px] font-bold text-textMuted uppercase tracking-widest mt-0.5">
                   {activeProject?.key || "PROJ"} • Workspace
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="text-zinc-500 hover:text-white p-2 rounded-xl hover:bg-white/5 transition-all"
+              className="text-textMuted hover:text-textPrimary p-2 rounded-xl hover:bg-bgSurfaceHover transition-all"
             >
               <X size={20} />
             </button>
@@ -248,19 +247,19 @@ export function TaskModal({
                     onChange={(e) =>
                       setTaskForm({ ...taskForm, title: e.target.value })
                     }
-                    className="w-full bg-transparent text-3xl font-black text-white placeholder:text-zinc-700 focus:outline-none focus:ring-0"
+                    className="w-full bg-transparent text-3xl font-black text-textPrimary placeholder:text-textFaint focus:outline-none focus:ring-0"
                     placeholder="Título da tarefa..."
                   />
                 </div>
 
                 {/* Descrição e Anexos (Estilo Editor) */}
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-bold text-zinc-300 uppercase tracking-widest">
+                  <div className="flex items-center gap-2 text-sm font-bold text-textSecondary uppercase tracking-widest">
                     <AlignLeft size={16} className="text-indigo-400" />{" "}
                     Descrição
                   </div>
 
-                  <div className="border border-white/5 bg-[#0A0A0A] rounded-2xl overflow-hidden focus-within:border-indigo-500/50 transition-colors flex flex-col">
+                  <div className="border border-borderSubtle bg-bgSurface rounded-2xl overflow-hidden focus-within:border-indigo-500/50 transition-colors flex flex-col">
                     <textarea
                       value={taskForm.description}
                       onChange={(e) =>
@@ -270,25 +269,25 @@ export function TaskModal({
                         })
                       }
                       placeholder="Adicione o contexto, referências técnicas..."
-                      className="w-full bg-transparent px-4 py-4 text-sm text-zinc-300 focus:outline-none resize-y min-h-[200px] placeholder:text-zinc-600 custom-scrollbar"
+                      className="w-full bg-transparent px-4 py-4 text-sm text-textSecondary focus:outline-none resize-y min-h-[200px] placeholder:text-textFaint custom-scrollbar"
                     />
 
                     {/* Toolbar de Anexos Embutida */}
-                    <div className="bg-white/[0.02] border-t border-white/5 px-4 py-2.5 flex items-center justify-between">
+                    <div className="bg-bgGlass border-t border-borderSubtle px-4 py-2.5 flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                          className="p-1.5 text-textMuted hover:text-textPrimary hover:bg-bgSurfaceActive rounded-lg transition-colors"
                           title="Anexar Arquivo"
                         >
                           <Paperclip size={16} />
                         </button>
-                        <div className="w-px h-4 bg-white/10 mx-1"></div>
+                        <div className="w-px h-4 bg-borderFocus mx-1"></div>
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                          className="p-1.5 text-textMuted hover:text-textPrimary hover:bg-bgSurfaceActive rounded-lg transition-colors"
                           title="Anexar Imagem"
                         >
                           <ImageIcon size={16} />
@@ -296,7 +295,7 @@ export function TaskModal({
                         <button
                           type="button"
                           onClick={handleAddLink}
-                          className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                          className="p-1.5 text-textMuted hover:text-textPrimary hover:bg-bgSurfaceActive rounded-lg transition-colors"
                           title="Adicionar Link"
                         >
                           <LinkIcon size={16} />
@@ -318,7 +317,7 @@ export function TaskModal({
                       {taskForm.attachments.map((att: any) => (
                         <div
                           key={att.id}
-                          className="flex items-center gap-2 bg-[#0A0A0A] border border-white/5 px-3 py-2 rounded-xl group max-w-xs"
+                          className="flex items-center gap-2 bg-bgSurface border border-borderSubtle px-3 py-2 rounded-xl group max-w-xs"
                         >
                           {att.type === "link" ? (
                             <LinkIcon
@@ -333,21 +332,21 @@ export function TaskModal({
                           ) : (
                             <FileText
                               size={14}
-                              className="text-zinc-400 shrink-0"
+                              className="text-textMuted shrink-0"
                             />
                           )}
                           <a
                             href={att.url}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-xs text-zinc-300 hover:text-indigo-400 truncate flex-1"
+                            className="text-xs text-textSecondary hover:text-indigo-400 truncate flex-1"
                           >
                             {att.name}
                           </a>
                           <button
                             type="button"
                             onClick={() => removeAttachment(att.id)}
-                            className="text-zinc-600 hover:text-red-400 transition-colors ml-1 shrink-0"
+                            className="text-textFaint hover:text-red-400 transition-colors ml-1 shrink-0"
                           >
                             <X size={14} />
                           </button>
@@ -358,9 +357,9 @@ export function TaskModal({
                 </div>
 
                 {/* Checklist e Botão IA */}
-                <div className="space-y-4 pt-4 border-t border-white/5">
+                <div className="space-y-4 pt-4 border-t border-borderSubtle">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm font-bold text-zinc-300 uppercase tracking-widest">
+                    <div className="flex items-center gap-2 text-sm font-bold text-textSecondary uppercase tracking-widest">
                       <CheckSquare size={16} className="text-emerald-400" />{" "}
                       Subtarefas
                     </div>
@@ -388,10 +387,10 @@ export function TaskModal({
 
                       {checklistTotal > 0 && (
                         <div className="flex items-center gap-2 w-24">
-                          <span className="text-xs font-bold text-zinc-500">
+                          <span className="text-xs font-bold text-textMuted">
                             {checklistProgress}%
                           </span>
-                          <div className="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden">
+                          <div className="h-1.5 flex-1 bg-bgSurfaceHover rounded-full overflow-hidden">
                             <div
                               className="h-full bg-emerald-500 transition-all duration-500"
                               style={{ width: `${checklistProgress}%` }}
@@ -402,7 +401,7 @@ export function TaskModal({
                     </div>
                   </div>
 
-                  <div className="space-y-2 bg-[#0A0A0A] border border-white/5 p-4 rounded-2xl">
+                  <div className="space-y-2 bg-bgSurface border border-borderSubtle p-4 rounded-2xl">
                     {currentChecklist.map((item: any) => (
                       <div
                         key={item.id}
@@ -414,7 +413,7 @@ export function TaskModal({
                           className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
                             item.completed
                               ? "bg-emerald-500 border-emerald-500 text-black"
-                              : "border-zinc-600 hover:border-zinc-400"
+                              : "border-borderFocus hover:border-textMuted"
                           }`}
                         >
                           {item.completed && (
@@ -422,27 +421,27 @@ export function TaskModal({
                           )}
                         </button>
                         <span
-                          className={`text-sm flex-1 transition-all ${item.completed ? "text-zinc-500 line-through" : "text-zinc-200"}`}
+                          className={`text-sm flex-1 transition-all ${item.completed ? "text-textMuted line-through" : "text-textPrimary"}`}
                         >
                           {item.title}
                         </span>
                         <button
                           type="button"
                           onClick={() => removeChecklistItem(item.id)}
-                          className="opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-400 transition-all p-1"
+                          className="opacity-0 group-hover:opacity-100 text-textMuted hover:text-red-400 transition-all p-1"
                         >
                           <X size={14} />
                         </button>
                       </div>
                     ))}
 
-                    <div className="flex items-center gap-3 px-2 pt-2 mt-2 border-t border-white/5">
-                      <Plus size={16} className="text-zinc-600" />
+                    <div className="flex items-center gap-3 px-2 pt-2 mt-2 border-t border-borderSubtle">
+                      <Plus size={16} className="text-textFaint" />
                       <input
                         type="text"
                         placeholder="Adicionar nova subtarefa... (Prima Enter)"
                         onKeyDown={handleAddChecklistItem}
-                        className="bg-transparent border-none text-sm text-zinc-300 focus:ring-0 flex-1 placeholder:text-zinc-600 outline-none"
+                        className="bg-transparent border-none text-sm text-textSecondary focus:ring-0 flex-1 placeholder:text-textFaint outline-none"
                       />
                     </div>
                   </div>
@@ -450,11 +449,11 @@ export function TaskModal({
               </div>
 
               {/* === COLUNA DIREITA (Propriedades) === */}
-              <div className="w-full lg:w-80 bg-[#0A0A0A] border-l border-white/5 p-6 overflow-y-auto shrink-0 space-y-6 custom-scrollbar">
+              <div className="w-full lg:w-80 bg-bgSurface border-l border-borderSubtle p-6 overflow-y-auto shrink-0 space-y-6 custom-scrollbar">
                 {/* Tipo e Epic */}
                 <div className="flex gap-4">
                   <div className="flex-1 relative">
-                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                    <label className="block text-[10px] font-bold text-textMuted uppercase tracking-widest mb-2">
                       Tipo
                     </label>
                     <div className="relative">
@@ -463,26 +462,26 @@ export function TaskModal({
                         onChange={(e) =>
                           setTaskForm({ ...taskForm, type: e.target.value })
                         }
-                        className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 appearance-none hover:bg-white/[0.04] transition-colors"
+                        className="w-full bg-bgGlass border border-borderSubtle rounded-xl px-3 py-2.5 text-sm text-textPrimary focus:outline-none focus:border-indigo-500/50 appearance-none hover:bg-bgGlassHover transition-colors"
                       >
-                        <option value="feature" className="bg-[#0A0A0A]">
+                        <option value="feature" className="bg-bgSurface">
                           ✨ Feature
                         </option>
-                        <option value="bug" className="bg-[#0A0A0A]">
+                        <option value="bug" className="bg-bgSurface">
                           🐛 Bug
                         </option>
-                        <option value="task" className="bg-[#0A0A0A]">
+                        <option value="task" className="bg-bgSurface">
                           📝 Tarefa
                         </option>
                       </select>
                       <ChevronDown
                         size={14}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted pointer-events-none"
                       />
                     </div>
                   </div>
                   <div className="flex-1 relative">
-                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                    <label className="block text-[10px] font-bold text-textMuted uppercase tracking-widest mb-2">
                       Épico
                     </label>
                     <div className="relative">
@@ -491,16 +490,16 @@ export function TaskModal({
                         onChange={(e) =>
                           setTaskForm({ ...taskForm, epic: e.target.value })
                         }
-                        className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 appearance-none hover:bg-white/[0.04] transition-colors"
+                        className="w-full bg-bgGlass border border-borderSubtle rounded-xl px-3 py-2.5 text-sm text-textPrimary focus:outline-none focus:border-indigo-500/50 appearance-none hover:bg-bgGlassHover transition-colors"
                       >
-                        <option value="" className="bg-[#0A0A0A]">
+                        <option value="" className="bg-bgSurface">
                           Sem Epic
                         </option>
                         {epics.map((epic) => (
                           <option
                             key={epic.id}
                             value={epic.id}
-                            className="bg-[#0A0A0A]"
+                            className="bg-bgSurface"
                           >
                             {epic.name}
                           </option>
@@ -508,7 +507,7 @@ export function TaskModal({
                       </select>
                       <ChevronDown
                         size={14}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted pointer-events-none"
                       />
                     </div>
                     {onOpenEpicModal && (
@@ -525,7 +524,7 @@ export function TaskModal({
 
                 {/* Destino */}
                 <div>
-                  <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                  <label className="block text-[10px] font-bold text-textMuted uppercase tracking-widest mb-2">
                     Destino
                   </label>
                   <div className="relative">
@@ -534,25 +533,25 @@ export function TaskModal({
                       onChange={(e) =>
                         setTaskForm({ ...taskForm, target: e.target.value })
                       }
-                      className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 appearance-none hover:bg-white/[0.04] transition-colors"
+                      className="w-full bg-bgGlass border border-borderSubtle rounded-xl px-3 py-2.5 text-sm text-textPrimary focus:outline-none focus:border-indigo-500/50 appearance-none hover:bg-bgGlassHover transition-colors"
                     >
-                      <option value="backlog" className="bg-[#0A0A0A]">
+                      <option value="backlog" className="bg-bgSurface">
                         📦 Backlog
                       </option>
-                      <option value="sprint" className="bg-[#0A0A0A]">
+                      <option value="sprint" className="bg-bgSurface">
                         🚀 Sprint Atual
                       </option>
                     </select>
                     <ChevronDown
                       size={14}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted pointer-events-none"
                     />
                   </div>
                 </div>
 
                 {/* Responsável (Custom Dropdown) */}
                 <div className="relative">
-                  <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                  <label className="block text-[10px] font-bold text-textMuted uppercase tracking-widest mb-2">
                     Responsável
                   </label>
                   <button
@@ -560,7 +559,7 @@ export function TaskModal({
                     onClick={() =>
                       setIsAssigneeDropdownOpen(!isAssigneeDropdownOpen)
                     }
-                    className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5 text-sm text-zinc-200 hover:bg-white/[0.04] focus:border-indigo-500/50 flex items-center justify-between transition-colors"
+                    className="w-full bg-bgGlass border border-borderSubtle rounded-xl px-3 py-2.5 text-sm text-textPrimary hover:bg-bgGlassHover focus:border-indigo-500/50 flex items-center justify-between transition-colors"
                   >
                     <div className="flex items-center gap-2 truncate">
                       {taskForm.assignee ? (
@@ -577,14 +576,14 @@ export function TaskModal({
                         </>
                       ) : (
                         <>
-                          <div className="w-5 h-5 rounded-full border border-dashed border-zinc-600 flex items-center justify-center shrink-0">
-                            <X size={10} className="text-zinc-500" />
+                          <div className="w-5 h-5 rounded-full border border-dashed border-textMuted flex items-center justify-center shrink-0">
+                            <X size={10} className="text-textMuted" />
                           </div>
-                          <span className="text-zinc-500">Não atribuído</span>
+                          <span className="text-textMuted">Não atribuído</span>
                         </>
                       )}
                     </div>
-                    <ChevronDown size={14} className="text-zinc-500 shrink-0" />
+                    <ChevronDown size={14} className="text-textMuted shrink-0" />
                   </button>
 
                   <AnimatePresence>
@@ -593,7 +592,7 @@ export function TaskModal({
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute z-50 left-0 right-0 mt-2 bg-[#141414] border border-white/10 rounded-xl shadow-2xl overflow-hidden py-1 max-h-48 overflow-y-auto custom-scrollbar"
+                        className="absolute z-50 left-0 right-0 mt-2 bg-bgPanel border border-borderFocus rounded-xl shadow-2xl overflow-hidden py-1 max-h-48 overflow-y-auto custom-scrollbar"
                       >
                         <button
                           type="button"
@@ -605,9 +604,9 @@ export function TaskModal({
                             });
                             setIsAssigneeDropdownOpen(false);
                           }}
-                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-zinc-400 hover:bg-white/5 transition-colors text-left"
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-textMuted hover:bg-bgSurfaceHover transition-colors text-left"
                         >
-                          <div className="w-5 h-5 rounded-full border border-dashed border-zinc-600 flex items-center justify-center shrink-0">
+                          <div className="w-5 h-5 rounded-full border border-dashed border-textMuted flex items-center justify-center shrink-0">
                             <X size={10} />
                           </div>
                           <span className="truncate">Sem Responsável</span>
@@ -632,7 +631,7 @@ export function TaskModal({
                                       });
                                       setIsAssigneeDropdownOpen(false);
                                     }}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-200 hover:bg-white/5 transition-colors text-left"
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-textPrimary hover:bg-bgSurfaceHover transition-colors text-left"
                                   >
                                     <img
                                       src={photo}
@@ -665,7 +664,7 @@ export function TaskModal({
                                     });
                                     setIsAssigneeDropdownOpen(false);
                                   }}
-                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-200 hover:bg-white/5 transition-colors text-left"
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-textPrimary hover:bg-bgSurfaceHover transition-colors text-left"
                                 >
                                   <img
                                     src={`https://ui-avatars.com/api/?name=${name}&background=1A1A1E&color=fff`}
@@ -692,7 +691,7 @@ export function TaskModal({
                 {/* Status e Prioridade */}
                 <div className="flex gap-4">
                   <div className="flex-1 relative">
-                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                    <label className="block text-[10px] font-bold text-textMuted uppercase tracking-widest mb-2">
                       Status
                     </label>
                     <div className="relative">
@@ -701,31 +700,31 @@ export function TaskModal({
                         onChange={(e) =>
                           setTaskForm({ ...taskForm, status: e.target.value })
                         }
-                        className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 appearance-none hover:bg-white/[0.04] transition-colors"
+                        className="w-full bg-bgGlass border border-borderSubtle rounded-xl px-3 py-2.5 text-sm text-textPrimary focus:outline-none focus:border-indigo-500/50 appearance-none hover:bg-bgGlassHover transition-colors"
                       >
-                        <option value="todo" className="bg-[#0A0A0A]">
+                        <option value="todo" className="bg-bgSurface">
                           ⚪ Todo
                         </option>
-                        <option value="in-progress" className="bg-[#0A0A0A]">
+                        <option value="in-progress" className="bg-bgSurface">
                           🟡 In Dev
                         </option>
-                        <option value="review" className="bg-[#0A0A0A]">
+                        <option value="review" className="bg-bgSurface">
                           🟣 Review
                         </option>
                         {editingId && (
-                          <option value="done" className="bg-[#0A0A0A]">
+                          <option value="done" className="bg-bgSurface">
                             🟢 Done
                           </option>
                         )}
                       </select>
                       <ChevronDown
                         size={14}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted pointer-events-none"
                       />
                     </div>
                   </div>
                   <div className="flex-1 relative">
-                    <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                    <label className="block text-[10px] font-bold text-textMuted uppercase tracking-widest mb-2">
                       Prioridade
                     </label>
                     <div className="relative">
@@ -734,24 +733,24 @@ export function TaskModal({
                         onChange={(e) =>
                           setTaskForm({ ...taskForm, priority: e.target.value })
                         }
-                        className="w-full bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500/50 appearance-none hover:bg-white/[0.04] transition-colors"
+                        className="w-full bg-bgGlass border border-borderSubtle rounded-xl px-3 py-2.5 text-sm text-textPrimary focus:outline-none focus:border-indigo-500/50 appearance-none hover:bg-bgGlassHover transition-colors"
                       >
-                        <option value="low" className="bg-[#0A0A0A]">
+                        <option value="low" className="bg-bgSurface">
                           Baixa
                         </option>
-                        <option value="medium" className="bg-[#0A0A0A]">
+                        <option value="medium" className="bg-bgSurface">
                           Média
                         </option>
-                        <option value="high" className="bg-[#0A0A0A]">
+                        <option value="high" className="bg-bgSurface">
                           Alta
                         </option>
-                        <option value="critical" className="bg-[#0A0A0A]">
+                        <option value="critical" className="bg-bgSurface">
                           Crítica
                         </option>
                       </select>
                       <ChevronDown
                         size={14}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted pointer-events-none"
                       />
                     </div>
                   </div>
@@ -759,7 +758,7 @@ export function TaskModal({
 
                 {/* Story Points */}
                 <div>
-                  <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                  <label className="block text-[10px] font-bold text-textMuted uppercase tracking-widest mb-2">
                     Story Points
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -773,7 +772,7 @@ export function TaskModal({
                         className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all border ${
                           taskForm.points === point
                             ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]"
-                            : "bg-white/[0.02] border-white/5 text-zinc-400 hover:bg-white/10 hover:text-white"
+                            : "bg-bgGlass border-borderSubtle text-textMuted hover:bg-bgSurfaceActive hover:text-textPrimary"
                         }`}
                       >
                         {point}
@@ -785,7 +784,7 @@ export function TaskModal({
                 {/* GitHub Branch */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                    <label className="text-[10px] font-bold text-textMuted uppercase tracking-widest">
                       Branch do GitHub
                     </label>
                     {activeProject?.githubRepo && (
@@ -810,7 +809,7 @@ export function TaskModal({
                       onClick={() =>
                         setIsBranchDropdownOpen(!isBranchDropdownOpen)
                       }
-                      className="w-full bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] rounded-xl px-4 py-2.5 text-sm text-zinc-300 flex items-center justify-between transition-colors"
+                      className="w-full bg-bgGlass border border-borderSubtle hover:bg-bgGlassHover rounded-xl px-4 py-2.5 text-sm text-textSecondary flex items-center justify-between transition-colors"
                     >
                       <div className="flex items-center gap-2 truncate">
                         <GitBranch
@@ -824,12 +823,12 @@ export function TaskModal({
                       {isLoading ? (
                         <Loader2
                           size={14}
-                          className="animate-spin text-zinc-500"
+                          className="animate-spin text-textMuted"
                         />
                       ) : (
                         <ChevronDown
                           size={14}
-                          className="text-zinc-500 shrink-0"
+                          className="text-textMuted shrink-0"
                         />
                       )}
                     </button>
@@ -840,10 +839,9 @@ export function TaskModal({
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="absolute top-full left-0 w-full mt-2 bg-[#141414] border border-white/10 rounded-xl shadow-2xl z-[100] max-h-48 overflow-y-auto custom-scrollbar py-1"
+                          className="absolute top-full left-0 w-full mt-2 bg-bgPanel border border-borderFocus rounded-xl shadow-2xl z-[100] max-h-48 overflow-y-auto custom-scrollbar py-1"
                         >
                           {branches.map((branch: any) => {
-                            // Suporta branches que vêm como objeto ou string (dependendo de como o useGitHub funciona)
                             const branchName =
                               typeof branch === "string" ? branch : branch.name;
                             return (
@@ -857,7 +855,7 @@ export function TaskModal({
                                   });
                                   setIsBranchDropdownOpen(false);
                                 }}
-                                className="w-full px-4 py-2.5 text-left text-sm hover:bg-white/5 flex items-center justify-between text-zinc-300 transition-colors"
+                                className="w-full px-4 py-2.5 text-left text-sm hover:bg-bgSurfaceHover flex items-center justify-between text-textSecondary transition-colors"
                               >
                                 <span className="truncate pr-2">
                                   {branchName}
@@ -879,20 +877,20 @@ export function TaskModal({
 
                 {/* Tags */}
                 <div>
-                  <label className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">
+                  <label className="flex items-center gap-1.5 text-[10px] font-bold text-textMuted uppercase tracking-widest mb-2">
                     <Tag size={12} /> Etiquetas (Tags)
                   </label>
                   <div className="flex flex-wrap gap-2 mb-3">
                     {(taskForm.tags || []).map((tag: string) => (
                       <span
                         key={tag}
-                        className="flex items-center gap-1.5 bg-white/5 text-zinc-300 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-white/10"
+                        className="flex items-center gap-1.5 bg-bgSurfaceHover text-textSecondary text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-borderFocus"
                       >
                         {tag}
                         <button
                           type="button"
                           onClick={() => removeTag(tag)}
-                          className="text-zinc-500 hover:text-red-400 transition-colors"
+                          className="text-textMuted hover:text-red-400 transition-colors"
                         >
                           <X size={12} />
                         </button>
@@ -903,14 +901,14 @@ export function TaskModal({
                     type="text"
                     placeholder="Adicionar tag e prima Enter..."
                     onKeyDown={handleAddTag}
-                    className="w-full bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] focus:border-indigo-500/50 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 outline-none transition-colors"
+                    className="w-full bg-bgGlass border border-borderSubtle hover:bg-bgGlassHover focus:border-indigo-500/50 rounded-xl px-3 py-2.5 text-sm text-textPrimary placeholder:text-textFaint outline-none transition-colors"
                   />
                 </div>
               </div>
             </div>
 
             {/* RODAPÉ DO MODAL (Botões) */}
-            <div className="px-6 py-4 border-t border-white/5 bg-[#050505] flex items-center justify-between shrink-0 relative z-10">
+            <div className="px-6 py-4 border-t border-borderSubtle bg-bgMain flex items-center justify-between shrink-0 relative z-10">
               {editingId ? (
                 <button
                   type="button"
@@ -927,7 +925,7 @@ export function TaskModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-6 py-2.5 text-sm font-bold text-zinc-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                  className="px-6 py-2.5 text-sm font-bold text-textMuted hover:text-textPrimary hover:bg-bgSurfaceHover rounded-xl transition-all"
                 >
                   Cancelar
                 </button>

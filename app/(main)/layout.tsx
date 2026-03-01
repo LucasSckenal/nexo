@@ -69,7 +69,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body
-        className={`${inter.className} h-screen overflow-hidden transition-colors duration-500`}
+        className={`${inter.className} bg-bgMain text-textPrimary h-screen overflow-hidden transition-colors duration-500`}
       >
         <DataProvider>
           <ThemeProvider>
@@ -492,7 +492,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     <>
       {/* MENU LATERAL PRINCIPAL */}
       <aside
-        className={`relative z-50 shrink-0 h-full flex flex-col transition-all duration-500 ease-in-out ${isCollapsed ? "w-16" : "w-64"}`}
+        className={`relative z-11 shrink-0 h-full flex flex-col transition-all duration-500 ease-in-out ${isCollapsed ? "w-16" : "w-64"}`}
       >
         <div className="px-4 h-20 flex items-center">
           <div
@@ -510,7 +510,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-6.5 top-10 z-[100]  border border-white/10 rounded-full p-1.5 text-zinc-500 hover:text-purple-400 hover:border-purple-500/50 transition-all shadow-xl backdrop-blur-md group"
+          className="absolute -right-6.5 top-10 z-[100] border border-borderSubtle bg-bgSurface rounded-full p-1.5 text-textSecondary hover:text-accentPurple hover:border-accentPurple/50 transition-all shadow-xl backdrop-blur-md group"
         >
           {isCollapsed ? (
             <ChevronRight
@@ -532,9 +532,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               setIsProjectOpen(!isProjectOpen);
               setIsAccountOpen(false);
             }}
-            className={`w-full flex items-center gap-3 p-1.5 rounded-xl hover:bg-white/[0.06] transition-all border border-white/5 ${isCollapsed ? "justify-center" : ""}`}
+            className={`w-full flex items-center gap-3 p-1.5 rounded-xl hover:bg-bgSurfaceHover transition-all border border-borderSubtle ${isCollapsed ? "justify-center" : ""}`}
           >
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0 bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-white/10 overflow-hidden">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0 bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-borderSubtle overflow-hidden">
               {activeProject?.imageUrl ? (
                 <img
                   src={activeProject.imageUrl}
@@ -549,14 +549,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             {!isCollapsed && (
               <>
                 <div className="flex-1 text-left overflow-hidden">
-                  <p className="text-[13px] font-medium text-zinc-200 truncate leading-none">
+                  <p className="text-[13px] font-medium text-textPrimary truncate leading-none">
                     {activeProject?.name || "Projeto"}
                   </p>
-                  <p className="text-[11px] text-zinc-500 mt-1.5 leading-none">
+                  <p className="text-[11px] text-textSecondary mt-1.5 leading-none">
                     Enterprise
                   </p>
                 </div>
-                <ChevronsUpDown size={14} className="text-zinc-600 shrink-0" />
+                <ChevronsUpDown size={14} className="text-textSecondary shrink-0" />
               </>
             )}
           </button>
@@ -567,7 +567,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className={`absolute z-[110] bg-[#0A0A0A] border border-white/[0.08] rounded-2xl shadow-2xl p-2 ${isCollapsed ? "left-full ml-4 top-0 w-64" : "left-0 right-0 top-full mt-2"}`}
+                className={`absolute z-[110] bg-bgSurface border border-borderSubtle rounded-2xl shadow-2xl p-2 ${isCollapsed ? "left-full ml-4 top-0 w-64" : "left-0 right-0 top-full mt-2"}`}
               >
                 <div className="max-h-60 overflow-y-auto custom-scrollbar space-y-1">
                   {projects.map((proj: any) => (
@@ -577,9 +577,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                         setActiveProject(proj);
                         setIsProjectOpen(false);
                       }}
-                      className="w-full flex items-center gap-3 p-2 hover:bg-white/[0.06] rounded-xl transition-all group"
+                      className="w-full flex items-center gap-3 p-2 hover:bg-bgSurfaceHover rounded-xl transition-all group"
                     >
-                      <div className="w-7 h-7 rounded-md overflow-hidden shrink-0 border border-white/5 bg-white/5 flex items-center justify-center text-[9px]">
+                      <div className="w-7 h-7 rounded-md overflow-hidden shrink-0 border border-borderSubtle flex items-center justify-center text-[9px]">
                         {proj.imageUrl ? (
                           <img
                             src={proj.imageUrl}
@@ -590,12 +590,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                         )}
                       </div>
                       <span
-                        className={`flex-1 text-[13px] text-left truncate ${activeProject?.id === proj.id ? "text-purple-400 font-medium" : "text-zinc-400 group-hover:text-zinc-200"}`}
+                        className={`flex-1 text-[13px] text-left truncate ${activeProject?.id === proj.id ? "text-accentPurple font-medium" : "text-textSecondary group-hover:text-textPrimary"}`}
                       >
                         {proj.name}
                       </span>
                       {activeProject?.id === proj.id && (
-                        <Check size={14} className="text-purple-500 shrink-0" />
+                        <Check size={14} className="text-accentPurple shrink-0" />
                       )}
                     </button>
                   ))}
@@ -607,10 +607,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
         {!isCollapsed && (
           <div className="px-3 mb-6">
-            <button className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04] text-zinc-500 hover:bg-white/[0.04] transition-all text-[12px] group">
-              <Search size={14} className="group-hover:text-zinc-300" />
+            <button className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-bgSurface border border-borderSubtle text-textSecondary hover:bg-bgSurfaceHover transition-all text-[12px] group">
+              <Search size={14} className="group-hover:text-textPrimary" />
               <span className="flex-1 text-left">Buscar...</span>
-              <kbd className="text-[9px] font-mono bg-white/[0.05] px-1.5 py-0.5 rounded border border-white/5">
+              <kbd className="text-[9px] font-mono bg-bgSurfaceHover px-1.5 py-0.5 rounded border border-borderSubtle">
                 ⌘K
               </kbd>
             </button>
@@ -672,7 +672,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
             <button
               onClick={() => setIsChatOpen(true)}
-              className={`relative flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-medium transition-all duration-300 group ${hasGlobalUnread ? "text-white bg-indigo-500/10 border border-indigo-500/20" : "text-zinc-500 hover:text-zinc-200"} w-full ${isCollapsed ? "justify-center px-0" : ""}`}
+              className={`relative flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-medium transition-all duration-300 group ${hasGlobalUnread ? "text-textPrimary bg-indigo-500/10 border border-indigo-500/20" : "text-textSecondary hover:text-textPrimary"} w-full ${isCollapsed ? "justify-center px-0" : ""}`}
             >
               <div
                 className={`relative z-10 flex items-center gap-3 transition-all ${hasGlobalUnread ? "text-indigo-400" : "group-hover:scale-105"}`}
@@ -680,7 +680,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 <div className="relative">
                   <MessageCircle size={18} />
                   {hasGlobalUnread && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-indigo-500 rounded-full border-2 border-[#0A0A0A] shadow-[0_0_10px_rgba(99,102,241,0.8)] animate-pulse" />
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-indigo-500 rounded-full border-2 border-bgMain shadow-[0_0_10px_rgba(99,102,241,0.8)] animate-pulse" />
                   )}
                 </div>
                 {!isCollapsed && (
@@ -694,7 +694,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
           <div>
             {!isCollapsed && (
-              <h3 className="text-[10px] font-bold text-zinc-700 px-4 mb-2 tracking-[0.2em] uppercase">
+              <h3 className="text-[10px] font-bold text-textSecondary px-4 mb-2 tracking-[0.2em] uppercase">
                 Administração
               </h3>
             )}
@@ -724,7 +724,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               setIsAccountOpen(!isAccountOpen);
               setIsProjectOpen(false);
             }}
-            className={`w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/[0.04] transition-all group ${isCollapsed ? "justify-center" : ""}`}
+            className={`w-full flex items-center gap-3 p-2 rounded-xl hover:bg-bgSurfaceHover transition-all group ${isCollapsed ? "justify-center" : ""}`}
           >
             <div className="relative shrink-0">
               <img
@@ -732,16 +732,16 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   user?.photoURL ||
                   "https://ui-avatars.com/api/?name=User&background=18181B&color=fff"
                 }
-                className="w-8 h-8 rounded-full border border-white/10"
+                className="w-8 h-8 rounded-full border border-borderSubtle"
               />
-              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-purple-500 rounded-full border-2 border-black" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-accentPurple rounded-full border-2 border-bgMain" />
             </div>
             {!isCollapsed && (
               <div className="flex flex-col items-start overflow-hidden">
-                <span className="text-[13px] font-medium text-zinc-300 truncate w-full">
+                <span className="text-[13px] font-medium text-textPrimary truncate w-full">
                   {user?.displayName?.split(" ")[0] || "Usuário"}
                 </span>
-                <span className="text-[10px] text-zinc-600 truncate w-full">
+                <span className="text-[10px] text-textSecondary truncate w-full">
                   Plano Enterprise
                 </span>
               </div>
@@ -754,12 +754,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className={`absolute z-[100] bottom-full mb-2 bg-[#0A0A0A] border border-white/[0.08] rounded-2xl shadow-2xl p-2 w-56 ${isCollapsed ? "left-full ml-4" : "left-3"}`}
+                className={`absolute z-[100] bottom-full mb-2 bg-bgSurface border border-borderSubtle rounded-2xl shadow-2xl p-2 w-56 ${isCollapsed ? "left-full ml-4" : "left-3"}`}
               >
                 <Link
                   href="/perfil"
                   onClick={() => setIsAccountOpen(false)}
-                  className="w-full flex items-center gap-2.5 p-2.5 rounded-xl text-xs text-zinc-400 hover:text-white hover:bg-white/5 transition-all mb-1"
+                  className="w-full flex items-center gap-2.5 p-2.5 rounded-xl text-xs text-textSecondary hover:text-textPrimary hover:bg-bgSurfaceHover transition-all mb-1"
                 >
                   <User size={14} /> Acessar Perfil
                 </Link>
@@ -776,7 +776,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* ÁREA PRINCIPAL DA PÁGINA */}
-      <main className="flex-1  rounded-[2.5rem] border border-white/[0.05] overflow-hidden relative shadow-[0_0_50px_rgba(0,0,0,0.8)] z-10">
+      <main className="flex-1 rounded-[2.5rem] border border-borderSubtle overflow-hidden relative shadow-[0_0_50px_rgba(0,0,0,0.8)] z-10 bg-bgMain">
         <div className="h-full overflow-y-auto custom-scrollbar p-1">
           {children}
         </div>
@@ -795,20 +795,20 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
-              className="bg-[#0A0A0A] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden"
+              className="bg-bgSurface border border-borderSubtle rounded-2xl w-full max-w-md shadow-2xl overflow-hidden"
             >
-              <div className="p-5 border-b border-white/5 flex items-center justify-between">
-                <h3 className="text-white font-bold">Novo Grupo</h3>
+              <div className="p-5 border-b border-borderSubtle flex items-center justify-between">
+                <h3 className="text-textPrimary font-bold">Novo Grupo</h3>
                 <button
                   onClick={() => setShowGroupModal(false)}
-                  className="text-zinc-500 hover:text-white p-1"
+                  className="text-textSecondary hover:text-textPrimary p-1"
                 >
                   <X size={18} />
                 </button>
               </div>
               <div className="p-5 space-y-4">
                 <div>
-                  <label className="text-xs text-zinc-400 font-medium mb-1 block">
+                  <label className="text-xs text-textSecondary font-medium mb-1 block">
                     Nome do Grupo
                   </label>
                   <input
@@ -816,14 +816,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     value={groupName}
                     onChange={(e) => setGroupName(e.target.value)}
                     placeholder="Ex: Time de Design"
-                    className="w-full bg-[#141414] border border-white/10 rounded-lg py-2 px-3 text-sm text-white focus:border-indigo-500/50 outline-none transition-colors"
+                    className="w-full bg-bgSurfaceHover border border-borderSubtle rounded-lg py-2 px-3 text-sm text-textPrimary focus:border-indigo-500/50 outline-none transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-zinc-400 font-medium mb-2 block">
+                  <label className="text-xs text-textSecondary font-medium mb-2 block">
                     Selecione os membros
                   </label>
-                  <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-1 bg-[#141414] rounded-lg border border-white/5 p-2">
+                  <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-1 bg-bgSurfaceHover rounded-lg border border-borderSubtle p-2">
                     {globalUsers
                       .filter((u) => u.id !== user?.uid)
                       .map((u) => {
@@ -838,7 +838,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                                   : [...prev, u.id],
                               )
                             }
-                            className={`w-full flex items-center justify-between p-2 rounded-md text-sm ${isSelected ? "bg-indigo-500/20 text-white" : "hover:bg-white/5 text-zinc-300"}`}
+                            className={`w-full flex items-center justify-between p-2 rounded-md text-sm ${isSelected ? "bg-indigo-500/20 text-textPrimary" : "hover:bg-bgSurface text-textSecondary"}`}
                           >
                             <div className="flex items-center gap-2">
                               <img
@@ -859,10 +859,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   </div>
                 </div>
               </div>
-              <div className="p-5 border-t border-white/5 flex justify-end gap-2">
+              <div className="p-5 border-t border-borderSubtle flex justify-end gap-2">
                 <button
                   onClick={() => setShowGroupModal(false)}
-                  className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:bg-white/5"
+                  className="px-4 py-2 rounded-lg text-sm text-textSecondary hover:bg-bgSurfaceHover"
                 >
                   Cancelar
                 </button>
@@ -892,13 +892,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
-              className="bg-[#0A0A0A] border border-white/10 rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
+              className="bg-bgSurface border border-borderSubtle rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
             >
-              <div className="p-5 border-b border-white/5 flex items-center justify-between">
-                <h3 className="text-white font-bold">Editar Grupo</h3>
+              <div className="p-5 border-b border-borderSubtle flex items-center justify-between">
+                <h3 className="text-textPrimary font-bold">Editar Grupo</h3>
                 <button
                   onClick={() => setShowEditGroupModal(false)}
-                  className="text-zinc-500 hover:text-white p-1"
+                  className="text-textSecondary hover:text-textPrimary p-1"
                 >
                   <X size={18} />
                 </button>
@@ -908,7 +908,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   className="relative group cursor-pointer"
                   onClick={() => groupPhotoInputRef.current?.click()}
                 >
-                  <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white/10 bg-zinc-900">
+                  <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-borderSubtle bg-bgSurfaceHover">
                     {editGroupPhoto ? (
                       <img
                         src={editGroupPhoto}
@@ -934,21 +934,21 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 </div>
 
                 <div className="w-full">
-                  <label className="text-xs text-zinc-400 font-medium mb-1 block">
+                  <label className="text-xs text-textSecondary font-medium mb-1 block">
                     Nome do Grupo
                   </label>
                   <input
                     type="text"
                     value={editGroupName}
                     onChange={(e) => setEditGroupName(e.target.value)}
-                    className="w-full bg-[#141414] border border-white/10 rounded-lg py-2 px-3 text-sm text-white focus:border-indigo-500/50 outline-none transition-colors"
+                    className="w-full bg-bgSurfaceHover border border-borderSubtle rounded-lg py-2 px-3 text-sm text-textPrimary focus:border-indigo-500/50 outline-none transition-colors"
                   />
                 </div>
               </div>
-              <div className="p-5 border-t border-white/5 flex justify-end gap-2">
+              <div className="p-5 border-t border-borderSubtle flex justify-end gap-2">
                 <button
                   onClick={() => setShowEditGroupModal(false)}
-                  className="px-4 py-2 rounded-lg text-sm text-zinc-400 hover:bg-white/5"
+                  className="px-4 py-2 rounded-lg text-sm text-textSecondary hover:bg-bgSurfaceHover"
                 >
                   Cancelar
                 </button>
@@ -978,7 +978,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-6 right-6 z-[300] bg-[#0A0A0A]/95 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)] rounded-2xl p-4 w-80 cursor-pointer group"
+            className="fixed bottom-6 right-6 z-[300] bg-bgSurface/95 backdrop-blur-xl border border-borderSubtle shadow-[0_10px_40px_rgba(0,0,0,0.5)] rounded-2xl p-4 w-80 cursor-pointer group"
             onClick={() => {
               setChatMember(activeToast.sender);
               setIsChatOpen(true);
@@ -993,17 +993,17 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     activeToast.sender.photoURL ||
                     `https://ui-avatars.com/api/?name=${activeToast.sender.name || activeToast.sender.displayName}&background=18181B&color=fff`
                   }
-                  className="w-10 h-10 rounded-full border border-white/10 object-cover shadow-lg"
+                  className="w-10 h-10 rounded-full border border-borderSubtle object-cover shadow-lg"
                 />
-                <div className="absolute -bottom-1 -right-1 bg-indigo-500 w-4 h-4 rounded-full border-2 border-[#0A0A0A] flex items-center justify-center">
+                <div className="absolute -bottom-1 -right-1 bg-indigo-500 w-4 h-4 rounded-full border-2 border-bgSurface flex items-center justify-center">
                   <MessageCircle size={8} className="text-white" />
                 </div>
               </div>
               <div className="flex-1 overflow-hidden pt-0.5">
-                <h4 className="text-sm font-bold text-white truncate group-hover:text-indigo-400 transition-colors">
+                <h4 className="text-sm font-bold text-textPrimary truncate group-hover:text-indigo-400 transition-colors">
                   {activeToast.sender.name || activeToast.sender.displayName}
                 </h4>
-                <p className="text-xs text-zinc-400 truncate mt-0.5 font-medium">
+                <p className="text-xs text-textSecondary truncate mt-0.5 font-medium">
                   {activeToast.text}
                 </p>
               </div>
@@ -1012,7 +1012,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   e.stopPropagation();
                   setActiveToast(null);
                 }}
-                className="text-zinc-500 hover:text-white transition-colors bg-white/5 hover:bg-white/10 p-1.5 rounded-lg shrink-0"
+                className="text-textSecondary hover:text-textPrimary transition-colors bg-bgSurfaceHover hover:bg-bgSurface p-1.5 rounded-lg shrink-0"
               >
                 <X size={14} />
               </button>
@@ -1041,20 +1041,20 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 bottom-0 w-[420px] max-w-full bg-[#030303] border-l border-white/5 shadow-2xl z-[200] flex flex-col overflow-hidden"
+              className="fixed right-0 top-0 bottom-0 w-[420px] max-w-full bg-bgMain border-l border-borderSubtle shadow-2xl z-[200] flex flex-col overflow-hidden"
             >
               {!chatMember ? (
                 <div
-                  className="flex flex-col h-full bg-[#050505]"
+                  className="flex flex-col h-full bg-bgMain"
                   onClick={() => setContactContextMenu(null)}
                 >
-                  <div className="px-6 pt-8 pb-4 border-b border-white/5 bg-[#030303]/80 backdrop-blur-2xl flex flex-col sticky top-0 z-10">
+                  <div className="px-6 pt-8 pb-4 border-b border-borderSubtle bg-bgSurface/80 backdrop-blur-2xl flex flex-col sticky top-0 z-10">
                     <div className="flex items-center justify-between mb-6">
                       <div>
-                        <h2 className="text-2xl font-black text-white tracking-tight">
+                        <h2 className="text-2xl font-black text-textPrimary tracking-tight">
                           Mensagens
                         </h2>
-                        <p className="text-zinc-500 text-sm mt-1">
+                        <p className="text-textSecondary text-sm mt-1">
                           Converse com sua equipa
                         </p>
                       </div>
@@ -1068,7 +1068,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                         </button>
                         <button
                           onClick={() => setIsChatOpen(false)}
-                          className="p-2.5 bg-white/[0.03] border border-white/5 text-zinc-400 hover:bg-white/10 hover:text-white rounded-full transition-all group"
+                          className="p-2.5 bg-bgSurface border border-borderSubtle text-textSecondary hover:bg-bgSurfaceHover hover:text-textPrimary rounded-full transition-all group"
                         >
                           <X
                             size={18}
@@ -1081,14 +1081,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     <div className="relative">
                       <Search
                         size={16}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-textSecondary"
                       />
                       <input
                         type="text"
                         placeholder="Buscar contacto ou grupo..."
                         value={searchContact}
                         onChange={(e) => setSearchContact(e.target.value)}
-                        className="w-full bg-[#141414] border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-[13px] text-white placeholder:text-zinc-600 outline-none focus:border-indigo-500/50 focus:bg-[#1A1A1A] transition-all"
+                        className="w-full bg-bgSurfaceHover border border-borderSubtle rounded-xl py-2.5 pl-10 pr-4 text-[13px] text-textPrimary placeholder:text-textSecondary outline-none focus:border-indigo-500/50 transition-all"
                       />
                     </div>
                   </div>
@@ -1096,13 +1096,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   <div className="flex-1 overflow-y-auto custom-scrollbar relative px-4 py-4">
                     {filteredContacts.length === 0 ? (
                       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center h-full relative overflow-hidden mt-10">
-                        <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-4 shadow-xl">
-                          <MessageCircle size={28} className="text-zinc-500" />
+                        <div className="w-16 h-16 rounded-full bg-bgSurface border border-borderSubtle flex items-center justify-center mb-4 shadow-xl">
+                          <MessageCircle size={28} className="text-textSecondary" />
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-2">
+                        <h3 className="text-lg font-bold text-textPrimary mb-2">
                           Sem resultados
                         </h3>
-                        <p className="text-sm text-zinc-500">
+                        <p className="text-sm text-textSecondary">
                           Nenhum chat foi encontrado.
                         </p>
                       </div>
@@ -1121,11 +1121,11 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                                 y: e.clientY,
                               });
                             }}
-                            className={`w-full flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 group border ${contact.unread ? "bg-indigo-500/10 border-indigo-500/20" : "bg-transparent border-transparent hover:bg-white/[0.04] hover:scale-[1.01]"}`}
+                            className={`w-full flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-300 group border ${contact.unread ? "bg-indigo-500/10 border-indigo-500/20" : "bg-transparent border-transparent hover:bg-bgSurfaceHover hover:scale-[1.01]"}`}
                           >
                             <div className="relative shrink-0">
                               {contact.isGroup ? (
-                                <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-white/10 shadow-lg flex items-center justify-center">
+                                <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-borderSubtle shadow-lg flex items-center justify-center">
                                   {contact.photoURL ? (
                                     <img
                                       src={contact.photoURL}
@@ -1144,17 +1144,17 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                                     contact.photoURL ||
                                     `https://ui-avatars.com/api/?name=${contact.name}&background=18181B&color=fff`
                                   }
-                                  className="w-12 h-12 rounded-full border border-white/10 shadow-lg object-cover"
+                                  className="w-12 h-12 rounded-full border border-borderSubtle shadow-lg object-cover"
                                 />
                               )}
                               {contact.unread && (
-                                <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-indigo-500 rounded-full border-[3px] border-[#050505] shadow-[0_0_12px_rgba(99,102,241,0.8)]" />
+                                <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-indigo-500 rounded-full border-[3px] border-bgMain shadow-[0_0_12px_rgba(99,102,241,0.8)]" />
                               )}
                             </div>
                             <div className="flex-1 text-left overflow-hidden">
                               <div className="flex items-center justify-between mb-0.5">
                                 <h4
-                                  className={`text-[15px] truncate ${contact.unread ? "font-black text-white" : "font-bold text-zinc-200 group-hover:text-white transition-colors"}`}
+                                  className={`text-[15px] truncate ${contact.unread ? "font-black text-textPrimary" : "font-bold text-textPrimary group-hover:text-textPrimary transition-colors"}`}
                                 >
                                   {contact.name ||
                                     contact.displayName ||
@@ -1162,7 +1162,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                                 </h4>
                                 {!contact.unread &&
                                   contact.lastMessageAt > 0 && (
-                                    <span className="text-[10px] font-medium text-zinc-600">
+                                    <span className="text-[10px] font-medium text-textSecondary">
                                       {new Date(
                                         contact.lastMessageAt,
                                       ).toLocaleTimeString([], {
@@ -1173,7 +1173,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                                   )}
                               </div>
                               <p
-                                className={`text-[13px] truncate ${contact.unread ? "text-indigo-300 font-medium" : "text-zinc-500"}`}
+                                className={`text-[13px] truncate ${contact.unread ? "text-indigo-300 font-medium" : "text-textSecondary"}`}
                               >
                                 {contact.lastMessage || "Iniciar conversa"}
                               </p>
@@ -1186,14 +1186,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 </div>
               ) : (
                 <div
-                  className="flex flex-col h-full bg-[#050505] relative"
+                  className="flex flex-col h-full bg-bgMain relative"
                   onClick={() => setIsChatOptionsMenuOpen(false)}
                 >
-                  <div className="px-5 py-4 border-b border-white/5 bg-[#0A0A0A]/80 backdrop-blur-2xl flex items-center justify-between absolute top-0 w-full z-20">
+                  <div className="px-5 py-4 border-b border-borderSubtle bg-bgSurface/80 backdrop-blur-2xl flex items-center justify-between absolute top-0 w-full z-20">
                     <div className="flex items-center gap-4">
                       <button
                         onClick={() => setChatMember(null)}
-                        className="p-2 -ml-2 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all"
+                        className="p-2 -ml-2 text-textSecondary hover:text-textPrimary hover:bg-bgSurfaceHover rounded-full transition-all"
                       >
                         <ArrowLeft size={20} />
                       </button>
@@ -1204,7 +1204,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                         }
                       >
                         {chatMember.isGroup ? (
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-borderSubtle flex items-center justify-center">
                             {chatMember.photoURL ? (
                               <img
                                 src={chatMember.photoURL}
@@ -1221,14 +1221,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                                 chatMember.photoURL ||
                                 `https://ui-avatars.com/api/?name=${chatMember.name || chatMember.displayName}&background=18181B&color=fff`
                               }
-                              className="w-10 h-10 rounded-full border border-white/10 object-cover"
+                              className="w-10 h-10 rounded-full border border-borderSubtle object-cover"
                             />
-                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#0A0A0A] animate-pulse" />
+                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-bgSurface animate-pulse" />
                           </>
                         )}
                       </div>
                       <div>
-                        <h3 className="text-white font-bold text-sm leading-tight">
+                        <h3 className="text-textPrimary font-bold text-sm leading-tight">
                           {chatMember.name ||
                             chatMember.displayName ||
                             "Utilizador"}
@@ -1242,12 +1242,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     </div>
                     <div className="flex items-center gap-1 relative">
                       {!chatMember.isGroup && (
-                        <button className="p-2 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all">
+                        <button className="p-2 text-textSecondary hover:text-textPrimary hover:bg-bgSurfaceHover rounded-full transition-all">
                           <Phone size={18} />
                         </button>
                       )}
                       {!chatMember.isGroup && (
-                        <button className="p-2 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all">
+                        <button className="p-2 text-textSecondary hover:text-textPrimary hover:bg-bgSurfaceHover rounded-full transition-all">
                           <Video size={18} />
                         </button>
                       )}
@@ -1256,7 +1256,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                           e.stopPropagation();
                           setIsChatOptionsMenuOpen(!isChatOptionsMenuOpen);
                         }}
-                        className={`p-2 rounded-full transition-all ${isChatOptionsMenuOpen ? "text-white bg-white/10" : "text-zinc-400 hover:text-white hover:bg-white/10"}`}
+                        className={`p-2 rounded-full transition-all ${isChatOptionsMenuOpen ? "text-textPrimary bg-bgSurfaceHover" : "text-textSecondary hover:text-textPrimary hover:bg-bgSurfaceHover"}`}
                       >
                         <MoreVertical size={18} />
                       </button>
@@ -1268,7 +1268,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                             initial={{ opacity: 0, scale: 0.95, y: -10 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                            className="absolute right-0 top-12 mt-1 w-48 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[300]"
+                            className="absolute right-0 top-12 mt-1 w-48 bg-bgSurface border border-borderSubtle rounded-xl shadow-2xl overflow-hidden z-[300]"
                           >
                             {chatMember.isGroup ? (
                               <>
@@ -1277,7 +1277,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                                     openEditGroupModal();
                                     setIsChatOptionsMenuOpen(false);
                                   }}
-                                  className="w-full text-left px-4 py-3 text-sm text-zinc-300 hover:bg-white/5 flex items-center gap-3"
+                                  className="w-full text-left px-4 py-3 text-sm text-textPrimary hover:bg-bgSurfaceHover flex items-center gap-3"
                                 >
                                   <Edit2 size={16} /> Editar Grupo
                                 </button>
@@ -1293,7 +1293,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                               </>
                             ) : (
                               <>
-                                <button className="w-full text-left px-4 py-3 text-sm text-zinc-300 hover:bg-white/5 flex items-center gap-3">
+                                <button className="w-full text-left px-4 py-3 text-sm text-textPrimary hover:bg-bgSurfaceHover flex items-center gap-3">
                                   <User size={16} /> Ver Perfil
                                 </button>
                                 <button
@@ -1319,17 +1319,17 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     onClick={() => setContextMenu(null)}
                   >
                     {messages.length === 0 ? (
-                      <div className="h-full flex flex-col items-center justify-center text-zinc-500 mt-10">
+                      <div className="h-full flex flex-col items-center justify-center text-textSecondary mt-10">
                         <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-500/10 to-transparent flex items-center justify-center mb-6 border border-indigo-500/10 shadow-xl">
                           <MessageCircle
                             size={28}
                             className="text-indigo-400/60"
                           />
                         </div>
-                        <h4 className="text-white font-bold text-lg">
+                        <h4 className="text-textPrimary font-bold text-lg">
                           Comece a conversar
                         </h4>
-                        <p className="text-xs text-zinc-500 mt-2 text-center max-w-[200px]">
+                        <p className="text-xs text-textSecondary mt-2 text-center max-w-[200px]">
                           Diga olá para {chatMember.name?.split(" ")[0]}
                         </p>
                       </div>
@@ -1354,7 +1354,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
                         let bubbleClasses = isMe
                           ? "bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-sm"
-                          : "bg-[#1A1A1A] border border-white/5 text-zinc-200 shadow-sm";
+                          : "bg-bgSurface border border-borderSubtle text-textPrimary shadow-sm";
 
                         if (isMe) {
                           bubbleClasses += isSameSenderAsNext
@@ -1401,7 +1401,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                               !isMe &&
                               !isSameSenderAsPrev &&
                               senderUser && (
-                                <span className="text-[10px] text-zinc-500 font-medium ml-9 mb-1">
+                                <span className="text-[10px] text-textSecondary font-medium ml-9 mb-1">
                                   {senderUser.name?.split(" ")[0]}
                                 </span>
                               )}
@@ -1438,7 +1438,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                                       <a
                                         href={msg.fileData}
                                         download={msg.fileName}
-                                        className={`flex items-center gap-3 p-3 mt-1 rounded-xl text-xs transition-colors border shadow-sm ${isMe ? "bg-black/20 hover:bg-black/30 text-white border-white/10" : "bg-white/5 hover:bg-white/10 text-zinc-300 border-white/5"}`}
+                                        className={`flex items-center gap-3 p-3 mt-1 rounded-xl text-xs transition-colors border shadow-sm ${isMe ? "bg-black/20 hover:bg-black/30 text-white border-white/10" : "bg-bgSurfaceHover hover:bg-bgSurface text-textPrimary border-borderSubtle"}`}
                                       >
                                         <div className="p-2 bg-white/10 rounded-lg">
                                           <FileText size={16} />
@@ -1461,7 +1461,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
                             {!isSameSenderAsNext && (
                               <span
-                                className={`text-[10px] text-zinc-600 font-medium px-2 mt-1 flex items-center gap-1 ${isMe ? "mr-1" : "ml-8"}`}
+                                className={`text-[10px] text-textSecondary font-medium px-2 mt-1 flex items-center gap-1 ${isMe ? "mr-1" : "ml-8"}`}
                               >
                                 {msg.createdAt?.toDate
                                   ? msg.createdAt
@@ -1489,7 +1489,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   <div className="absolute bottom-6 left-5 right-5 z-20">
                     <form
                       onSubmit={handleSendMessage}
-                      className="relative flex items-center bg-[#141414]/90 backdrop-blur-xl border border-white/10 rounded-[2rem] p-1.5 focus-within:border-indigo-500/50 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
+                      className="relative flex items-center bg-bgSurface/90 backdrop-blur-xl border border-borderSubtle rounded-[2rem] p-1.5 focus-within:border-indigo-500/50 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
                     >
                       <input
                         type="file"
@@ -1502,7 +1502,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploadingFile}
-                        className="p-3 text-zinc-400 hover:text-white hover:bg-white/5 rounded-full transition-all shrink-0"
+                        className="p-3 text-textSecondary hover:text-textPrimary hover:bg-bgSurfaceHover rounded-full transition-all shrink-0"
                       >
                         {isUploadingFile ? (
                           <Loader2
@@ -1518,19 +1518,19 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder="Mensagem..."
-                        className="flex-1 bg-transparent px-2 py-2.5 text-[14px] text-white placeholder:text-zinc-500 outline-none"
+                        className="flex-1 bg-transparent px-2 py-2.5 text-[14px] text-textPrimary placeholder:text-textSecondary outline-none"
                       />
                       <div className="flex items-center gap-1 pr-1 shrink-0">
                         <button
                           type="button"
-                          className="p-3 text-zinc-400 hover:text-white transition-colors hidden sm:block rounded-full hover:bg-white/5"
+                          className="p-3 text-textSecondary hover:text-textPrimary transition-colors hidden sm:block rounded-full hover:bg-bgSurfaceHover"
                         >
                           <Smile size={18} />
                         </button>
                         <button
                           type="submit"
                           disabled={!newMessage.trim() || isSending}
-                          className={`p-3 rounded-full flex items-center justify-center transition-all ${!newMessage.trim() ? "bg-white/5 text-zinc-500" : "bg-indigo-600 text-white hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.5)] hover:scale-105"}`}
+                          className={`p-3 rounded-full flex items-center justify-center transition-all ${!newMessage.trim() ? "bg-bgSurfaceHover text-textSecondary" : "bg-indigo-600 text-white hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.5)] hover:scale-105"}`}
                         >
                           {isSending ? (
                             <Loader2 size={16} className="animate-spin" />
@@ -1559,7 +1559,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="fixed z-[300] bg-[#1A1A1A] border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-[160px]"
+                  className="fixed z-[300] bg-bgSurface border border-borderSubtle rounded-xl shadow-2xl overflow-hidden min-w-[160px]"
                   style={{
                     top: contextMenu.y,
                     left: Math.min(contextMenu.x, window.innerWidth - 180),
@@ -1575,7 +1575,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                             copyToClipboard(contextMenu.msg.text);
                             setContextMenu(null);
                           }}
-                          className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-white/10 hover:text-white transition-colors flex items-center gap-3"
+                          className="w-full text-left px-4 py-2.5 text-sm text-textPrimary hover:bg-bgSurfaceHover transition-colors flex items-center gap-3"
                         >
                           <Copy size={16} /> Copiar Texto
                         </button>
@@ -1603,7 +1603,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="fixed z-[300] bg-[#1A1A1A] border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-[180px]"
+                  className="fixed z-[300] bg-bgSurface border border-borderSubtle rounded-xl shadow-2xl overflow-hidden min-w-[180px]"
                   style={{
                     top: contactContextMenu.y,
                     left: Math.min(
@@ -1617,7 +1617,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     {!contactContextMenu.chat.isGroup && (
                       <button
                         onClick={() => setContactContextMenu(null)}
-                        className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-white/10 hover:text-white transition-colors flex items-center gap-3"
+                        className="w-full text-left px-4 py-2.5 text-sm text-textPrimary hover:bg-bgSurfaceHover transition-colors flex items-center gap-3"
                       >
                         <User size={16} /> Ver Perfil
                       </button>
@@ -1649,7 +1649,7 @@ function NavItem({ icon, label, href, active, collapsed }: any) {
   return (
     <Link
       href={href}
-      className={`relative flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-medium transition-all duration-300 group ${active ? "text-purple-50" : "text-zinc-500 hover:text-zinc-200"} ${collapsed ? "justify-center px-0" : ""}`}
+      className={`relative flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-medium transition-all duration-300 group ${active ? "text-accentPurple" : "text-textSecondary hover:text-textPrimary"} ${collapsed ? "justify-center px-0" : ""}`}
     >
       {active && (
         <motion.div
@@ -1661,13 +1661,13 @@ function NavItem({ icon, label, href, active, collapsed }: any) {
         </motion.div>
       )}
       <div
-        className={`relative z-10 flex items-center gap-3 transition-all ${active ? "text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)] scale-105" : "group-hover:scale-105"}`}
+        className={`relative z-10 flex items-center gap-3 transition-all ${active ? "text-accentPurple drop-shadow-[0_0_8px_rgba(168,85,247,0.6)] scale-105" : "group-hover:scale-105"}`}
       >
         {icon}
         {!collapsed && <span>{label}</span>}
       </div>
       {active && !collapsed && (
-        <div className="absolute left-0 w-[3px] h-6 bg-purple-500 rounded-full shadow-[0_0_12px_rgba(168,85,247,1)]" />
+        <div className="absolute left-0 w-[3px] h-6 bg-accentPurple rounded-full shadow-[0_0_12px_rgba(168,85,247,1)]" />
       )}
     </Link>
   );

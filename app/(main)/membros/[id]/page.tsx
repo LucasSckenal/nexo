@@ -91,12 +91,12 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="h-full flex flex-col items-center justify-center bg-[#050505]">
+      <div className="h-full flex flex-col items-center justify-center bg-bgMain">
         <div className="relative">
           <Loader2 className="animate-spin text-indigo-500" size={40} />
           <div className="absolute inset-0 blur-xl bg-indigo-500/20 animate-pulse" />
         </div>
-        <p className="mt-4 text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">
+        <p className="mt-4 text-[10px] font-black text-textMuted uppercase tracking-[0.3em]">
           Carregando Perfil
         </p>
       </div>
@@ -105,17 +105,17 @@ export default function ProfilePage() {
 
   if (error || !member) {
     return (
-      <div className="h-full flex flex-col items-center justify-center bg-[#050505] p-6 text-center">
+      <div className="h-full flex flex-col items-center justify-center bg-bgMain p-6 text-center">
         <AlertCircle className="text-red-500/50 mb-4" size={48} />
-        <h2 className="text-white font-bold text-lg mb-2">
+        <h2 className="text-textPrimary font-bold text-lg mb-2">
           Usuário não encontrado
         </h2>
-        <p className="text-zinc-500 text-sm mb-6 max-w-xs">
+        <p className="text-textMuted text-sm mb-6 max-w-xs">
           {error || "O membro solicitado não faz parte deste projeto."}
         </p>
         <button
           onClick={() => router.back()}
-          className="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-bold hover:bg-white/10 transition-all"
+          className="px-6 py-2 bg-bgSurfaceHover border border-borderFocus rounded-xl text-textPrimary text-xs font-bold hover:bg-bgSurfaceActive transition-all"
         >
           Voltar para Equipe
         </button>
@@ -127,7 +127,7 @@ export default function ProfilePage() {
   const pendingTasks = userTasks.length - completedTasks;
 
   return (
-    <main className="flex-1 bg-[#050505] relative overflow-y-auto custom-scrollbar h-full p-6 lg:p-10">
+    <main className="flex-1 bg-bgMain relative overflow-y-auto custom-scrollbar h-full p-6 lg:p-10">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[300px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-5xl mx-auto relative z-10">
@@ -135,7 +135,7 @@ export default function ProfilePage() {
         <div className="flex items-center mb-8">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors group"
+            className="flex items-center gap-2 text-textMuted hover:text-textPrimary transition-colors group"
           >
             <ArrowLeft
               size={18}
@@ -153,7 +153,7 @@ export default function ProfilePage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-[#080808]/60 border border-white/[0.05] rounded-[2.5rem] p-8 text-center backdrop-blur-md"
+              className="bg-bgGlass border border-borderGlass rounded-[2.5rem] p-8 text-center backdrop-blur-md"
             >
               <div className="relative inline-block mb-6">
                 <img
@@ -164,9 +164,9 @@ export default function ProfilePage() {
                   className="w-32 h-32 rounded-[2rem] object-cover border-2 border-indigo-500/20"
                   alt={member.name}
                 />
-                <div className="absolute -bottom-2 -right-2 bg-emerald-500 w-6 h-6 rounded-full border-4 border-[#080808]" />
+                <div className="absolute -bottom-2 -right-2 bg-emerald-500 w-6 h-6 rounded-full border-4 border-bgSurface" />
               </div>
-              <h1 className="text-2xl font-black text-white mb-1">
+              <h1 className="text-2xl font-black text-textPrimary mb-1">
                 {member.name}
               </h1>
               <p className="text-indigo-400 text-sm font-bold uppercase tracking-tighter mb-4">
@@ -174,16 +174,16 @@ export default function ProfilePage() {
               </p>
 
               <div className="flex justify-center gap-2">
-                <button className="p-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white transition-all">
+                <button className="p-2 rounded-xl bg-bgSurfaceHover text-textSecondary hover:text-textPrimary transition-all">
                   <Github size={18} />
                 </button>
-                <button className="p-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white transition-all">
+                <button className="p-2 rounded-xl bg-bgSurfaceHover text-textSecondary hover:text-textPrimary transition-all">
                   <Linkedin size={18} />
                 </button>
               </div>
             </motion.div>
 
-            {/* BOTÃO DE MENSAGEM SEPARADO E EM DESTAQUE AQUI 👇 */}
+            {/* BOTÃO DE MENSAGEM SEPARADO E EM DESTAQUE */}
             <motion.button
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -194,16 +194,16 @@ export default function ProfilePage() {
               <MessageCircle size={20} /> Iniciar Conversa
             </motion.button>
 
-            <div className="bg-[#080808]/60 border border-white/[0.05] rounded-[2.5rem] p-6 space-y-4">
-              <h3 className="text-xs font-black text-zinc-500 uppercase tracking-[0.2em] px-2">
+            <div className="bg-bgGlass border border-borderGlass rounded-[2.5rem] p-6 space-y-4">
+              <h3 className="text-xs font-black text-textMuted uppercase tracking-[0.2em] px-2">
                 Contato & Registro
               </h3>
-              <div className="flex items-center gap-3 px-2 text-sm text-zinc-300">
-                <Mail size={16} className="text-zinc-600" />
+              <div className="flex items-center gap-3 px-2 text-sm text-textPrimary">
+                <Mail size={16} className="text-textFaint" />
                 <span className="truncate">{member.email}</span>
               </div>
-              <div className="flex items-center gap-3 px-2 text-sm text-zinc-300">
-                <Calendar size={16} className="text-zinc-600" />
+              <div className="flex items-center gap-3 px-2 text-sm text-textPrimary">
+                <Calendar size={16} className="text-textFaint" />
                 <span>Desde {formatDate(member.joinedAt)}</span>
               </div>
             </div>
@@ -229,16 +229,16 @@ export default function ProfilePage() {
               />
             </div>
 
-            <div className="bg-[#080808]/60 border border-white/[0.05] rounded-[2.5rem] overflow-hidden">
-              <div className="p-6 border-b border-white/5">
-                <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+            <div className="bg-bgGlass border border-borderGlass rounded-[2.5rem] overflow-hidden">
+              <div className="p-6 border-b border-borderGlass">
+                <h3 className="text-sm font-black text-textPrimary uppercase tracking-widest flex items-center gap-2">
                   <Briefcase size={16} className="text-indigo-400" /> Tarefas
                   Atribuídas
                 </h3>
               </div>
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-borderGlass">
                 {userTasks.length === 0 ? (
-                  <div className="p-12 text-center text-zinc-600 text-sm italic">
+                  <div className="p-12 text-center text-textFaint text-sm italic">
                     Nenhuma tarefa vinculada a este perfil.
                   </div>
                 ) : (
@@ -248,23 +248,23 @@ export default function ProfilePage() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="p-5 flex items-center justify-between group hover:bg-white/[0.01]"
+                      className="p-5 flex items-center justify-between group hover:bg-bgGlassHover"
                     >
                       <div className="flex items-center gap-4">
                         <div
                           className={`w-2 h-2 rounded-full ${task.status === "done" ? "bg-emerald-500" : "bg-indigo-500"}`}
                         />
                         <div>
-                          <p className="text-sm font-bold text-zinc-200">
+                          <p className="text-sm font-bold text-textPrimary">
                             {task.title}
                           </p>
-                          <p className="text-[10px] font-mono text-zinc-600 uppercase">
+                          <p className="text-[10px] font-mono text-textFaint uppercase">
                             {task.taskKey}
                           </p>
                         </div>
                       </div>
                       <span
-                        className={`px-2 py-1 rounded text-[9px] font-black uppercase border ${task.status === "done" ? "border-emerald-500/20 text-emerald-500" : "border-white/10 text-zinc-500"}`}
+                        className={`px-2 py-1 rounded text-[9px] font-black uppercase border ${task.status === "done" ? "border-emerald-500/20 text-emerald-500" : "border-borderFocus text-textMuted"}`}
                       >
                         {task.status}
                       </span>
@@ -282,10 +282,10 @@ export default function ProfilePage() {
 
 function StatsCard({ icon, value, label }: any) {
   return (
-    <div className="bg-white/[0.02] border border-white/5 p-6 rounded-[2rem]">
+    <div className="bg-bgGlass border border-borderGlass p-6 rounded-[2rem]">
       <div className="mb-4">{icon}</div>
-      <p className="text-2xl font-black text-white">{value}</p>
-      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+      <p className="text-2xl font-black text-textPrimary">{value}</p>
+      <p className="text-[10px] font-bold text-textMuted uppercase tracking-widest">
         {label}
       </p>
     </div>

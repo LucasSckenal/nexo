@@ -42,6 +42,7 @@ import {
   Target,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTheme } from "../../context/ThemeContext";
 
 // --- COMPONENTE DE TOGGLE (SWITCH) ---
 const Toggle = ({
@@ -67,6 +68,7 @@ const Toggle = ({
 export default function UserProfilePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { theme, setTheme, density, setDensity } = useTheme();
 
   // Estados Base
   const [user, setUser] = useState<any>(null);
@@ -94,8 +96,6 @@ export default function UserProfilePage() {
   const [notifAssign, setNotifAssign] = useState(true);
   const [notifMention, setNotifMention] = useState(true);
   const [notifStatus, setNotifStatus] = useState(false);
-  const [theme, setTheme] = useState("dark");
-  const [density, setDensity] = useState("detailed");
 
   // UI
   const [isSaving, setIsSaving] = useState(false);
@@ -105,24 +105,6 @@ export default function UserProfilePage() {
     msg: string;
     type: "success" | "error";
   }>({ show: false, msg: "", type: "success" });
-
-  // --- SINCRONIZAÇÃO DE FUNDO DO BODY ---
-  useEffect(() => {
-    const root = window.document.documentElement;
-    const body = window.document.body;
-
-    if (theme === "light") {
-      root.classList.remove("dark");
-      root.classList.add("light");
-      body.style.backgroundColor = "#FAFAFA"; // Fundo claro geral
-      body.style.color = "#09090B";
-    } else {
-      root.classList.remove("light");
-      root.classList.add("dark");
-      body.style.backgroundColor = "#09090B"; // Fundo escuro geral
-      body.style.color = "#FAFAFA";
-    }
-  }, [theme]);
 
   // --- DICIONÁRIO DE ESTILOS DINÂMICOS ---
   const ui = {

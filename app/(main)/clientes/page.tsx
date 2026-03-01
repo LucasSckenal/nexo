@@ -31,7 +31,7 @@ export default function ClientesPage() {
 
   if (activeProject.category !== "design") {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#050505] text-zinc-500">
+      <div className="flex-1 flex items-center justify-center bg-bgMain text-textMuted">
         Esta página está disponível apenas para projetos de Design.
       </div>
     );
@@ -83,23 +83,23 @@ export default function ClientesPage() {
   };
 
   return (
-    <main className="flex-1 flex flex-col h-full bg-[#000000] relative overflow-hidden">
+    <main className="flex-1 flex flex-col h-full bg-bgMain relative overflow-hidden">
       {/* Efeitos Glow */}
       <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-purple-600/10 blur-[140px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-20%] left-[10%] w-[500px] h-[500px] bg-indigo-600/10 blur-[150px] rounded-full pointer-events-none" />
 
       {/* CABEÇALHO */}
-      <header className="shrink-0 px-8 py-8 border-b border-white/[0.05] bg-white/[0.01] backdrop-blur-2xl flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-20">
+      <header className="shrink-0 px-8 py-8 border-b border-borderSubtle bg-bgGlass backdrop-blur-2xl flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-20">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2 text-purple-400 font-bold text-[10px] uppercase tracking-[0.4em]">
             <Briefcase size={12} />
             <span>Gestão de Relacionamento (CRM)</span>
           </div>
           <div>
-            <h1 className="text-4xl font-black text-white tracking-tighter leading-none mb-2">
+            <h1 className="text-4xl font-black text-textPrimary tracking-tighter leading-none mb-2">
               Carteira de Clientes
             </h1>
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-textMuted">
               Faça a gestão dos clientes e associe-os às tarefas do quadro
               Kanban.
             </p>
@@ -110,14 +110,14 @@ export default function ClientesPage() {
           <div className="relative group hidden lg:block">
             <Search
               size={16}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-purple-400 transition-colors"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-textMuted group-focus-within:text-purple-400 transition-colors"
             />
             <input
               type="text"
               placeholder="Buscar clientes..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-72 bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-sm text-white placeholder-zinc-500 focus:border-purple-500/50 outline-none transition-all shadow-inner"
+              className="w-72 bg-bgGlassHover backdrop-blur-md border border-borderFocus rounded-2xl py-3.5 pl-11 pr-4 text-sm text-textPrimary placeholder-text-textFaint focus:border-purple-500/50 outline-none transition-all shadow-inner"
             />
           </div>
           <button
@@ -133,16 +133,16 @@ export default function ClientesPage() {
       <div className="flex-1 overflow-y-auto p-8 custom-scrollbar relative z-10">
         {clients.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center opacity-40">
-            <Briefcase size={48} className="text-zinc-600 mb-4" />
-            <span className="text-xs uppercase tracking-[0.3em] text-zinc-400 font-black mb-2">
+            <Briefcase size={48} className="text-textMuted mb-4" />
+            <span className="text-xs uppercase tracking-[0.3em] text-textSecondary font-black mb-2">
               Nenhum Cliente Registrado
             </span>
-            <p className="text-zinc-500 text-sm">
+            <p className="text-textMuted text-sm">
               Adicione o seu primeiro cliente para começar.
             </p>
           </div>
         ) : filteredClients.length === 0 ? (
-          <div className="flex justify-center py-20 text-zinc-500 text-sm">
+          <div className="flex justify-center py-20 text-textMuted text-sm">
             Nenhum cliente encontrado com esse nome.
           </div>
         ) : (
@@ -155,7 +155,7 @@ export default function ClientesPage() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="group bg-[#0A0A0C] border border-white/[0.05] hover:border-purple-500/30 rounded-[2rem] p-6 transition-all duration-300 shadow-xl hover:-translate-y-1 overflow-hidden relative flex flex-col"
+                  className="group bg-bgSurface border border-borderSubtle hover:border-purple-500/30 rounded-[2rem] p-6 transition-all duration-300 shadow-xl hover:-translate-y-1 overflow-hidden relative flex flex-col"
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
@@ -164,10 +164,10 @@ export default function ClientesPage() {
                       <img
                         src={client.logoUrl}
                         alt={client.name}
-                        className="w-14 h-14 rounded-2xl object-cover ring-1 ring-white/10 shadow-md bg-zinc-900"
+                        className="w-14 h-14 rounded-2xl object-cover ring-1 ring-borderFocus shadow-md bg-bgSurfaceActive"
                       />
                       <div>
-                        <h3 className="text-lg font-bold text-zinc-100 mb-1 group-hover:text-white transition-colors leading-tight">
+                        <h3 className="text-lg font-bold text-textPrimary mb-1 transition-colors leading-tight">
                           {client.name}
                         </h3>
                         <span
@@ -180,7 +180,7 @@ export default function ClientesPage() {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => openEditClientModal(client)}
-                        className="text-zinc-600 hover:text-purple-400 p-2 rounded-xl hover:bg-purple-500/10 transition-colors"
+                        className="text-textMuted hover:text-purple-400 p-2 rounded-xl hover:bg-purple-500/10 transition-colors"
                         title="Editar Cliente"
                       >
                         <Edit2 size={16} />
@@ -189,7 +189,7 @@ export default function ClientesPage() {
                         onClick={() =>
                           handleRemoveClient(client.id, client.name)
                         }
-                        className="text-zinc-600 hover:text-red-500 p-2 rounded-xl hover:bg-red-500/10 transition-colors"
+                        className="text-textMuted hover:text-red-500 p-2 rounded-xl hover:bg-red-500/10 transition-colors"
                         title="Remover Cliente"
                       >
                         <Trash2 size={16} />
@@ -199,14 +199,14 @@ export default function ClientesPage() {
 
                   <div className="space-y-2 relative z-10 mb-5 flex-1">
                     {client.email && (
-                      <div className="flex items-center gap-3 text-xs text-zinc-400">
-                        <Mail size={14} className="text-zinc-500" />{" "}
+                      <div className="flex items-center gap-3 text-xs text-textSecondary">
+                        <Mail size={14} className="text-textMuted" />{" "}
                         {client.email}
                       </div>
                     )}
                     {client.phone && (
-                      <div className="flex items-center gap-3 text-xs text-zinc-400">
-                        <Phone size={14} className="text-zinc-500" />{" "}
+                      <div className="flex items-center gap-3 text-xs text-textSecondary">
+                        <Phone size={14} className="text-textMuted" />{" "}
                         {client.phone}
                       </div>
                     )}
@@ -229,19 +229,19 @@ export default function ClientesPage() {
                       </div>
                     )}
                     {client.notes && (
-                      <div className="mt-3 p-3 bg-white/[0.02] border border-white/5 rounded-xl">
-                        <div className="flex items-center gap-2 mb-1.5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                      <div className="mt-3 p-3 bg-bgGlass border border-borderSubtle rounded-xl">
+                        <div className="flex items-center gap-2 mb-1.5 text-[10px] font-bold text-textMuted uppercase tracking-widest">
                           <FileText size={12} /> Observações
                         </div>
-                        <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                        <p className="text-xs text-textSecondary line-clamp-2 leading-relaxed">
                           {client.notes}
                         </p>
                       </div>
                     )}
                   </div>
 
-                  <div className="pt-4 border-t border-white/[0.04] flex items-center justify-between relative z-10 mt-auto">
-                    <span className="text-[10px] text-zinc-600 font-medium">
+                  <div className="pt-4 border-t border-borderSubtle flex items-center justify-between relative z-10 mt-auto">
+                    <span className="text-[10px] text-textMuted font-medium">
                       Adicionado em{" "}
                       {new Date(client.addedAt).toLocaleDateString("pt-BR")}
                     </span>

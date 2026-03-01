@@ -78,13 +78,8 @@ export function TaskExecutionModal({
     );
   };
 
-  const handleOpenDeleteModal = () => {
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleCloseDeleteModal = () => {
-    setIsDeleteModalOpen(false);
-  };
+  const handleOpenDeleteModal = () => setIsDeleteModalOpen(true);
+  const handleCloseDeleteModal = () => setIsDeleteModalOpen(false);
 
   const confirmDeleteTask = async () => {
     try {
@@ -185,23 +180,23 @@ export function TaskExecutionModal({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-[#0D0D0F] border border-white/10 rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col p-8 items-center text-center"
+              className="relative w-full max-w-md bg-bgPanel border border-borderFocus rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col p-8 items-center text-center"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 blur-[50px] rounded-full pointer-events-none z-0" />
               <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-full mb-6 text-red-400">
                 <AlertTriangle size={32} />
               </div>
-              <h3 className="text-2xl font-black text-white tracking-tighter mb-4">
+              <h3 className="text-2xl font-black text-textPrimary tracking-tighter mb-4">
                 Confirmar Exclusão
               </h3>
-              <p className="text-zinc-400 text-sm leading-relaxed font-medium mb-10">
+              <p className="text-textSecondary text-sm leading-relaxed font-medium mb-10">
                 Tem certeza de que deseja excluir este cartão? Esta ação é
                 irreversível.
               </p>
               <div className="flex gap-4 w-full justify-center">
                 <button
                   onClick={handleCloseDeleteModal}
-                  className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+                  className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-textMuted hover:text-textPrimary transition-colors"
                 >
                   Cancelar
                 </button>
@@ -232,12 +227,11 @@ export function TaskExecutionModal({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-6xl h-[90vh] bg-[#0D0D0F] border border-white/10 rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col"
+              className="relative w-full max-w-6xl h-[90vh] bg-bgPanel border border-borderFocus rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col"
             >
               <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none z-0" />
 
-              {/* MUDANÇA AQUI: Alterado de z-10 para z-50 para garantir que o dropdown fique por cima do chat */}
-              <div className="px-10 py-8 border-b border-white/[0.05] relative z-50 shrink-0">
+              <div className="px-10 py-8 border-b border-borderSubtle relative z-50 shrink-0">
                 <div className="flex justify-between items-start mb-6">
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">
@@ -245,18 +239,18 @@ export function TaskExecutionModal({
                         {localTask.taskKey}
                       </span>
                       {localTask.branch && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/5 text-zinc-400">
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-bgGlass border border-borderSubtle text-textSecondary">
                           <GitBranch size={12} className="text-indigo-500" />
                           <span className="text-[10px] font-mono lowercase italic">
                             {localTask.branch}
                           </span>
                         </div>
                       )}
-                      <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest ml-2">
+                      <span className="text-[10px] text-textMuted font-bold uppercase tracking-widest ml-2">
                         • Detalhes da Tarefa
                       </span>
                     </div>
-                    <h2 className="text-3xl font-black text-white tracking-tighter mt-1">
+                    <h2 className="text-3xl font-black text-textPrimary tracking-tighter mt-1">
                       {localTask.title}
                     </h2>
                   </div>
@@ -264,14 +258,14 @@ export function TaskExecutionModal({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleOpenDeleteModal}
-                      className="p-3 bg-white/[0.02] text-zinc-500 border border-transparent hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-400 rounded-2xl transition-all shadow-sm"
+                      className="p-3 bg-bgGlass text-textMuted border border-transparent hover:border-red-500/20 hover:bg-red-500/10 hover:text-red-400 rounded-2xl transition-all shadow-sm"
                       title="Excluir Cartão"
                     >
                       <Trash2 size={20} />
                     </button>
                     <button
                       onClick={onClose}
-                      className="p-3 bg-white/[0.02] border border-transparent hover:border-white/10 hover:bg-white/5 rounded-2xl text-zinc-400 hover:text-white transition-colors"
+                      className="p-3 bg-bgGlass border border-transparent hover:border-borderFocus hover:bg-bgGlassHover rounded-2xl text-textMuted hover:text-textPrimary transition-colors"
                     >
                       <X size={20} />
                     </button>
@@ -279,7 +273,7 @@ export function TaskExecutionModal({
                 </div>
 
                 <div className="flex flex-col md:flex-row justify-between gap-8">
-                  <div className="flex-1 flex gap-4 text-zinc-400 bg-white/[0.02] p-5 rounded-[1.5rem] border border-white/5">
+                  <div className="flex-1 flex gap-4 text-textSecondary bg-bgGlass p-5 rounded-[1.5rem] border border-borderSubtle">
                     <AlignLeft
                       size={18}
                       className="mt-0.5 shrink-0 text-indigo-500"
@@ -289,8 +283,8 @@ export function TaskExecutionModal({
                     </p>
                   </div>
 
-                  <div className="min-w-[240px] space-y-3 bg-white/[0.01] p-5 rounded-[1.5rem] border border-white/5">
-                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em]">
+                  <div className="min-w-[240px] space-y-3 bg-bgGlassHover p-5 rounded-[1.5rem] border border-borderSubtle">
+                    <span className="text-[9px] font-black text-textMuted uppercase tracking-[0.2em]">
                       Equipe Responsável
                     </span>
                     <div className="flex items-center gap-3">
@@ -299,7 +293,7 @@ export function TaskExecutionModal({
                           <img
                             key={i}
                             src={a.photo}
-                            className="h-10 w-10 rounded-xl ring-4 ring-[#0D0D0F] border border-white/10 object-cover"
+                            className="h-10 w-10 rounded-xl ring-4 ring-bgPanel border border-borderFocus object-cover"
                             title={a.name}
                           />
                         ))}
@@ -307,7 +301,7 @@ export function TaskExecutionModal({
                       <div className="relative z-20">
                         <button
                           onClick={() => setIsAssigneeOpen(!isAssigneeOpen)}
-                          className="w-10 h-10 rounded-xl border border-dashed border-white/20 flex items-center justify-center text-zinc-500 hover:text-indigo-400 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all"
+                          className="w-10 h-10 rounded-xl border border-dashed border-borderFocus flex items-center justify-center text-textMuted hover:text-indigo-400 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all"
                         >
                           <UserPlus size={18} />
                         </button>
@@ -317,16 +311,16 @@ export function TaskExecutionModal({
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: 10 }}
-                              className="absolute right-0 mt-4 w-64 bg-[#121214] border border-white/10 rounded-2xl shadow-2xl p-2 z-[310] backdrop-blur-xl"
+                              className="absolute right-0 mt-4 w-64 bg-bgSurface border border-borderFocus rounded-2xl shadow-2xl p-2 z-[310] backdrop-blur-xl"
                             >
-                              <div className="text-[9px] font-bold text-zinc-500 p-3 uppercase tracking-widest border-b border-white/5 mb-2">
+                              <div className="text-[9px] font-bold text-textMuted p-3 uppercase tracking-widest border-b border-borderSubtle mb-2">
                                 Membros do Projeto
                               </div>
                               {projectMembers.map((member: any) => (
                                 <button
                                   key={member.email}
                                   onClick={() => toggleAssignee(member)}
-                                  className="w-full flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition-all"
+                                  className="w-full flex items-center justify-between p-3 hover:bg-bgSurfaceHover rounded-xl transition-all"
                                 >
                                   <div className="flex items-center gap-3">
                                     <img
@@ -334,7 +328,7 @@ export function TaskExecutionModal({
                                       className="w-7 h-7 rounded-lg"
                                       alt=""
                                     />
-                                    <span className="text-xs text-zinc-300 font-bold">
+                                    <span className="text-xs text-textSecondary font-bold">
                                       {member.name}
                                     </span>
                                   </div>
@@ -360,7 +354,7 @@ export function TaskExecutionModal({
               <div className="flex-1 flex overflow-hidden lg:flex-row flex-col relative z-10">
                 <div className="flex-1 overflow-y-auto p-10 space-y-10 custom-scrollbar">
                   <section className="space-y-4">
-                    <div className="flex items-center gap-2 text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-textMuted uppercase tracking-widest ml-1">
                       <Layout size={14} className="text-indigo-500" /> Checklist
                       de Trabalho
                     </div>
@@ -368,7 +362,7 @@ export function TaskExecutionModal({
                       {localTask.checklist?.map((item: any) => (
                         <div
                           key={item.id}
-                          className="group flex items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5 transition-all hover:bg-white/[0.04]"
+                          className="group flex items-center gap-4 p-4 rounded-2xl bg-bgGlass border border-borderSubtle transition-all hover:bg-bgGlassHover"
                         >
                           <div
                             onClick={async () => {
@@ -380,14 +374,14 @@ export function TaskExecutionModal({
                               );
                               await updateTask({ checklist: updated });
                             }}
-                            className={`w-6 h-6 rounded-lg border flex items-center justify-center cursor-pointer transition-all ${item.completed ? "bg-indigo-500 border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" : "border-white/20 hover:border-white/40"}`}
+                            className={`w-6 h-6 rounded-lg border flex items-center justify-center cursor-pointer transition-all ${item.completed ? "bg-indigo-500 border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]" : "border-borderFocus hover:border-textMuted"}`}
                           >
                             {item.completed && (
                               <Check size={14} className="text-white" />
                             )}
                           </div>
                           <span
-                            className={`text-sm font-medium flex-1 transition-colors ${item.completed ? "text-zinc-600 line-through" : "text-zinc-200"}`}
+                            className={`text-sm font-medium flex-1 transition-colors ${item.completed ? "text-textFaint line-through" : "text-textPrimary"}`}
                           >
                             {item.title}
                           </span>
@@ -410,13 +404,14 @@ export function TaskExecutionModal({
                               setNewSubtask("");
                             }
                           }}
-                          className="w-full bg-white/[0.02] border border-white/5 rounded-2xl py-4 px-5 text-sm text-white focus:border-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
+                          className="w-full bg-bgGlass border border-borderSubtle rounded-2xl py-4 px-5 text-sm text-textPrimary focus:border-indigo-500/50 outline-none transition-all placeholder:text-textMuted"
                         />
                       </div>
                     </div>
                   </section>
+
                   <section className="space-y-4">
-                    <div className="flex items-center gap-2 text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-textMuted uppercase tracking-widest ml-1">
                       <Paperclip size={14} className="text-indigo-500" /> Ativos
                       e Documentação
                     </div>
@@ -424,7 +419,7 @@ export function TaskExecutionModal({
                       {localTask.attachments?.map((item: any) => (
                         <div
                           key={item.id}
-                          className="group relative aspect-video rounded-2xl overflow-hidden border border-white/10 bg-[#121214] flex flex-col items-center justify-center"
+                          className="group relative aspect-video rounded-2xl overflow-hidden border border-borderFocus bg-bgSurface flex flex-col items-center justify-center"
                         >
                           {item.type === "image" ? (
                             <img
@@ -474,7 +469,7 @@ export function TaskExecutionModal({
                       ))}
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="aspect-video rounded-2xl border border-dashed border-white/10 flex flex-col items-center justify-center gap-2 hover:bg-white/[0.04] hover:border-indigo-500/50 transition-all text-zinc-500 group"
+                        className="aspect-video rounded-2xl border border-dashed border-borderFocus flex flex-col items-center justify-center gap-2 hover:bg-bgGlassHover hover:border-indigo-500/50 transition-all text-textMuted group"
                       >
                         {isUploading ? (
                           <Loader2
@@ -500,7 +495,7 @@ export function TaskExecutionModal({
                       </button>
                       <button
                         onClick={() => setIsAddingLink(true)}
-                        className="aspect-video rounded-2xl border border-dashed border-white/10 flex flex-col items-center justify-center gap-2 hover:bg-white/[0.04] hover:border-indigo-500/50 transition-all text-zinc-500 group"
+                        className="aspect-video rounded-2xl border border-dashed border-borderFocus flex flex-col items-center justify-center gap-2 hover:bg-bgGlassHover hover:border-indigo-500/50 transition-all text-textMuted group"
                       >
                         <LinkIcon
                           size={24}
@@ -524,7 +519,7 @@ export function TaskExecutionModal({
                             onChange={(e) =>
                               setLinkData({ ...linkData, name: e.target.value })
                             }
-                            className="bg-[#0A0A0C] border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:border-indigo-500 outline-none"
+                            className="bg-bgSurface border border-borderFocus rounded-xl px-4 py-3 text-xs text-textPrimary focus:border-indigo-500 outline-none"
                           />
                           <input
                             placeholder="https://..."
@@ -532,13 +527,13 @@ export function TaskExecutionModal({
                             onChange={(e) =>
                               setLinkData({ ...linkData, url: e.target.value })
                             }
-                            className="bg-[#0A0A0C] border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:border-indigo-500 outline-none"
+                            className="bg-bgSurface border border-borderFocus rounded-xl px-4 py-3 text-xs text-textPrimary focus:border-indigo-500 outline-none"
                           />
                         </div>
                         <div className="flex justify-end gap-3">
                           <button
                             onClick={() => setIsAddingLink(false)}
-                            className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white"
+                            className="text-[10px] font-black uppercase tracking-widest text-textMuted hover:text-textPrimary"
                           >
                             Cancelar
                           </button>
@@ -553,9 +548,9 @@ export function TaskExecutionModal({
                     )}
                   </section>
                 </div>
-                <div className="w-full lg:w-[420px] border-l border-white/5 bg-[#0A0A0C] flex flex-col">
-                  <div className="p-6 border-b border-white/5">
-                    <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                <div className="w-full lg:w-[420px] border-l border-borderSubtle bg-bgSurface flex flex-col">
+                  <div className="p-6 border-b border-borderSubtle">
+                    <h3 className="text-[10px] font-black text-textMuted uppercase tracking-[0.2em] flex items-center gap-2">
                       <MessageSquare size={14} className="text-indigo-500" />{" "}
                       Histórico de Execução
                     </h3>
@@ -569,23 +564,23 @@ export function TaskExecutionModal({
                         <div className="flex items-center gap-2 mb-2">
                           <img
                             src={msg.userPhoto}
-                            className="w-6 h-6 rounded-lg object-cover border border-white/10"
+                            className="w-6 h-6 rounded-lg object-cover border border-borderFocus"
                             alt=""
                           />
-                          <span className="text-[11px] font-bold text-zinc-300">
+                          <span className="text-[11px] font-bold text-textPrimary">
                             {msg.userName}
                           </span>
-                          <span className="text-[9px] text-zinc-600 ml-auto">
+                          <span className="text-[9px] text-textMuted ml-auto">
                             Agora
                           </span>
                         </div>
-                        <div className="bg-white/[0.03] p-4 rounded-2xl rounded-tl-none text-[13px] text-zinc-300 border border-white/[0.05] leading-relaxed">
+                        <div className="bg-bgGlassHover p-4 rounded-2xl rounded-tl-none text-[13px] text-textSecondary border border-borderSubtle leading-relaxed">
                           {msg.text}
                         </div>
                       </div>
                     ))}
                   </div>
-                  <div className="p-6 bg-[#0D0D0F] border-t border-white/5">
+                  <div className="p-6 bg-bgPanel border-t border-borderSubtle">
                     <form
                       onSubmit={async (e) => {
                         e.preventDefault();
@@ -607,7 +602,7 @@ export function TaskExecutionModal({
                         placeholder="Adicionar comentário..."
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-2xl py-4 pl-5 pr-14 text-sm text-white focus:border-indigo-500/50 outline-none transition-all placeholder:text-zinc-600"
+                        className="w-full bg-bgGlassHover border border-borderFocus rounded-2xl py-4 pl-5 pr-14 text-sm text-textPrimary focus:border-indigo-500/50 outline-none transition-all placeholder:text-textMuted"
                       />
                       <button
                         type="submit"
