@@ -1,22 +1,22 @@
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 
-export type NotificationType = 'mention' | 'status' | 'assignment' | 'system';
-
+// No arquivo notifications.ts, atualize a interface e a função:
 interface NotificationData {
-  userId: string;      // Quem vai receber
-  senderName: string;  // Quem gerou a ação (ex: "Carlos")
-  title: string;       // Ex: "Nova Tarefa"
-  message: string;     // Ex: "Carlos atribuiu-te uma tarefa"
-  type: NotificationType;
-  taskId?: string;     // Opcional: Link para a tarefa
+  userId: string;
+  senderName: string;
+  senderPhoto?: string; // <-- Adicione aqui
+  title: string;
+  message: string;
+  type: NotificationData;
+  taskId?: string;
   projectId?: string;
 }
 
 export async function sendNotification(data: NotificationData) {
   try {
     await addDoc(collection(db, "notifications"), {
-      ...data,
+      ...data, // Isso já vai incluir o senderPhoto que passamos no handleDrop
       read: false,
       createdAt: serverTimestamp(),
     });

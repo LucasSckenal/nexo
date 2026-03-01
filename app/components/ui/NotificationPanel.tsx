@@ -12,6 +12,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 // Mapeamento de ícones por tipo de notificação
 const icons = {
@@ -133,21 +134,22 @@ export function NotificationPanel({
                   >
                     <div className="flex gap-4">
                       {/* Avatar com Badge de Tipo */}
-                      <div className="relative flex-shrink-0">
-                        {n.senderAvatar ? (
-                          <img
-                            src={n.senderAvatar}
+                      <div className="relative h-10 w-10 flex-shrink-0">
+                        {n.senderPhoto ? (
+                          <Image
+                            src={n.senderPhoto}
                             alt={n.senderName}
-                            className="w-10 h-10 rounded-full object-cover border border-white/10"
+                            fill
+                            className="rounded-full object-cover border border-white/10"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500/20 to-fuchsia-500/20 flex items-center justify-center border border-purple-500/30">
-                            <User size={18} className="text-purple-400" />
+                          <div className="h-full w-full rounded-full bg-zinc-800 flex items-center justify-center border border-white/5">
+                            <User size={16} className="text-zinc-500" />
                           </div>
                         )}
-                        {/* Mini Ícone de Status */}
-                        <div className="absolute -bottom-1 -right-1 bg-[#18181b] rounded-full p-1 border border-white/10 shadow-black shadow-sm">
-                          {icons[n.type as keyof typeof icons] || icons.system}
+                        {/* O ícone do tipo de notificação (status, mention, etc) fica por cima da foto */}
+                        <div className="absolute -bottom-1 -right-1 p-1 bg-[#0a0a0a] rounded-full border border-white/10">
+                          {icons[n.type as keyof typeof icons]}
                         </div>
                       </div>
 

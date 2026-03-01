@@ -277,40 +277,35 @@ export default function QuadrosPage() {
     const taskId = e.dataTransfer.getData("taskId");
 
     try {
-      // 1. Atualiza o Firestore (Isso você já tem)
       const taskRef = doc(db, "projects", activeProject.id, "tasks", taskId);
       await updateDoc(taskRef, {
         status: status,
         updatedAt: serverTimestamp(),
       });
 
-      // 2. BUSCA OS DADOS PARA A NOTIFICAÇÃO
       const movedTask = tasks.find((t) => t.id === taskId);
       const destinationColumn = DEFAULT_COLUMNS.find((c) => c.id === status);
 
       if (movedTask && auth.currentUser) {
         const currentUser = auth.currentUser;
 
-        // 1. Volta o filtro: apenas membros que NÃO são o usuário atual
-        const membersToNotify =
-          movedTask.members?.filter(
-            (memberId: string) => memberId !== currentUser.uid,
-          ) || [];
+        // Coleta membros e garante que o seu UID está na lista para o teste
+        const membersToNotify = movedTask.members || [];
+        const targets = Array.from(
+          new Set([...membersToNotify, currentUser.uid]),
+        );
 
-        const promises = membersToNotify.map(
-          (
-            memberId: any,
-          ) =>
-            sendNotification({
-              userId: memberId.email, 
-              senderName: currentUser.displayName || "Um colega",
-              senderAvatar: currentUser.photoURL || "",
-              title: "Card Movimentado",
-              message: `${currentUser.displayName} moveu "${movedTask.title}" para ${destinationColumn?.title || "outra coluna"}`,
-              type: "status",
-              taskId: taskId,
-              projectId: activeProject.id,
-            }),
+        const promises = targets.map((memberId) =>
+          sendNotification({
+            userId: memberId,
+            senderName: currentUser.displayName || "Um colega",
+            senderPhoto: currentUser.photoURL || "", // <-- ADICIONE ESTA LINHA
+            title: "Card Movimentado",
+            message: `${currentUser.displayName || "Alguém"} moveu "${movedTask.title}" para ${destinationColumn?.title}`,
+            type: "status",
+            taskId: movedTask.id,
+            projectId: activeProject.id,
+          }),
         );
 
         await Promise.all(promises);
