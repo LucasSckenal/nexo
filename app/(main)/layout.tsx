@@ -8,6 +8,8 @@ import { usePathname } from "next/navigation";
 import { DataProvider, useData } from "../context/DataContext";
 import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { useNotifications } from "../hook/useNotifications";
+import { NotificationPanel } from "../components/ui/NotificationPanel";
 import {
   collection,
   query,
@@ -55,6 +57,7 @@ import {
   LogOut as LogOutIcon,
   Camera,
   Briefcase,
+  Bell,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeProvider } from "../context/ThemeContext";
@@ -88,12 +91,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isProjectOpen, setIsProjectOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const pathname = usePathname();
 
   // === ESTADOS DE AUTENTICAÇÃO E UTILIZADORES GLOBAIS ===
   const [user, setUser] = useState<any>(null);
   const [globalUsers, setGlobalUsers] = useState<any[]>([]);
-
+  const { notifications, unreadCount, markAsRead, deleteNotif, markAllAsRead } =
+    useNotifications(user?.uid);
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -556,7 +561,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     Enterprise
                   </p>
                 </div>
-                <ChevronsUpDown size={14} className="text-textSecondary shrink-0" />
+                <ChevronsUpDown
+                  size={14}
+                  className="text-textSecondary shrink-0"
+                />
               </>
             )}
           </button>
@@ -595,7 +603,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                         {proj.name}
                       </span>
                       {activeProject?.id === proj.id && (
-                        <Check size={14} className="text-accentPurple shrink-0" />
+                        <Check
+                          size={14}
+                          className="text-accentPurple shrink-0"
+                        />
                       )}
                     </button>
                   ))}
@@ -647,10 +658,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               />
             )}
             <NavItem
-              href="/quadros"
+              href="/kanban"
               icon={<Kanban size={18} />}
               label="Kanban"
-              active={pathname === "/quadros"}
+              active={pathname === "/kanban"}
               collapsed={isCollapsed}
             />
             <NavItem
@@ -668,6 +679,14 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                 pathname === "/members" || pathname?.startsWith("/membros/")
               }
               collapsed={isCollapsed}
+            />
+            <NavItem
+              icon={<Bell size={18} />}
+              label="Notificações"
+              active={isNotificationsOpen}
+              collapsed={isCollapsed}
+              badge={unreadCount}
+              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
             />
 
             <button
@@ -774,6 +793,17 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           </AnimatePresence>
         </div>
       </aside>
+      <NotificationPanel
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+        data={{ notifications, unreadCount }}
+        actions={{
+          markAsRead,
+          deleteNotif,
+          markAllAsRead,
+          onSelectTask: () => {}, 
+        }}
+      />
 
       {/* ÁREA PRINCIPAL DA PÁGINA */}
       <main className="flex-1 rounded-[2.5rem] border border-borderSubtle overflow-hidden relative shadow-[0_0_50px_rgba(0,0,0,0.8)] z-10 bg-bgMain">
@@ -1097,7 +1127,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
                     {filteredContacts.length === 0 ? (
                       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center h-full relative overflow-hidden mt-10">
                         <div className="w-16 h-16 rounded-full bg-bgSurface border border-borderSubtle flex items-center justify-center mb-4 shadow-xl">
-                          <MessageCircle size={28} className="text-textSecondary" />
+                          <MessageCircle
+                            size={28}
+                            className="text-textSecondary"
+                          />
                         </div>
                         <h3 className="text-lg font-bold text-textPrimary mb-2">
                           Sem resultados
@@ -1645,12 +1678,20 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-function NavItem({ icon, label, href, active, collapsed }: any) {
-  return (
-    <Link
-      href={href}
-      className={`relative flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-medium transition-all duration-300 group ${active ? "text-accentPurple" : "text-textSecondary hover:text-textPrimary"} ${collapsed ? "justify-center px-0" : ""}`}
-    >
+function NavItem({
+  icon,
+  label,
+  href,
+  active,
+  collapsed,
+  badge,
+  onClick,
+}: any) {
+  // Se não houver href, renderizamos um botão para evitar o erro do Link
+  const isButton = !href;
+
+  const content = (
+    <>
       {active && (
         <motion.div
           layoutId="sidebar-active-pill"
@@ -1661,14 +1702,43 @@ function NavItem({ icon, label, href, active, collapsed }: any) {
         </motion.div>
       )}
       <div
-        className={`relative z-10 flex items-center gap-3 transition-all ${active ? "text-accentPurple drop-shadow-[0_0_8px_rgba(168,85,247,0.6)] scale-105" : "group-hover:scale-105"}`}
+        className={`relative z-10 flex items-center gap-3 transition-all ${
+          active
+            ? "text-accentPurple drop-shadow-[0_0_8px_rgba(168,85,247,0.6)] scale-105"
+            : "group-hover:scale-105"
+        }`}
       >
-        {icon}
+        <div className="relative">
+          {icon}
+          {badge > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white border-2 border-[#0a0a0a]">
+              {badge}
+            </span>
+          )}
+        </div>
         {!collapsed && <span>{label}</span>}
       </div>
       {active && !collapsed && (
         <div className="absolute left-0 w-[3px] h-6 bg-accentPurple rounded-full shadow-[0_0_12px_rgba(168,85,247,1)]" />
       )}
+    </>
+  );
+
+  const className = `relative flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-medium transition-all duration-300 group w-full ${
+    active ? "text-accentPurple" : "text-textSecondary hover:text-textPrimary"
+  } ${collapsed ? "justify-center px-0" : ""}`;
+
+  if (isButton) {
+    return (
+      <button type="button" onClick={onClick} className={className}>
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {content}
     </Link>
   );
 }

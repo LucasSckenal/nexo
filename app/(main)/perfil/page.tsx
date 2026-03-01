@@ -57,10 +57,18 @@ const Toggle = ({
   <button
     type="button"
     onClick={onClick}
-    className={`w-10 h-6 rounded-full flex items-center transition-all px-1 ${active ? "bg-indigo-500" : theme === "dark" ? "bg-white/10" : "bg-black/10"}`}
+    className={`w-10 h-6 rounded-full flex items-center transition-all px-1 ${
+      active
+        ? "bg-indigo-500"
+        : theme === "dark"
+          ? "bg-white/10"
+          : "bg-black/10"
+    }`}
   >
     <div
-      className={`w-4 h-4 rounded-full bg-white transition-all shadow-md ${active ? "translate-x-4" : "translate-x-0"}`}
+      className={`w-4 h-4 rounded-full bg-white transition-all shadow-md ${
+        active ? "translate-x-4" : "translate-x-0"
+      }`}
     />
   </button>
 );
@@ -97,6 +105,14 @@ export default function UserProfilePage() {
   const [notifMention, setNotifMention] = useState(true);
   const [notifStatus, setNotifStatus] = useState(false);
 
+  // --- NOVOS ESTADOS (Integrações) ---
+  const [slackConnected, setSlackConnected] = useState(false);
+  const [sessionInfo, setSessionInfo] = useState({
+    os: "Sistema",
+    browser: "Navegador",
+    isMobile: false,
+  });
+
   // UI
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -106,14 +122,40 @@ export default function UserProfilePage() {
     type: "success" | "error";
   }>({ show: false, msg: "", type: "success" });
 
+  // --- DETETAR SESSÃO ATUAL (OS e BROWSER) ---
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const ua = navigator.userAgent;
+      let browser = "Navegador";
+      if (ua.includes("Chrome")) browser = "Chrome";
+      else if (ua.includes("Firefox")) browser = "Firefox";
+      else if (ua.includes("Safari") && !ua.includes("Chrome"))
+        browser = "Safari";
+      else if (ua.includes("Edge")) browser = "Edge";
+
+      let os = "Sistema";
+      let isMobile = false;
+      if (ua.includes("Win")) os = "Windows";
+      else if (ua.includes("Mac")) os = "macOS";
+      else if (ua.includes("Linux")) os = "Linux";
+      else if (ua.includes("Android")) {
+        os = "Android";
+        isMobile = true;
+      } else if (ua.includes("iPhone") || ua.includes("iPad")) {
+        os = "iOS";
+        isMobile = true;
+      }
+
+      setSessionInfo({ os, browser, isMobile });
+    }
+  }, []);
+
   // --- DICIONÁRIO DE ESTILOS DINÂMICOS ---
   const ui = {
-    // Mudei de "bg-transparent" para "bg-[#FAFAFA]" (um cinza super claro/quase branco)
     wrapper:
       theme === "dark"
         ? "bg-[#050505] text-zinc-200"
         : "bg-[#FAFAFA] text-zinc-800",
-
     card:
       theme === "dark"
         ? "bg-[#0A0A0A] border-white/5"
@@ -180,6 +222,11 @@ export default function UserProfilePage() {
               setTheme(data.ui.theme || "dark");
               setDensity(data.ui.density || "detailed");
             }
+
+            // Carregar Integrações
+            if (data.integrations) {
+              setSlackConnected(data.integrations.slack || false);
+            }
           }
         } catch (error) {
           console.error("Erro ao carregar dados:", error);
@@ -190,7 +237,7 @@ export default function UserProfilePage() {
       setIsLoading(false);
     });
     return () => unsubscribe();
-  }, [router]);
+  }, [router, setTheme, setDensity]);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
     setToast({ show: true, msg, type });
@@ -229,6 +276,22 @@ export default function UserProfilePage() {
     }
   };
 
+  const handleToggleSlack = async () => {
+    if (!auth.currentUser) return;
+    const newState = !slackConnected;
+    setSlackConnected(newState);
+    try {
+      await setDoc(
+        doc(db, "users", auth.currentUser.uid),
+        { integrations: { slack: newState } },
+        { merge: true },
+      );
+      showToast(newState ? "Slack Conectado!" : "Slack Desconectado!");
+    } catch {
+      showToast("Erro ao alterar integração.", "error");
+    }
+  };
+
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !auth.currentUser) return;
@@ -257,7 +320,9 @@ export default function UserProfilePage() {
   if (isLoading)
     return (
       <div
-        className={`min-h-screen flex items-center justify-center ${theme === "dark" ? "bg-[#050505]" : "bg-white"}`}
+        className={`min-h-screen flex items-center justify-center ${
+          theme === "dark" ? "bg-[#050505]" : "bg-white"
+        }`}
       >
         <Loader2 size={48} className="text-indigo-500 animate-spin" />
       </div>
@@ -277,7 +342,11 @@ export default function UserProfilePage() {
             className="fixed top-8 left-1/2 -translate-x-1/2 z-[200]"
           >
             <div
-              className={`flex items-center gap-3 px-6 py-3 rounded-full border backdrop-blur-md bg-white ${toast.type === "success" ? "border-emerald-500/20 text-emerald-500" : "border-red-500/20 text-red-500"}`}
+              className={`flex items-center gap-3 px-6 py-3 rounded-full border backdrop-blur-md bg-white ${
+                toast.type === "success"
+                  ? "border-emerald-500/20 text-emerald-500"
+                  : "border-red-500/20 text-red-500"
+              }`}
             >
               {toast.type === "success" ? (
                 <CheckCircle2 size={16} />
@@ -332,13 +401,6 @@ export default function UserProfilePage() {
             theme={theme}
           />
           <TabButton
-            icon={<BarChart3 size={18} />}
-            label="Estatísticas"
-            active={activeTab === "stats"}
-            onClick={() => setActiveTab("stats")}
-            theme={theme}
-          />
-          <TabButton
             icon={<ShieldCheck size={18} />}
             label="Segurança & Apps"
             active={activeTab === "security"}
@@ -369,7 +431,11 @@ export default function UserProfilePage() {
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <div
-                        className={`w-24 h-24 rounded-full overflow-hidden border-2 flex items-center justify-center ${theme === "dark" ? "border-white/10 bg-zinc-800" : "border-zinc-200 bg-zinc-100"}`}
+                        className={`w-24 h-24 rounded-full overflow-hidden border-2 flex items-center justify-center ${
+                          theme === "dark"
+                            ? "border-white/10 bg-zinc-800"
+                            : "border-zinc-200 bg-zinc-100"
+                        }`}
                       >
                         {isUploadingLogo ? (
                           <Loader2
@@ -685,17 +751,29 @@ export default function UserProfilePage() {
                         Tema
                       </label>
                       <div
-                        className={`flex border rounded-xl p-1 ${theme === "dark" ? "bg-[#050505] border-white/5" : "bg-zinc-100 border-zinc-200"}`}
+                        className={`flex border rounded-xl p-1 ${
+                          theme === "dark"
+                            ? "bg-[#050505] border-white/5"
+                            : "bg-zinc-100 border-zinc-200"
+                        }`}
                       >
                         <button
                           onClick={() => setTheme("dark")}
-                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${theme === "dark" ? "bg-indigo-500 text-white shadow-md" : "text-zinc-500"}`}
+                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                            theme === "dark"
+                              ? "bg-indigo-500 text-white shadow-md"
+                              : "text-zinc-500"
+                          }`}
                         >
                           <Moon size={14} /> Escuro
                         </button>
                         <button
                           onClick={() => setTheme("light")}
-                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${theme === "light" ? "bg-indigo-500 text-white shadow-md" : "text-zinc-500"}`}
+                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                            theme === "light"
+                              ? "bg-indigo-500 text-white shadow-md"
+                              : "text-zinc-500"
+                          }`}
                         >
                           <Sun size={14} /> Claro
                         </button>
@@ -708,17 +786,29 @@ export default function UserProfilePage() {
                         Densidade
                       </label>
                       <div
-                        className={`flex border rounded-xl p-1 ${theme === "dark" ? "bg-[#050505] border-white/5" : "bg-zinc-100 border-zinc-200"}`}
+                        className={`flex border rounded-xl p-1 ${
+                          theme === "dark"
+                            ? "bg-[#050505] border-white/5"
+                            : "bg-zinc-100 border-zinc-200"
+                        }`}
                       >
                         <button
                           onClick={() => setDensity("compact")}
-                          className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${density === "compact" ? "bg-indigo-500 text-white shadow-md" : "text-zinc-500"}`}
+                          className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                            density === "compact"
+                              ? "bg-indigo-500 text-white shadow-md"
+                              : "text-zinc-500"
+                          }`}
                         >
                           Compacto
                         </button>
                         <button
                           onClick={() => setDensity("detailed")}
-                          className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${density === "detailed" ? "bg-indigo-500 text-white shadow-md" : "text-zinc-500"}`}
+                          className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                            density === "detailed"
+                              ? "bg-indigo-500 text-white shadow-md"
+                              : "text-zinc-500"
+                          }`}
                         >
                           Detalhado
                         </button>
@@ -728,76 +818,7 @@ export default function UserProfilePage() {
                 </div>
               </motion.div>
             )}
-
-            {/* --- ABA ESTATÍSTICAS --- */}
-            {activeTab === "stats" && (
-              <motion.div
-                key="stats"
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                className="space-y-6"
-              >
-                <div className="grid grid-cols-2 gap-4">
-                  <div
-                    className={`${ui.card} border p-6 rounded-3xl relative overflow-hidden group transition-all`}
-                  >
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px] rounded-full" />
-                    <CheckCircle2 size={24} className="text-indigo-500 mb-4" />
-                    <h4 className={`text-4xl font-black mb-1 ${ui.textTitle}`}>
-                      124
-                    </h4>
-                    <p
-                      className={`text-xs font-bold uppercase tracking-widest ${ui.textMuted}`}
-                    >
-                      Tarefas Concluídas
-                    </p>
-                  </div>
-                  <div
-                    className={`${ui.card} border p-6 rounded-3xl relative overflow-hidden transition-all`}
-                  >
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[50px] rounded-full" />
-                    <Zap size={24} className="text-emerald-500 mb-4" />
-                    <h4 className={`text-4xl font-black mb-1 ${ui.textTitle}`}>
-                      450
-                    </h4>
-                    <p
-                      className={`text-xs font-bold uppercase tracking-widest ${ui.textMuted}`}
-                    >
-                      Story Points
-                    </p>
-                  </div>
-                  <div
-                    className={`${ui.card} border p-6 rounded-3xl relative overflow-hidden transition-all`}
-                  >
-                    <Activity size={24} className="text-amber-500 mb-4" />
-                    <h4 className={`text-4xl font-black mb-1 ${ui.textTitle}`}>
-                      12 <span className={`text-lg ${ui.textMuted}`}>dias</span>
-                    </h4>
-                    <p
-                      className={`text-xs font-bold uppercase tracking-widest ${ui.textMuted}`}
-                    >
-                      Sequência de Entregas
-                    </p>
-                  </div>
-                  <div
-                    className={`${ui.card} border p-6 rounded-3xl relative overflow-hidden transition-all`}
-                  >
-                    <Briefcase size={24} className="text-purple-500 mb-4" />
-                    <h4 className={`text-4xl font-black mb-1 ${ui.textTitle}`}>
-                      4
-                    </h4>
-                    <p
-                      className={`text-xs font-bold uppercase tracking-widest ${ui.textMuted}`}
-                    >
-                      Projetos Ativos
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* --- ABA SEGURANÇA --- */}
+            {/* --- ABA SEGURANÇA & APPS --- */}
             {activeTab === "security" && (
               <motion.div
                 key="security"
@@ -807,7 +828,7 @@ export default function UserProfilePage() {
                 className="space-y-6"
               >
                 <div
-                  className={`${ui.card} border rounded-3xl p-8 transition-all`}
+                  className={`${ui.card} border rounded-3xl p-8 transition-all duration-300`}
                 >
                   <h3
                     className={`text-lg font-bold mb-6 flex items-center gap-2 ${ui.textTitle}`}
@@ -832,7 +853,7 @@ export default function UserProfilePage() {
                           await sendPasswordResetEmail(auth, email);
                           showToast("E-mail enviado!");
                         } catch {
-                          showToast("Erro.", "error");
+                          showToast("Erro ao enviar email.", "error");
                         }
                       }}
                       className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0"
@@ -849,12 +870,17 @@ export default function UserProfilePage() {
                       Sessões Ativas
                     </h4>
                     <div className="space-y-3">
+                      {/* SESSÃO ATUAL (Dinâmica) */}
                       <div className="flex items-center justify-between p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-2xl">
                         <div className="flex items-center gap-4">
-                          <Monitor size={20} className="text-indigo-500" />
+                          {sessionInfo.isMobile ? (
+                            <Smartphone size={20} className="text-indigo-500" />
+                          ) : (
+                            <Monitor size={20} className="text-indigo-500" />
+                          )}
                           <div>
                             <p className={`text-sm font-bold ${ui.textTitle}`}>
-                              Computador Local • Chrome
+                              {sessionInfo.os} • {sessionInfo.browser}
                             </p>
                             <p className="text-xs text-indigo-500">
                               Sessão Atual
@@ -862,28 +888,11 @@ export default function UserProfilePage() {
                           </div>
                         </div>
                       </div>
-                      <div
-                        className={`flex items-center justify-between p-4 border rounded-2xl ${ui.input}`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <Smartphone size={20} className="text-zinc-500" />
-                          <div>
-                            <p className={`text-sm font-bold ${ui.textTitle}`}>
-                              Telemóvel • Safari
-                            </p>
-                            <p className={`text-xs ${ui.textMuted}`}>
-                              Último acesso ontem
-                            </p>
-                          </div>
-                        </div>
-                        <button className="text-[10px] font-black uppercase text-zinc-500 hover:text-red-500 transition-colors">
-                          Sair
-                        </button>
-                      </div>
                     </div>
                   </div>
                 </div>
 
+                {/* Integrações */}
                 <div
                   className={`${ui.card} border rounded-3xl p-8 transition-all`}
                 >
@@ -895,10 +904,19 @@ export default function UserProfilePage() {
                   </h3>
                   <div className="space-y-4">
                     <div
-                      className={`flex items-center justify-between p-5 border rounded-2xl ${ui.input}`}
+                      className={`flex items-center justify-between p-5 border rounded-2xl transition-all ${
+                        slackConnected
+                          ? "border-green-500/30 bg-green-500/5"
+                          : ui.input
+                      }`}
                     >
                       <div className="flex items-center gap-4">
-                        <Slack size={24} className={ui.textTitle} />
+                        <Slack
+                          size={24}
+                          className={
+                            slackConnected ? "text-green-500" : ui.textTitle
+                          }
+                        />
                         <div>
                           <p className={`text-sm font-bold ${ui.textTitle}`}>
                             Slack
@@ -909,9 +927,16 @@ export default function UserProfilePage() {
                         </div>
                       </div>
                       <button
-                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border ${theme === "dark" ? "bg-white/5 border-white/5 text-zinc-300" : "bg-zinc-200 border-zinc-300 text-zinc-700"}`}
+                        onClick={handleToggleSlack}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border ${
+                          slackConnected
+                            ? "bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400"
+                            : theme === "dark"
+                              ? "bg-white/5 border-white/5 text-zinc-300 hover:bg-white/10"
+                              : "bg-zinc-200 border-zinc-300 text-zinc-700 hover:bg-zinc-300"
+                        }`}
                       >
-                        Conectar
+                        {slackConnected ? "Desconectar" : "Conectar"}
                       </button>
                     </div>
                   </div>
@@ -920,7 +945,7 @@ export default function UserProfilePage() {
                 <div className="pt-6">
                   <button
                     onClick={() => {
-                      if (confirm("Deseja sair?")) {
+                      if (confirm("Deseja mesmo sair do sistema?")) {
                         signOut(auth);
                         router.push("/login");
                       }

@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../lib/firebase";
+import { CustomDatePicker } from "../ui/CustomDatePicker";
+import { RichTextEditor } from "../ui/RichTextEditor";
 import {
   X,
   Plus,
@@ -17,8 +19,14 @@ import {
   Image as ImageIcon,
   UserPlus,
   Check,
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
+// ==========================================
+// MODAL PRINCIPAL
+// ==========================================
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -46,6 +54,7 @@ export function CreateTaskModal({
     "low" | "medium" | "high" | "urgent"
   >("medium");
   const [selectedClient, setSelectedClient] = useState("");
+  const [dueDate, setDueDate] = useState(""); // Estado para Data de Entrega
 
   const [selectedAssignees, setSelectedAssignees] = useState<any[]>([]);
   const [isAssigneeOpen, setIsAssigneeOpen] = useState(false);
@@ -93,13 +102,11 @@ export function CreateTaskModal({
   const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     if (file.size > 3000000) {
       alert("A imagem de capa não pode ultrapassar 3MB.");
       if (coverInputRef.current) coverInputRef.current.value = "";
       return;
     }
-
     setIsUploadingCover(true);
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -118,6 +125,11 @@ export function CreateTaskModal({
     try {
       const taskKey = `${projectKey}-${Math.floor(Math.random() * 1000) + 100}`;
 
+      let taskDueDate = null;
+      if (dueDate) {
+        taskDueDate = new Date(`${dueDate}T12:00:00`);
+      }
+
       await addDoc(collection(db, "projects", projectId, "tasks"), {
         title: title.trim(),
         description: description.trim(),
@@ -129,6 +141,7 @@ export function CreateTaskModal({
         assignees: selectedAssignees,
         checklist: subtasks,
         coverImage: coverImage,
+        dueDate: taskDueDate,
         attachmentsCount: coverImage ? 1 : 0,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -138,6 +151,7 @@ export function CreateTaskModal({
       setDescription("");
       setPriority("medium");
       setSelectedClient("");
+      setDueDate("");
       setSelectedAssignees([]);
       setIsAssigneeOpen(false);
       setSubtasks([]);
@@ -158,7 +172,7 @@ export function CreateTaskModal({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-bgPanel border border-borderFocus rounded-[2.5rem] w-full max-w-2xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden relative flex flex-col max-h-[90vh]"
+            className="bg-bgPanel border border-borderFocus rounded-[2.5rem] w-full max-w-2xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-visible relative flex flex-col max-h-[90vh]"
           >
             <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" />
 
@@ -184,7 +198,7 @@ export function CreateTaskModal({
 
             <form
               onSubmit={handleCreateTask}
-              className="p-6 space-y-6 relative flex-1 overflow-y-auto custom-scrollbar"
+              className="p-6 space-y-6 relative flex-1 overflow-y-visible sm:overflow-y-auto custom-scrollbar pb-32"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -226,237 +240,272 @@ export function CreateTaskModal({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-bgGlass border border-borderSubtle p-4 rounded-[1.5rem]">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-bgGlass border border-borderSubtle p-4 rounded-[1.5rem]">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1 flex items-center gap-2">
                     <Flag size={12} /> Prioridade
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(["low", "medium", "high", "urgent"] as const).map((p) => {
-                      const labels = {
-                        low: "Baixa",
-                        medium: "Normal",
-                        high: "Alta",
-                        urgent: "Urgente",
-                      };
-                      const colors = {
-                        low: "hover:border-emerald-500/50 text-emerald-400",
-                        medium: "hover:border-amber-500/50 text-amber-400",
-                        high: "hover:border-rose-500/50 text-rose-400",
-                        urgent: "hover:border-red-500/50 text-red-500",
-                      };
-                      const activeColors = {
-                        low: "border-emerald-500/50 bg-emerald-500/10",
-                        medium: "border-amber-500/50 bg-amber-500/10",
-                        high: "border-rose-500/50 bg-rose-500/10",
-                        urgent: "border-red-500/50 bg-red-500/10",
-                      };
-
-                      return (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => setPriority(p)}
-                          className={`py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                            priority === p
-                              ? activeColors[p]
-                              : `border-borderSubtle bg-bgGlassHover text-textMuted ${colors[p]}`
-                          }`}
-                        >
-                          {labels[p]}
-                        </button>
-                      );
-                    })}
+                  <div className="flex flex-col gap-2">
+                    <select
+                      value={priority}
+                      onChange={(e: any) => setPriority(e.target.value)}
+                      className={`w-full bg-bgGlassHover border border-borderSubtle rounded-xl px-3 py-3.5 text-sm font-bold focus:outline-none focus:border-indigo-500/50 appearance-none cursor-pointer transition-colors
+                        ${priority === "urgent" ? "text-red-500 bg-red-500/5 border-red-500/20" : ""}
+                        ${priority === "high" ? "text-rose-400 bg-rose-500/5 border-rose-500/20" : ""}
+                        ${priority === "medium" ? "text-amber-400 bg-amber-500/5 border-amber-500/20" : ""}
+                        ${priority === "low" ? "text-emerald-400 bg-emerald-500/5 border-emerald-500/20" : ""}
+                      `}
+                    >
+                      <option
+                        value="low"
+                        className="bg-bgPanel text-emerald-400"
+                      >
+                        🟢 Baixa
+                      </option>
+                      <option
+                        value="medium"
+                        className="bg-bgPanel text-amber-400"
+                      >
+                        🟡 Normal
+                      </option>
+                      <option value="high" className="bg-bgPanel text-rose-400">
+                        🟠 Alta
+                      </option>
+                      <option
+                        value="urgent"
+                        className="bg-bgPanel text-red-500"
+                      >
+                        🔴 Urgente
+                      </option>
+                    </select>
                   </div>
                 </div>
 
-                <div className="space-y-2 relative">
+                <div className="space-y-2">
                   <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1 flex items-center gap-2">
-                    <UserPlus size={12} /> Responsáveis
+                    <CalendarIcon size={12} /> Data de Entrega
                   </label>
-                  <div className="flex items-center gap-3 bg-bgSurface border border-borderFocus p-2.5 rounded-2xl h-[52px]">
-                    <div className="flex -space-x-2 overflow-hidden px-2 flex-1">
-                      {selectedAssignees.length === 0 && (
-                        <span className="text-xs text-textMuted italic py-1">
-                          Nenhum responsável
-                        </span>
-                      )}
-                      {selectedAssignees.map((a, i) => (
-                        <img
-                          key={i}
-                          src={a.photo}
-                          className="w-7 h-7 rounded-full border-2 border-bgSurface object-cover"
-                          title={a.name}
-                          alt=""
-                        />
-                      ))}
-                    </div>
+                  <CustomDatePicker
+                    value={dueDate}
+                    onChange={(newDate) => setDueDate(newDate)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1 flex items-center gap-2">
+                    <UserPlus size={12} /> Atribuir a
+                  </label>
+                  <div className="relative">
                     <button
                       type="button"
                       onClick={() => setIsAssigneeOpen(!isAssigneeOpen)}
-                      className="flex items-center justify-center w-8 h-8 rounded-xl bg-bgGlassHover hover:bg-indigo-500/20 hover:text-indigo-400 text-textMuted transition-colors shrink-0"
+                      className="w-full bg-bgGlassHover border border-borderSubtle rounded-xl p-2 flex items-center gap-2 hover:border-indigo-500/30 transition-all text-left"
                     >
-                      <Plus size={14} />
+                      <div className="flex -space-x-2 shrink-0">
+                        {selectedAssignees.length > 0 ? (
+                          selectedAssignees
+                            .slice(0, 3)
+                            .map((a, i) => (
+                              <img
+                                key={i}
+                                src={
+                                  a.photo ||
+                                  `https://ui-avatars.com/api/?name=${a.name}`
+                                }
+                                className="w-8 h-8 rounded-full border-2 border-bgPanel object-cover"
+                                alt={a.name}
+                              />
+                            ))
+                        ) : (
+                          <div className="w-8 h-8 rounded-full border-2 border-bgPanel bg-bgSurfaceActive flex items-center justify-center">
+                            <UserPlus size={12} className="text-textMuted" />
+                          </div>
+                        )}
+                        {selectedAssignees.length > 3 && (
+                          <div className="w-8 h-8 rounded-full border-2 border-bgPanel bg-bgSurfaceActive flex items-center justify-center text-[10px] font-bold text-textPrimary">
+                            +{selectedAssignees.length - 3}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        {selectedAssignees.length === 0 ? (
+                          <span className="text-xs text-textMuted">
+                            Ninguém atribuído
+                          </span>
+                        ) : (
+                          <span className="text-xs text-textPrimary font-medium truncate block">
+                            {selectedAssignees.length} membro(s)
+                          </span>
+                        )}
+                      </div>
+                    </button>
+
+                    <AnimatePresence>
+                      {isAssigneeOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 5 }}
+                          className="absolute top-full right-0 mt-2 w-64 bg-bgPanel border border-borderFocus rounded-2xl shadow-2xl z-50 p-2 max-h-48 overflow-y-auto custom-scrollbar"
+                        >
+                          {members.map((member) => {
+                            const isAssigned = selectedAssignees.some(
+                              (a) => a.email === member.email,
+                            );
+                            return (
+                              <button
+                                key={member.email}
+                                type="button"
+                                onClick={() => toggleAssignee(member)}
+                                className={`w-full flex items-center justify-between p-2 rounded-xl text-sm transition-all group ${isAssigned ? "bg-indigo-500/10 text-indigo-400" : "hover:bg-bgSurfaceHover text-textSecondary"}`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <img
+                                    src={
+                                      member.photoURL ||
+                                      member.photo ||
+                                      `https://ui-avatars.com/api/?name=${member.name}`
+                                    }
+                                    className="w-6 h-6 rounded-full border border-borderSubtle"
+                                    alt=""
+                                  />
+                                  <span className="truncate max-w-[130px] font-medium">
+                                    {member.name}
+                                  </span>
+                                </div>
+                                {isAssigned && (
+                                  <Check
+                                    size={14}
+                                    className="text-indigo-400"
+                                  />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 w-full min-w-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-bgGlass flex items-center justify-center shrink-0 border border-borderSubtle">
+                    <AlignLeft size={14} className="text-textMuted" />
+                  </div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-textMuted">
+                    Detalhes da Demanda
+                  </label>
+                </div>
+                <RichTextEditor
+                  content={description}
+                  onChange={setDescription}
+                  placeholder="Escreve os detalhes, links, referências..."
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1 flex items-center gap-2">
+                    <ListChecks size={12} /> Subtarefas Iniciais
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newSubtask}
+                      onChange={(e) => setNewSubtask(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddSubtask();
+                        }
+                      }}
+                      placeholder="Nova subtarefa... (Prima Enter)"
+                      className="flex-1 bg-bgGlassHover border border-borderSubtle text-textPrimary rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-textFaint"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddSubtask}
+                      className="bg-bgSurfaceActive hover:bg-bgSurface border border-borderSubtle text-textSecondary p-2.5 rounded-xl transition-all"
+                    >
+                      <Plus size={16} />
                     </button>
                   </div>
-
-                  <AnimatePresence>
-                    {isAssigneeOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        className="absolute top-full mt-2 right-0 w-64 bg-bgSurface border border-borderFocus rounded-2xl shadow-2xl p-2 z-[310] backdrop-blur-xl"
-                      >
-                        <div className="text-[9px] font-bold text-textMuted p-3 uppercase tracking-widest border-b border-borderSubtle mb-2">
-                          Atribuir à Equipe
-                        </div>
-                        {members.map((member: any) => (
+                  {subtasks.length > 0 && (
+                    <div className="bg-bgGlass border border-borderSubtle rounded-2xl p-2 space-y-1">
+                      {subtasks.map((st) => (
+                        <div
+                          key={st.id}
+                          className="flex items-center justify-between px-3 py-2 bg-bgSurfaceActive rounded-xl text-sm group"
+                        >
+                          <span className="text-textSecondary">{st.title}</span>
                           <button
                             type="button"
-                            key={member.email}
-                            onClick={() => toggleAssignee(member)}
-                            className="w-full flex items-center justify-between p-3 hover:bg-bgGlassHover rounded-xl transition-all"
+                            onClick={() => handleRemoveSubtask(st.id)}
+                            className="text-textMuted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
                           >
-                            <div className="flex items-center gap-3">
-                              <img
-                                src={member.photoURL || member.photo}
-                                className="w-7 h-7 rounded-lg object-cover"
-                                alt=""
-                              />
-                              <span className="text-xs text-textSecondary font-bold">
-                                {member.name}
-                              </span>
-                            </div>
-                            {selectedAssignees.some(
-                              (a: any) => a.email === member.email,
-                            ) && (
-                              <Check size={14} className="text-indigo-500" />
-                            )}
+                            <Trash2 size={14} />
                           </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-
-              <div className="space-y-2 bg-bgGlass border border-borderSubtle p-4 rounded-[1.5rem]">
-                <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1 flex items-center gap-2 mb-2">
-                  <ImageIcon size={12} /> Imagem de Capa do Cartão (Opcional)
-                </label>
-
-                <input
-                  type="file"
-                  ref={coverInputRef}
-                  onChange={handleCoverUpload}
-                  accept="image/*"
-                  className="hidden"
-                />
-
-                {coverImage ? (
-                  <div className="relative w-full h-32 rounded-xl overflow-hidden border border-borderFocus group">
-                    <img
-                      src={coverImage}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <button
-                        type="button"
-                        onClick={() => setCoverImage(null)}
-                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-2"
-                      >
-                        <Trash2 size={14} /> Remover Capa
-                      </button>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1 flex items-center gap-2">
+                    <ImageIcon size={12} /> Capa do Cartão (Opcional)
+                  </label>
+                  <div
                     onClick={() => coverInputRef.current?.click()}
-                    className="w-full py-6 border-2 border-dashed border-borderSubtle hover:border-indigo-500/50 hover:bg-indigo-500/5 rounded-xl flex flex-col items-center justify-center gap-2 text-textMuted hover:text-indigo-400 transition-all"
+                    className={`w-full h-[120px] rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all group overflow-hidden relative ${
+                      coverImage
+                        ? "border-indigo-500/50 bg-indigo-500/5"
+                        : "border-borderFocus hover:border-indigo-500/50 bg-bgGlassHover"
+                    }`}
                   >
                     {isUploadingCover ? (
-                      <Loader2 size={20} className="animate-spin" />
+                      <Loader2
+                        size={24}
+                        className="animate-spin text-indigo-400"
+                      />
+                    ) : coverImage ? (
+                      <>
+                        <img
+                          src={coverImage}
+                          className="w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity"
+                          alt="Cover"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="bg-bgPanel px-3 py-1.5 rounded-lg text-xs font-bold shadow-xl border border-borderSubtle">
+                            Trocar Capa
+                          </span>
+                        </div>
+                      </>
                     ) : (
-                      <ImageIcon size={24} className="opacity-50" />
-                    )}
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span className="text-[10px] font-bold uppercase tracking-widest">
-                        Clique para anexar imagem
-                      </span>
-                      <span className="text-[9px] opacity-60">
-                        Recomendado para visualização no Kanban (Máx 3MB)
-                      </span>
-                    </div>
-                  </button>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1 flex items-center gap-2">
-                  <AlignLeft size={12} /> Descrição
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Adicione os detalhes completos, briefing ou requisitos da tarefa..."
-                  rows={2}
-                  className="w-full bg-bgGlassHover border border-borderFocus text-textPrimary rounded-2xl px-5 py-3.5 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-textFaint resize-none custom-scrollbar"
-                />
-              </div>
-
-              <div className="space-y-2 bg-bgGlass border border-borderSubtle p-4 rounded-[1.5rem]">
-                <label className="text-[10px] font-black text-textMuted uppercase tracking-widest ml-1 flex items-center gap-2 mb-2">
-                  <ListChecks size={12} /> Subtarefas / Checklist
-                </label>
-
-                <div className="flex items-center gap-2 mb-3">
-                  <input
-                    type="text"
-                    value={newSubtask}
-                    onChange={(e) => setNewSubtask(e.target.value)}
-                    placeholder="Ex: Pesquisar referências..."
-                    onKeyDown={(e) =>
-                      e.key === "Enter" &&
-                      (e.preventDefault(), handleAddSubtask())
-                    }
-                    className="flex-1 bg-bgSurface border border-borderFocus text-textPrimary rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-textFaint"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddSubtask}
-                    className="bg-bgGlassHover hover:bg-bgSurfaceActive text-textPrimary p-2.5 rounded-xl transition-all"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-
-                {subtasks.length > 0 && (
-                  <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar">
-                    {subtasks.map((st) => (
-                      <div
-                        key={st.id}
-                        className="flex items-center justify-between bg-bgGlassHover border border-borderSubtle px-3 py-2.5 rounded-xl group"
-                      >
-                        <span className="text-[13px] text-textSecondary">
-                          {st.title}
+                      <>
+                        <div className="w-10 h-10 rounded-full bg-bgSurfaceActive flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                          <ImageIcon size={16} className="text-textMuted" />
+                        </div>
+                        <span className="text-[10px] font-bold text-textMuted uppercase tracking-widest text-center px-4">
+                          Clique para anexar imagem
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSubtask(st.id)}
-                          className="text-textMuted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      ref={coverInputRef}
+                      onChange={handleCoverUpload}
+                      className="hidden"
+                      accept="image/png, image/jpeg, image/gif, image/webp"
+                    />
                   </div>
-                )}
+                </div>
               </div>
             </form>
 
-            <div className="p-6 border-t border-borderSubtle flex items-center justify-between shrink-0 bg-bgPanel">
+            <div className="p-6 border-t border-borderSubtle flex items-center justify-between shrink-0 bg-bgPanel z-20">
               <button
                 type="button"
                 onClick={onClose}
