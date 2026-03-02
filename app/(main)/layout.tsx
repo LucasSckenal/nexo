@@ -1106,7 +1106,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       />
 
       {/* ÁREA PRINCIPAL DA PÁGINA */}
-      <main className="flex-1 rounded-[2rem] lg:rounded-[2.5rem] border border-borderSubtle overflow-hidden relative shadow-[0_0_50px_rgba(0,0,0,0.8)] z-10 bg-bgMain mt-2 lg:mt-0">
+      <main className="flex-1 rounded-[2rem] lg:rounded-[2.5rem] border border-borderSubtle overflow-hidden relative shadow-[0_0_10px_rgba(0,0,0,0.8)] z-10 bg-bgMain mt-2 lg:mt-0">
         <div className="h-full overflow-y-auto custom-scrollbar p-1 pb-28 lg:pb-1">
           {children}
         </div>
