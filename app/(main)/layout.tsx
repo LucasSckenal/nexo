@@ -58,9 +58,11 @@ import {
   Camera,
   Briefcase,
   Bell,
+  Menu,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeProvider } from "../context/ThemeContext";
+import { TaskSchedulerService } from "../lib/taskScheduler";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -92,17 +94,36 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const [isProjectOpen, setIsProjectOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+  // ESTADO DO MENU MOBILE
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const pathname = usePathname();
+
+  // Fechar menu mobile ao mudar de rota
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   // === ESTADOS DE AUTENTICAÇÃO E UTILIZADORES GLOBAIS ===
   const [user, setUser] = useState<any>(null);
   const [globalUsers, setGlobalUsers] = useState<any[]>([]);
   const { notifications, unreadCount, markAsRead, deleteNotif, markAllAsRead } =
-    useNotifications(user?.uid);
+    useNotifications(user?.uid, activeProject?.id);
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUser(user);
+
+        TaskSchedulerService.checkUpcomingDeadlines(user.uid).catch((err) =>
+          console.error("Erro ao checar prazos:", err),
+        );
+      } else {
+        setUser(null);
+      }
     });
+
     return () => unsubscribe();
   }, []);
 
@@ -155,16 +176,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  // 3 Pontos (Menu do Chat)
   const [isChatOptionsMenuOpen, setIsChatOptionsMenuOpen] = useState(false);
-
-  // Edição do Grupo
   const [showEditGroupModal, setShowEditGroupModal] = useState(false);
   const [editGroupName, setEditGroupName] = useState("");
   const [editGroupPhoto, setEditGroupPhoto] = useState("");
   const [isSavingGroup, setIsSavingGroup] = useState(false);
 
-  // Fechar os menus ao clicar fora
   useEffect(() => {
     const handleClick = () => {
       setContextMenu(null);
@@ -407,7 +424,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Funções de Edição do Grupo
   const openEditGroupModal = () => {
     setEditGroupName(chatMember?.name || "");
     setEditGroupPhoto(chatMember?.photoURL || "");
@@ -458,7 +474,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       window.removeEventListener("open-global-chat", handleOpenGlobalChat);
   }, []);
 
-  // Montagem da lista combinada de contatos
   const chatContacts = [
     ...globalUsers
       .filter((u: any) => u.email !== user?.email && u.id !== user?.uid)
@@ -495,13 +510,216 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {/* MENU LATERAL PRINCIPAL */}
+      {/* ===== NOVO MENU MOBILE NATIVO (TELA INTEIRA ESTILO iOS) ===== */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed inset-0 z-[200] bg-bgMain lg:hidden flex flex-col"
+          >
+            {/* Cabeçalho do Menu */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-borderSubtle bg-bgSurface/80 backdrop-blur-xl">
+              <h2 className="text-2xl font-black text-textPrimary tracking-tight">
+                Menu Principal
+              </h2>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2.5 bg-bgSurfaceHover rounded-full text-textSecondary hover:text-textPrimary active:scale-95 transition-all"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-5 pb-32 space-y-6">
+              {/* Cartão de Perfil */}
+              <div className="bg-bgSurface border border-borderSubtle rounded-[1.5rem] p-4 flex items-center gap-4 shadow-sm">
+                <div className="relative shrink-0">
+                  <img
+                    src={
+                      user?.photoURL ||
+                      "https://ui-avatars.com/api/?name=User&background=18181B&color=fff"
+                    }
+                    className="w-14 h-14 rounded-full border border-borderSubtle object-cover"
+                    alt="Perfil"
+                  />
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-bgSurface" />
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <h3 className="text-lg font-bold text-textPrimary truncate">
+                    {user?.displayName?.split(" ")[0] || "Usuário"}
+                  </h3>
+                  <p className="text-sm text-accentPurple font-medium">
+                    Plano Enterprise
+                  </p>
+                </div>
+                <Link
+                  href="/perfil"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-3 bg-bgSurfaceHover rounded-xl text-textPrimary active:scale-95 transition-all"
+                >
+                  <User size={20} />
+                </Link>
+              </div>
+
+              {/* Cartão do Projeto Atual */}
+              <div className="bg-bgSurface border border-borderSubtle rounded-[1.5rem] p-4 shadow-sm">
+                <h4 className="text-[11px] font-bold text-textSecondary uppercase tracking-wider mb-3 px-1">
+                  Projeto Atual
+                </h4>
+                <button
+                  onClick={() => setIsProjectOpen(!isProjectOpen)}
+                  className="flex items-center gap-3 w-full p-2 hover:bg-bgSurfaceHover active:bg-bgSurfaceHover rounded-xl transition-all"
+                >
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 bg-accentPurple/10 border border-borderSubtle overflow-hidden text-accentPurple">
+                    {activeProject?.imageUrl ? (
+                      <img
+                        src={activeProject.imageUrl}
+                        className="w-full h-full object-cover"
+                        alt="Projeto"
+                      />
+                    ) : (
+                      activeProject?.key || "NX"
+                    )}
+                  </div>
+                  <div className="flex-1 text-left overflow-hidden">
+                    <p className="text-base font-bold text-textPrimary truncate">
+                      {activeProject?.name || "Projeto"}
+                    </p>
+                    <p className="text-xs text-textSecondary truncate mt-0.5">
+                      Mudar projeto...
+                    </p>
+                  </div>
+                  <ChevronsUpDown
+                    size={20}
+                    className="text-textSecondary shrink-0"
+                  />
+                </button>
+
+                {/* Dropdown de projetos no Mobile */}
+                <AnimatePresence>
+                  {isProjectOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-3 pt-3 border-t border-borderSubtle space-y-1">
+                        {projects?.map((proj: any) => (
+                          <button
+                            key={proj.id}
+                            onClick={() => {
+                              setActiveProject(proj);
+                              setIsProjectOpen(false);
+                            }}
+                            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${activeProject?.id === proj.id ? "bg-accentPurple/10 text-accentPurple font-bold" : "text-textSecondary active:bg-bgSurfaceHover font-medium"}`}
+                          >
+                            <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-borderSubtle flex items-center justify-center text-[10px]">
+                              {proj.imageUrl ? (
+                                <img
+                                  src={proj.imageUrl}
+                                  className="w-full h-full object-cover"
+                                  alt="Proj"
+                                />
+                              ) : (
+                                proj.key
+                              )}
+                            </div>
+                            <span className="flex-1 text-sm text-left truncate">
+                              {proj.name}
+                            </span>
+                            {activeProject?.id === proj.id && (
+                              <Check size={16} />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Lista de Navegação Estilo iOS */}
+              <div>
+                <h4 className="text-[11px] font-bold text-textSecondary uppercase tracking-wider mb-2 px-1">
+                  Navegação
+                </h4>
+                <div className="bg-bgSurface border border-borderSubtle rounded-[1.5rem] overflow-hidden shadow-sm">
+                  {activeProject?.category !== "design" && (
+                    <MobileMenuLink
+                      href="/backlog"
+                      icon={<ListTodo size={20} />}
+                      label="Backlog"
+                      pathname={pathname}
+                      close={() => setIsMobileMenuOpen(false)}
+                    />
+                  )}
+                  {activeProject?.category === "design" && (
+                    <MobileMenuLink
+                      href="/clientes"
+                      icon={<Briefcase size={20} />}
+                      label="Clientes"
+                      pathname={pathname}
+                      close={() => setIsMobileMenuOpen(false)}
+                    />
+                  )}
+                  <MobileMenuLink
+                    href="/kanban"
+                    icon={<Kanban size={20} />}
+                    label="Kanban"
+                    pathname={pathname}
+                    close={() => setIsMobileMenuOpen(false)}
+                  />
+                  <MobileMenuLink
+                    href="/analises"
+                    icon={<Activity size={20} />}
+                    label="Análises"
+                    pathname={pathname}
+                    close={() => setIsMobileMenuOpen(false)}
+                  />
+                  <MobileMenuLink
+                    href="/members"
+                    icon={<Users size={20} />}
+                    label="Equipe"
+                    pathname={pathname}
+                    close={() => setIsMobileMenuOpen(false)}
+                  />
+                  <MobileMenuLink
+                    href="/configuracoes"
+                    icon={<Settings size={20} />}
+                    label="Ajustes do Projeto"
+                    pathname={pathname}
+                    close={() => setIsMobileMenuOpen(false)}
+                  />
+                </div>
+              </div>
+
+              {/* Botão de Logout */}
+              <button
+                onClick={() => auth.signOut()}
+                className="w-full flex items-center justify-center gap-2 p-4 mt-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-[1.5rem] font-bold active:scale-95 transition-all border border-red-500/20"
+              >
+                <LogOut size={20} /> Sair da Conta
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ===== MENU LATERAL PRINCIPAL (AGORA SÓ APARECE NO PC) ===== */}
       <aside
-        className={`relative z-11 shrink-0 h-full flex flex-col transition-all duration-500 ease-in-out ${isCollapsed ? "w-16" : "w-64"}`}
+        className={`
+          hidden lg:flex lg:relative lg:flex-col lg:shrink-0 h-full bg-bgMain transition-all duration-500 ease-in-out z-[150]
+          ${isCollapsed ? "w-16" : "w-64"}
+          border-r border-borderSubtle lg:border-none
+        `}
       >
-        <div className="px-4 h-20 flex items-center">
+        <div className="px-4 h-20 flex items-center justify-between">
           <div
-            className={`flex items-center w-full transition-all duration-300 ${isCollapsed ? "justify-center" : ""}`}
+            className={`flex items-center transition-all duration-300 ${isCollapsed ? "justify-center" : ""} lg:w-full`}
           >
             <Image
               src={isCollapsed ? "/Nexo_small_icon.png" : "/Nexo_icon.png"}
@@ -515,7 +733,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-6.5 top-10 z-[100] border border-borderSubtle bg-bgSurface rounded-full p-1.5 text-textSecondary hover:text-accentPurple hover:border-accentPurple/50 transition-all shadow-xl backdrop-blur-md group"
+          className="hidden lg:flex absolute -right-6.5 top-10 z-[100] border border-borderSubtle bg-bgSurface rounded-full p-1.5 text-textSecondary hover:text-accentPurple hover:border-accentPurple/50 transition-all shadow-xl backdrop-blur-md group"
         >
           {isCollapsed ? (
             <ChevronRight
@@ -530,7 +748,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           )}
         </button>
 
-        {/* SELETOR DE PROJETO TOTALMENTE RESTAURADO */}
+        {/* SELETOR DE PROJETO */}
         <div className="px-3 mb-4 relative">
           <button
             onClick={() => {
@@ -691,7 +909,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
             <button
               onClick={() => setIsChatOpen(true)}
-              className={`relative flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-medium transition-all duration-300 group ${hasGlobalUnread ? "text-textPrimary bg-indigo-500/10 border border-indigo-500/20" : "text-textSecondary hover:text-textPrimary"} w-full ${isCollapsed ? "justify-center px-0" : ""}`}
+              className={`relative flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-medium transition-all duration-300 group w-full ${hasGlobalUnread ? "text-textPrimary bg-indigo-500/10 border border-indigo-500/20" : "text-textSecondary hover:text-textPrimary"} ${isCollapsed ? "justify-center px-0" : ""}`}
             >
               <div
                 className={`relative z-10 flex items-center gap-3 transition-all ${hasGlobalUnread ? "text-indigo-400" : "group-hover:scale-105"}`}
@@ -736,7 +954,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        {/* MENU DA CONTA (PERFIL/SAIR) TOTALMENTE RESTAURADO */}
+        {/* MENU DA CONTA (PERFIL/SAIR) */}
         <div className="p-3 mt-auto relative">
           <button
             onClick={() => {
@@ -793,6 +1011,88 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           </AnimatePresence>
         </div>
       </aside>
+
+      {/* ===== DOCK FLUTUANTE ESTILO iOS (ADAPTÁVEL AO TEMA) - APENAS MOBILE ===== */}
+      <div className="lg:hidden fixed bottom-5 left-1/2 -translate-x-1/2 w-auto min-w-[300px] max-w-[90%] bg-bgSurface/70 backdrop-blur-[32px] border border-borderSubtle shadow-[0_20px_40px_rgba(0,0,0,0.5)] z-[140] flex items-center justify-center gap-6 px-6 py-3.5 rounded-[2rem]">
+        {/* Luz de reflexo interno (Aparece mais no modo escuro) */}
+        <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-tr from-white/5 to-transparent pointer-events-none opacity-0 dark:opacity-100" />
+
+        {/* Home */}
+        <Link href="/" className="relative group">
+          <div
+            className={`p-2 transition-all duration-500 rounded-2xl ${pathname === "/" ? "bg-accentPurple/15 text-accentPurple" : "text-textSecondary hover:text-textPrimary"}`}
+          >
+            <LayoutDashboard
+              size={22}
+              strokeWidth={pathname === "/" ? 2.5 : 2}
+            />
+          </div>
+          {pathname === "/" && (
+            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-accentPurple rounded-full shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+          )}
+        </Link>
+
+        {/* Kanban */}
+        <Link href="/kanban" className="relative group">
+          <div
+            className={`p-2 transition-all duration-500 rounded-2xl ${pathname === "/kanban" ? "bg-accentPurple/15 text-accentPurple" : "text-textSecondary hover:text-textPrimary"}`}
+          >
+            <Kanban size={22} strokeWidth={pathname === "/kanban" ? 2.5 : 2} />
+          </div>
+          {pathname === "/kanban" && (
+            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-accentPurple rounded-full shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+          )}
+        </Link>
+
+        {/* Divisor subtil */}
+        <div className="w-[1px] h-6 bg-borderSubtle relative z-10" />
+
+        {/* Chat */}
+        <button onClick={() => setIsChatOpen(true)} className="relative group">
+          <div
+            className={`p-2 transition-all duration-500 rounded-2xl ${isChatOpen ? "bg-accentPurple/15 text-accentPurple" : "text-textSecondary hover:text-textPrimary"}`}
+          >
+            <MessageCircle size={22} strokeWidth={isChatOpen ? 2.5 : 2} />
+            {hasGlobalUnread && (
+              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-indigo-500 rounded-full border-2 border-bgSurface shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
+            )}
+          </div>
+          {isChatOpen && (
+            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-accentPurple rounded-full shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+          )}
+        </button>
+
+        {/* Notificações */}
+        <button
+          onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+          className="relative group"
+        >
+          <div
+            className={`p-2 transition-all duration-500 rounded-2xl ${isNotificationsOpen ? "bg-accentPurple/15 text-accentPurple" : "text-textSecondary hover:text-textPrimary"}`}
+          >
+            <Bell size={22} strokeWidth={isNotificationsOpen ? 2.5 : 2} />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white border-2 border-bgSurface">
+                {unreadCount}
+              </span>
+            )}
+          </div>
+          {isNotificationsOpen && (
+            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-accentPurple rounded-full shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+          )}
+        </button>
+
+        {/* Menu Principal (Hambúrguer) */}
+        <button
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="relative group ml-1"
+        >
+          <div className="p-2 transition-all duration-500 rounded-2xl text-textSecondary hover:text-textPrimary active:scale-90 bg-bgSurfaceHover border border-borderSubtle relative z-10">
+            <Menu size={22} strokeWidth={2} />
+          </div>
+        </button>
+      </div>
+
       <NotificationPanel
         isOpen={isNotificationsOpen}
         onClose={() => setIsNotificationsOpen(false)}
@@ -801,13 +1101,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           markAsRead,
           deleteNotif,
           markAllAsRead,
-          onSelectTask: () => {}, 
+          onSelectTask: () => {},
         }}
       />
 
       {/* ÁREA PRINCIPAL DA PÁGINA */}
-      <main className="flex-1 rounded-[2.5rem] border border-borderSubtle overflow-hidden relative shadow-[0_0_50px_rgba(0,0,0,0.8)] z-10 bg-bgMain">
-        <div className="h-full overflow-y-auto custom-scrollbar p-1">
+      <main className="flex-1 rounded-[2rem] lg:rounded-[2.5rem] border border-borderSubtle overflow-hidden relative shadow-[0_0_50px_rgba(0,0,0,0.8)] z-10 bg-bgMain mt-2 lg:mt-0">
+        <div className="h-full overflow-y-auto custom-scrollbar p-1 pb-28 lg:pb-1">
           {children}
         </div>
       </main>
@@ -1071,7 +1371,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 bottom-0 w-[420px] max-w-full bg-bgMain border-l border-borderSubtle shadow-2xl z-[200] flex flex-col overflow-hidden"
+              className="fixed right-0 top-0 bottom-0 w-full lg:w-[420px] max-w-full bg-bgMain border-l border-borderSubtle shadow-2xl z-[200] flex flex-col overflow-hidden"
             >
               {!chatMember ? (
                 <div
@@ -1678,6 +1978,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ==== Componente de Link para Menu Desktop ====
 function NavItem({
   icon,
   label,
@@ -1687,7 +1988,6 @@ function NavItem({
   badge,
   onClick,
 }: any) {
-  // Se não houver href, renderizamos um botão para evitar o erro do Link
   const isButton = !href;
 
   const content = (
@@ -1739,6 +2039,24 @@ function NavItem({
   return (
     <Link href={href} className={className}>
       {content}
+    </Link>
+  );
+}
+
+// ==== Componente de Link Exclusivo para o Menu Mobile ====
+function MobileMenuLink({ href, icon, label, pathname, close }: any) {
+  const active = pathname === href || pathname?.startsWith(href + "/");
+  return (
+    <Link
+      href={href}
+      onClick={close}
+      className={`flex items-center gap-3 w-full p-4 border-b border-borderSubtle last:border-0 transition-colors ${active ? "bg-accentPurple/10 text-accentPurple font-semibold" : "text-textPrimary active:bg-bgSurfaceHover"}`}
+    >
+      <div className={active ? "text-accentPurple" : "text-textSecondary"}>
+        {icon}
+      </div>
+      <span className="flex-1 text-left">{label}</span>
+      <ChevronRight size={18} className="text-textSecondary opacity-40" />
     </Link>
   );
 }

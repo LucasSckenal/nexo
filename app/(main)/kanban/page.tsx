@@ -277,29 +277,31 @@ export default function QuadrosPage() {
     const taskId = e.dataTransfer.getData("taskId");
 
     try {
+      // 1. Atualiza o status da tarefa no Firestore
       const taskRef = doc(db, "projects", activeProject.id, "tasks", taskId);
       await updateDoc(taskRef, {
         status: status,
         updatedAt: serverTimestamp(),
       });
 
+      // 2. Procura a tarefa localmente para obter os dados (membros, título, etc)
       const movedTask = tasks.find((t) => t.id === taskId);
       const destinationColumn = DEFAULT_COLUMNS.find((c) => c.id === status);
 
       if (movedTask && auth.currentUser) {
         const currentUser = auth.currentUser;
 
-        // Coleta membros e garante que o seu UID está na lista para o teste
-        const membersToNotify = movedTask.members || [];
-        const targets = Array.from(
-          new Set([...membersToNotify, currentUser.uid]),
-        );
+        // 1. Volta o filtro: apenas membros que NÃO são o usuário atual
+        const membersToNotify =
+          movedTask.members?.filter(
+            (memberId: string) => memberId !== currentUser.uid,
+          ) || [];
 
-        const promises = targets.map((memberId) =>
+        const promises = membersToNotify.map((memberId: string) =>
           sendNotification({
             userId: memberId,
             senderName: currentUser.displayName || "Um colega",
-            senderPhoto: currentUser.photoURL || "", // <-- ADICIONE ESTA LINHA
+            senderPhoto: currentUser.photoURL || "", // <--- Adicionamos a foto aqui
             title: "Card Movimentado",
             message: `${currentUser.displayName || "Alguém"} moveu "${movedTask.title}" para ${destinationColumn?.title}`,
             type: "status",
