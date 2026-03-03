@@ -569,93 +569,102 @@ export default function BacklogPage() {
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/5 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/5 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 z-10">
-        <div className="max-w-[1400px] mx-auto space-y-8">
-          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-10 z-10">
+        <div className="max-w-[1400px] mx-auto space-y-4 sm:space-y-8">
+          {/* HEADER */}
+          <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
             <div className="space-y-1">
-              <div className="flex items-center gap-2 text-textMuted font-bold text-[10px] uppercase tracking-[0.2em] mb-3">
-                <span>{activeProject.name}</span> <ChevronRight size={10} />{" "}
+              <div className="flex items-center gap-2 text-textMuted font-bold text-[8px] sm:text-[10px] uppercase tracking-[0.2em] mb-2 sm:mb-3">
+                <span>{activeProject.name}</span>{" "}
+                <ChevronRight size={8} className="sm:size-[10px]" />{" "}
                 <span className="text-indigo-400">
                   {activeSprint?.name || "Planejamento"}
                 </span>
               </div>
-              <div className="flex items-center gap-4">
-                <h1 className="text-4xl font-black text-textPrimary tracking-tighter">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+                <h1 className="text-3xl sm:text-4xl font-black text-textPrimary tracking-tighter">
                   Backlog
                 </h1>
-                <div className="px-3 py-1.5 rounded-full bg-bgSurfaceHover/50 border border-borderSubtle flex items-center gap-2">
+                <div className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-bgSurfaceHover/50 border border-borderSubtle flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] text-textSecondary font-bold uppercase tracking-widest">
-                    {totalIssues} Issues totais
+                  <span className="text-[8px] sm:text-[10px] text-textSecondary font-bold uppercase tracking-widest">
+                    {totalIssues} Issues
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <button
                 onClick={() => {
                   setShowHistory(true);
                   setShowInsights(false);
                 }}
-                className="px-4 py-2 rounded-xl bg-bgSurfaceHover/50 border border-borderSubtle text-[11px] font-bold text-textSecondary hover:text-textPrimary hover:bg-bgSurfaceHover transition-colors flex items-center gap-2"
+                className="px-3 sm:px-4 py-2 rounded-xl bg-bgSurfaceHover/50 border border-borderSubtle text-[10px] sm:text-[11px] font-bold text-textSecondary hover:text-textPrimary hover:bg-bgSurfaceHover transition-colors flex items-center gap-2"
               >
-                <History size={14} /> Histórico
+                <History size={14} className="sm:hidden" />
+                <span className="hidden sm:inline">Histórico</span>
               </button>
               <button
                 onClick={() => {
                   setShowInsights(true);
                   setShowHistory(false);
                 }}
-                className="px-4 py-2 rounded-xl bg-bgSurfaceHover/50 border border-borderSubtle text-[11px] font-bold text-textSecondary hover:text-textPrimary hover:bg-bgSurfaceHover transition-colors flex items-center gap-2"
+                className="px-3 sm:px-4 py-2 rounded-xl bg-bgSurfaceHover/50 border border-borderSubtle text-[10px] sm:text-[11px] font-bold text-textSecondary hover:text-textPrimary hover:bg-bgSurfaceHover transition-colors flex items-center gap-2"
               >
-                <Lightbulb size={14} /> Insights
+                <Lightbulb size={14} className="sm:hidden" />
+                <span className="hidden sm:inline">Insights</span>
               </button>
-              <div className="w-px h-6 bg-borderFocus mx-1" />
+              <div className="w-px h-6 bg-borderFocus mx-1 hidden sm:block" />
               <button
                 onClick={() => setIsSprintModalOpen(true)}
-                className="px-5 py-2 rounded-xl bg-bgSurfaceHover border border-borderFocus text-[11px] font-black text-textPrimary hover:bg-bgSurfaceActive transition-colors flex items-center gap-2"
+                className="px-3 sm:px-5 py-2 rounded-xl bg-bgSurfaceHover border border-borderFocus text-[10px] sm:text-[11px] font-black text-textPrimary hover:bg-bgSurfaceActive transition-colors flex items-center gap-2"
               >
-                <Plus size={14} /> Nova Sprint
+                <Plus size={14} className="sm:hidden" />
+                <span className="hidden sm:inline">Nova Sprint</span>
               </button>
               <button
                 onClick={openCreateModal}
-                className="px-5 py-2 rounded-xl bg-indigo-600 text-[11px] font-black text-white hover:bg-indigo-500 transition-colors shadow-[0_0_20px_rgba(79,70,229,0.3)] flex items-center gap-2"
+                className="px-3 sm:px-5 py-2 rounded-xl bg-indigo-600 text-[10px] sm:text-[11px] font-black text-white hover:bg-indigo-500 transition-colors shadow-[0_0_20px_rgba(79,70,229,0.3)] flex items-center gap-2"
               >
-                Criar Issue
+                <Plus size={14} className="sm:hidden" />
+                <span className="hidden sm:inline">Criar Issue</span>
               </button>
             </div>
           </header>
 
-          <div className="flex items-center justify-between bg-bgSurface/60 border border-borderSubtle z-[60] rounded-2xl p-2 backdrop-blur-md shadow-lg relative">
+          {/* BARRA DE PESQUISA E FILTROS */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 bg-bgSurface/60 border border-borderSubtle rounded-2xl p-2 backdrop-blur-md shadow-lg">
             <div className="flex items-center flex-1">
-              <div className="relative flex-1 max-w-md flex items-center group">
+              <div className="relative flex-1 flex items-center group">
                 <Search
                   size={14}
-                  className="absolute left-4 text-textMuted group-focus-within:text-indigo-400 transition-colors"
+                  className="absolute left-3 text-textMuted group-focus-within:text-indigo-400 transition-colors"
                 />
                 <input
                   type="text"
-                  placeholder="Pesquisar por título, ID ou descrição..."
+                  placeholder="Pesquisar..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent border-none text-[12px] text-textPrimary pl-10 pr-4 py-2 outline-none placeholder:text-textFaint focus:ring-0"
+                  className="w-full bg-transparent border-none text-[12px] text-textPrimary pl-9 pr-3 py-2 outline-none placeholder:text-textFaint focus:ring-0"
                 />
               </div>
-              <div className="w-px h-6 bg-borderFocus mx-2" />
-
-              {/* --- BOTÃO E MENU DE FILTROS --- */}
               <div className="relative">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsFilterOpen(!isFilterOpen);
                   }}
-                  className={`flex items-center gap-2 px-4 py-2 text-[11px] font-bold uppercase tracking-widest transition-colors rounded-lg ${hasActiveFilters ? "text-indigo-400 bg-indigo-500/10" : "text-textMuted hover:text-textPrimary hover:bg-bgSurfaceHover"}`}
+                  className={`flex items-center gap-1 px-3 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg ${
+                    hasActiveFilters
+                      ? "text-indigo-400 bg-indigo-500/10"
+                      : "text-textMuted hover:text-textPrimary hover:bg-bgSurfaceHover"
+                  }`}
                 >
-                  <Filter size={12} /> Filtros{" "}
+                  <Filter size={12} />
+                  <span className="hidden sm:inline">Filtros</span>
                   {hasActiveFilters && (
-                    <span className="ml-1 w-2 h-2 rounded-full bg-indigo-500" />
+                    <span className="ml-1 w-1.5 h-1.5 rounded-full bg-indigo-500" />
                   )}
                 </button>
 
@@ -683,7 +692,7 @@ export default function BacklogPage() {
                       </div>
 
                       {/* Filtro Prioridade */}
-                      <div className="z-index-[100]">
+                      <div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-textFaint mb-2 block">
                           Prioridade
                         </span>
@@ -692,7 +701,11 @@ export default function BacklogPage() {
                             <button
                               key={p}
                               onClick={() => togglePriorityFilter(p)}
-                              className={`px-2 py-1 text-[10px] font-bold uppercase rounded border transition-colors ${selectedPriorities.includes(p) ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30" : "bg-transparent text-textMuted border-borderFocus hover:border-borderSubtle"}`}
+                              className={`px-2 py-1 text-[10px] font-bold uppercase rounded border transition-colors ${
+                                selectedPriorities.includes(p)
+                                  ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30"
+                                  : "bg-transparent text-textMuted border-borderFocus hover:border-borderSubtle"
+                              }`}
                             >
                               {p}
                             </button>
@@ -722,7 +735,11 @@ export default function BacklogPage() {
                                   alt=""
                                 />
                                 <span
-                                  className={`text-[11px] ${selectedAssignees.includes(m.name) ? "text-indigo-400 font-bold" : "text-textSecondary group-hover:text-textPrimary"}`}
+                                  className={`text-[11px] ${
+                                    selectedAssignees.includes(m.name)
+                                      ? "text-indigo-400 font-bold"
+                                      : "text-textSecondary group-hover:text-textPrimary"
+                                  }`}
                                 >
                                   {m.name}
                                 </span>
@@ -740,8 +757,8 @@ export default function BacklogPage() {
               </div>
             </div>
 
-            {/* FOTOS DA EQUIPE NO TOPO COM REDIRECIONAMENTO */}
-            <div className="pr-4 flex -space-x-2">
+            {/* FOTOS DA EQUIPE */}
+            <div className="flex sm:pr-4 -space-x-2 sm:justify-end justify-start pl-1">
               {activeProject?.members?.slice(0, 4).map((m: any, i: number) => (
                 <img
                   key={i}
@@ -749,7 +766,7 @@ export default function BacklogPage() {
                     m.photoURL || `https://ui-avatars.com/api/?name=${m.name}`
                   }
                   onClick={() => handleProfileClick(m.email || m.name)}
-                  className="w-7 h-7 rounded-full border border-borderFocus grayscale hover:grayscale-0 transition-all cursor-pointer hover:z-10 hover:scale-110"
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full border border-borderFocus grayscale hover:grayscale-0 transition-all cursor-pointer hover:z-10 hover:scale-110"
                   title={`Ver perfil de ${m.name}`}
                 />
               ))}
@@ -765,7 +782,8 @@ export default function BacklogPage() {
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between px-8 py-2 text-[9px] font-black text-textFaint uppercase tracking-[0.2em] sticky top-0 z-20 backdrop-blur-md bg-bgMain/80 rounded-lg">
+              {/* CABEÇALHO DAS COLUNAS (somente desktop) */}
+              <div className="hidden sm:flex items-center justify-between px-8 py-2 text-[9px] font-black text-textFaint uppercase tracking-[0.2em] sticky top-0 z-20 backdrop-blur-md bg-bgMain/80 rounded-lg">
                 <div className="flex gap-14 pl-6">
                   <span className="w-16">Tipo / ID</span>
                   <span>Detalhes da Issue</span>
@@ -782,7 +800,13 @@ export default function BacklogPage() {
               {/* BLOCO SPRINT */}
               {activeSprint && (
                 <div
-                  className={`border rounded-[1.8rem] overflow-hidden relative mb-8 transition-all duration-300 ${dragOverArea === "sprint" ? "bg-indigo-500/10 border-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.2)]" : isDraggingTask ? "bg-bgSurface/80 border-dashed border-borderFocus" : "bg-bgSurface/80 border-borderSubtle shadow-2xl"}`}
+                  className={`border rounded-[1.5rem] sm:rounded-[1.8rem] overflow-hidden relative mb-4 sm:mb-8 transition-all duration-300 ${
+                    dragOverArea === "sprint"
+                      ? "bg-indigo-500/10 border-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.2)]"
+                      : isDraggingTask
+                        ? "bg-bgSurface/80 border-dashed border-borderFocus"
+                        : "bg-bgSurface/80 border-borderSubtle shadow-2xl"
+                  }`}
                   onDragEnter={() => setDragOverArea("sprint")}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, "sprint")}
@@ -791,20 +815,24 @@ export default function BacklogPage() {
                     <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-transparent" />
                   )}
                   <div
-                    className={`p-5 px-6 flex items-center justify-between border-b transition-colors ${dragOverArea === "sprint" ? "bg-indigo-500/20 border-indigo-500/30" : "bg-bgSurfaceHover/50 border-borderSubtle"}`}
+                    className={`p-3 sm:p-5 px-4 sm:px-6 flex items-center justify-between border-b transition-colors ${
+                      dragOverArea === "sprint"
+                        ? "bg-indigo-500/20 border-indigo-500/30"
+                        : "bg-bgSurfaceHover/50 border-borderSubtle"
+                    }`}
                   >
                     <div>
-                      <h3 className="text-[13px] font-bold text-textPrimary flex items-center gap-2">
+                      <h3 className="text-xs sm:text-[13px] font-bold text-textPrimary flex items-center gap-2">
                         {activeSprint.name}{" "}
-                        <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-400 uppercase tracking-widest">
+                        <span className="px-2 py-0.5 rounded text-[8px] sm:text-[9px] font-bold bg-indigo-500/20 text-indigo-400 uppercase tracking-widest">
                           Active
                         </span>
                       </h3>
-                      <p className="text-[11px] text-textMuted font-medium mt-1">
+                      <p className="text-[10px] sm:text-[11px] text-textMuted font-medium mt-1">
                         {getSprintCountdown(activeSprint.endDate)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-4 text-[11px] font-bold text-textMuted">
+                    <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-[11px] font-bold text-textMuted">
                       <span>{filteredSprint.length} issues</span>
                       <span className="px-2 py-1 bg-bgSurfaceHover/50 rounded-md border border-borderSubtle text-textSecondary">
                         {filteredSprint.reduce(
@@ -828,71 +856,158 @@ export default function BacklogPage() {
                           onDragEnd={handleDragEnd}
                           onClick={() => openEditModal(task)}
                           onContextMenu={(e) => handleContextMenu(e, task)}
-                          className={`flex items-center justify-between px-6 py-4 border-b last:border-0 transition-colors group cursor-pointer ${draggedItem?.issue?.id === task.id ? "bg-bgSurfaceHover border-indigo-500/30 ring-1 ring-indigo-500/50" : "hover:bg-bgSurfaceHover/50 border-borderSubtle"}`}
+                          className={`group cursor-pointer ${
+                            draggedItem?.issue?.id === task.id
+                              ? "bg-bgSurfaceHover border-indigo-500/30 ring-1 ring-indigo-500/50"
+                              : "hover:bg-bgSurfaceHover/50"
+                          } transition-colors`}
                         >
-                          <div className="flex items-center gap-4">
-                            <GripVertical
-                              size={14}
-                              className="text-textFaint cursor-grab opacity-0 group-hover:opacity-100 transition-opacity"
-                            />
-                            <div
-                              className={`w-6 h-6 rounded-lg ${task.status === "done" ? "bg-emerald-500/10 border-emerald-500/20" : "bg-bgSurfaceHover border-borderFocus"} border flex items-center justify-center shrink-0`}
-                            >
-                              {getStatusIcon(task.status)}
-                            </div>
-                            <span className="text-[11px] font-mono text-textMuted w-12">
-                              {task.taskKey || "TASK"}
-                            </span>
-                            <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-bgSurfaceHover/50 text-textSecondary rounded-md border border-borderSubtle truncate max-w-[80px]">
-                              {task.epic || "Geral"}
-                            </span>
-                            <span className="text-[13px] font-semibold text-textPrimary group-hover:text-textPrimary transition-colors truncate max-w-[300px]">
-                              {task.title}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-8 text-[11px]">
-                            <div className="flex items-center gap-4 w-20">
-                              {task.branch && (
-                                <span className="flex items-center gap-1.5 text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20 truncate">
-                                  <GitBranch size={10} /> {task.branch}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1.5 text-textFaint w-12">
-                              <MessageSquare size={12} />{" "}
-                              {task.commentsCount || 0}
-                            </div>
-                            <div className="text-textFaint font-mono text-[10px] w-20 flex items-center gap-1.5 truncate">
-                              <Calendar size={10} />{" "}
-                              {formatDate(task.updatedAt || task.createdAt)}
-                            </div>
-                            <div className="w-12 flex justify-center">
-                              <span
-                                className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase border ${getPriorityStyles(task.priority)}`}
-                              >
-                                {task.priority || "Low"}
-                              </span>
-                            </div>
-                            <div className="w-10 flex justify-center">
-                              <span
-                                className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-bold border ${task.points ? "bg-bgSurfaceHover text-textSecondary border-borderFocus" : "bg-transparent border-dashed border-borderFocus text-textFaint"}`}
-                              >
-                                {task.points || "-"}
-                              </span>
-                            </div>
-                            <div className="w-10 flex justify-end">
-                              <img
-                                src={
-                                  task.assigneePhoto ||
-                                  `https://ui-avatars.com/api/?name=${task.assignee || "U"}&background=0D0D0D&color=fff`
-                                }
-                                className="w-7 h-7 rounded-full grayscale group-hover:grayscale-0 transition-all border border-borderFocus hover:scale-110"
-                                alt=""
-                                title={`Ver perfil de ${task.assignee}`}
-                                onClick={(e) =>
-                                  handleProfileClick(task.assignee, e)
-                                }
+                          {/* Versão desktop */}
+                          <div className="hidden sm:flex items-center justify-between px-6 py-4 border-b border-borderSubtle last:border-0">
+                            <div className="flex items-center gap-4">
+                              <GripVertical
+                                size={14}
+                                className="text-textFaint cursor-grab opacity-0 group-hover:opacity-100 transition-opacity"
                               />
+                              <div
+                                className={`w-6 h-6 rounded-lg ${
+                                  task.status === "done"
+                                    ? "bg-emerald-500/10 border-emerald-500/20"
+                                    : "bg-bgSurfaceHover border-borderFocus"
+                                } border flex items-center justify-center shrink-0`}
+                              >
+                                {getStatusIcon(task.status)}
+                              </div>
+                              <span className="text-[11px] font-mono text-textMuted w-12">
+                                {task.taskKey || "TASK"}
+                              </span>
+                              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-bgSurfaceHover/50 text-textSecondary rounded-md border border-borderSubtle truncate max-w-[80px]">
+                                {task.epic || "Geral"}
+                              </span>
+                              <span className="text-[13px] font-semibold text-textPrimary group-hover:text-textPrimary transition-colors truncate max-w-[300px]">
+                                {task.title}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-8 text-[11px]">
+                              <div className="flex items-center gap-4 w-20">
+                                {task.branch && (
+                                  <span className="flex items-center gap-1.5 text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20 truncate">
+                                    <GitBranch size={10} /> {task.branch}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-textFaint w-12">
+                                <MessageSquare size={12} />{" "}
+                                {task.commentsCount || 0}
+                              </div>
+                              <div className="text-textFaint font-mono text-[10px] w-20 flex items-center gap-1.5 truncate">
+                                <Calendar size={10} />{" "}
+                                {formatDate(task.updatedAt || task.createdAt)}
+                              </div>
+                              <div className="w-12 flex justify-center">
+                                <span
+                                  className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase border ${getPriorityStyles(
+                                    task.priority,
+                                  )}`}
+                                >
+                                  {task.priority || "Low"}
+                                </span>
+                              </div>
+                              <div className="w-10 flex justify-center">
+                                <span
+                                  className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-bold border ${
+                                    task.points
+                                      ? "bg-bgSurfaceHover text-textSecondary border-borderFocus"
+                                      : "bg-transparent border-dashed border-borderFocus text-textFaint"
+                                  }`}
+                                >
+                                  {task.points || "-"}
+                                </span>
+                              </div>
+                              <div className="w-10 flex justify-end">
+                                <img
+                                  src={
+                                    task.assigneePhoto ||
+                                    `https://ui-avatars.com/api/?name=${
+                                      task.assignee || "U"
+                                    }&background=0D0D0D&color=fff`
+                                  }
+                                  className="w-7 h-7 rounded-full grayscale group-hover:grayscale-0 transition-all border border-borderFocus hover:scale-110"
+                                  alt=""
+                                  title={`Ver perfil de ${task.assignee}`}
+                                  onClick={(e) =>
+                                    handleProfileClick(task.assignee, e)
+                                  }
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Versão mobile */}
+                          <div className="sm:hidden px-4 py-3 border-b border-borderSubtle last:border-0">
+                            <div className="flex items-start gap-3">
+                              <div
+                                className={`w-6 h-6 rounded-lg shrink-0 flex items-center justify-center ${
+                                  task.status === "done"
+                                    ? "bg-emerald-500/10 border-emerald-500/20"
+                                    : "bg-bgSurfaceHover border-borderFocus"
+                                } border`}
+                              >
+                                {getStatusIcon(task.status)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-[10px] font-mono text-textMuted">
+                                    {task.taskKey || "TASK"}
+                                  </span>
+                                  <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 bg-bgSurfaceHover/50 text-textSecondary rounded-md border border-borderSubtle truncate max-w-[80px]">
+                                    {task.epic || "Geral"}
+                                  </span>
+                                </div>
+                                <h4 className="text-[13px] font-semibold text-textPrimary truncate mt-1">
+                                  {task.title}
+                                </h4>
+                                <div className="flex items-center justify-between mt-2">
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-md border ${getPriorityStyles(
+                                        task.priority,
+                                      )}`}
+                                    >
+                                      {task.priority || "Low"}
+                                    </span>
+                                    <div className="flex items-center gap-1 text-textFaint text-[10px]">
+                                      <MessageSquare size={12} />{" "}
+                                      {task.commentsCount || 0}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span
+                                      className={`w-5 h-5 flex items-center justify-center rounded-full text-[9px] font-bold border ${
+                                        task.points
+                                          ? "bg-bgSurfaceHover text-textSecondary border-borderFocus"
+                                          : "bg-transparent border-dashed border-borderFocus text-textFaint"
+                                      }`}
+                                    >
+                                      {task.points || "-"}
+                                    </span>
+                                    <img
+                                      src={
+                                        task.assigneePhoto ||
+                                        `https://ui-avatars.com/api/?name=${
+                                          task.assignee || "U"
+                                        }&background=0D0D0D&color=fff`
+                                      }
+                                      className="w-5 h-5 rounded-full grayscale group-hover:grayscale-0 transition-all border border-borderFocus"
+                                      alt=""
+                                      title={`Ver perfil de ${task.assignee}`}
+                                      onClick={(e) =>
+                                        handleProfileClick(task.assignee, e)
+                                      }
+                                    />
+                                  </div>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </motion.div>
@@ -910,18 +1025,28 @@ export default function BacklogPage() {
 
               {/* BLOCO BACKLOG */}
               <div
-                className={`border rounded-[1.8rem] overflow-hidden transition-all duration-300 ${dragOverArea === "backlog" ? "bg-bgSurfaceHover border-borderFocus shadow-[0_0_30px_rgba(255,255,255,0.05)]" : isDraggingTask ? "bg-bgSurface/80 border-dashed border-borderFocus" : "bg-bgSurface/80 border-borderSubtle shadow-2xl"}`}
+                className={`border rounded-[1.5rem] sm:rounded-[1.8rem] overflow-hidden transition-all duration-300 ${
+                  dragOverArea === "backlog"
+                    ? "bg-bgSurfaceHover border-borderFocus shadow-[0_0_30px_rgba(255,255,255,0.05)]"
+                    : isDraggingTask
+                      ? "bg-bgSurface/80 border-dashed border-borderFocus"
+                      : "bg-bgSurface/80 border-borderSubtle shadow-2xl"
+                }`}
                 onDragEnter={() => setDragOverArea("backlog")}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, "backlog")}
               >
                 <div
-                  className={`p-5 px-6 flex items-center justify-between border-b transition-colors ${dragOverArea === "backlog" ? "bg-bgSurfaceActive border-borderFocus" : "bg-bgSurfaceHover/50 border-borderSubtle"}`}
+                  className={`p-3 sm:p-5 px-4 sm:px-6 flex items-center justify-between border-b transition-colors ${
+                    dragOverArea === "backlog"
+                      ? "bg-bgSurfaceActive border-borderFocus"
+                      : "bg-bgSurfaceHover/50 border-borderSubtle"
+                  }`}
                 >
-                  <h3 className="text-[13px] font-bold text-textPrimary">
+                  <h3 className="text-xs sm:text-[13px] font-bold text-textPrimary">
                     Backlog de Produto
                   </h3>
-                  <div className="text-[11px] font-bold text-textMuted">
+                  <div className="text-[10px] sm:text-[11px] font-bold text-textMuted">
                     <span>{filteredBacklog.length} issues</span>
                   </div>
                 </div>
@@ -938,65 +1063,152 @@ export default function BacklogPage() {
                         onDragEnd={handleDragEnd}
                         onClick={() => openEditModal(task)}
                         onContextMenu={(e) => handleContextMenu(e, task)}
-                        className={`flex items-center justify-between px-6 py-4 border-b last:border-0 transition-colors group cursor-pointer ${draggedItem?.issue?.id === task.id ? "bg-bgSurfaceHover border-indigo-500/30 ring-1 ring-indigo-500/50" : "hover:bg-bgSurfaceHover/50 border-borderSubtle"}`}
+                        className={`group cursor-pointer ${
+                          draggedItem?.issue?.id === task.id
+                            ? "bg-bgSurfaceHover border-indigo-500/30 ring-1 ring-indigo-500/50"
+                            : "hover:bg-bgSurfaceHover/50"
+                        } transition-colors`}
                       >
-                        <div className="flex items-center gap-4">
-                          <GripVertical
-                            size={14}
-                            className="text-textFaint cursor-grab opacity-0 group-hover:opacity-100 transition-opacity"
-                          />
-                          <div
-                            className={`w-6 h-6 rounded-lg ${task.status === "done" ? "bg-emerald-500/10 border-emerald-500/20" : "bg-bgSurfaceHover border-borderFocus"} border flex items-center justify-center shrink-0`}
-                          >
-                            {getStatusIcon(task.status)}
-                          </div>
-                          <span className="text-[11px] font-mono text-textMuted w-12">
-                            {task.taskKey || "TASK"}
-                          </span>
-                          <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-bgSurfaceHover/50 text-textSecondary rounded-md border border-borderSubtle truncate max-w-[80px]">
-                            {task.epic || "Geral"}
-                          </span>
-                          <span className="text-[13px] font-semibold text-textPrimary group-hover:text-textPrimary transition-colors truncate max-w-[300px]">
-                            {task.title}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-8 text-[11px]">
-                          <div className="w-20"></div>
-                          <div className="flex items-center gap-1.5 text-textFaint w-12">
-                            <MessageSquare size={12} />{" "}
-                            {task.commentsCount || 0}
-                          </div>
-                          <div className="text-textFaint font-mono text-[10px] w-20 flex items-center gap-1.5 truncate">
-                            <Calendar size={10} />{" "}
-                            {formatDate(task.updatedAt || task.createdAt)}
-                          </div>
-                          <div className="w-12 flex justify-center">
-                            <span
-                              className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase border ${getPriorityStyles(task.priority)}`}
-                            >
-                              {task.priority || "Low"}
-                            </span>
-                          </div>
-                          <div className="w-10 flex justify-center">
-                            <span
-                              className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-bold border ${task.points ? "bg-bgSurfaceHover text-textSecondary border-borderFocus" : "bg-transparent border-dashed border-borderFocus text-textFaint"}`}
-                            >
-                              {task.points || "-"}
-                            </span>
-                          </div>
-                          <div className="w-10 flex justify-end">
-                            <img
-                              src={
-                                task.assigneePhoto ||
-                                `https://ui-avatars.com/api/?name=${task.assignee || "U"}&background=0D0D0D&color=fff`
-                              }
-                              className="w-7 h-7 rounded-full grayscale group-hover:grayscale-0 transition-all border border-borderFocus hover:scale-110"
-                              alt=""
-                              title={`Ver perfil de ${task.assignee}`}
-                              onClick={(e) =>
-                                handleProfileClick(task.assignee, e)
-                              }
+                        {/* Versão desktop */}
+                        <div className="hidden sm:flex items-center justify-between px-6 py-4 border-b border-borderSubtle last:border-0">
+                          <div className="flex items-center gap-4">
+                            <GripVertical
+                              size={14}
+                              className="text-textFaint cursor-grab opacity-0 group-hover:opacity-100 transition-opacity"
                             />
+                            <div
+                              className={`w-6 h-6 rounded-lg ${
+                                task.status === "done"
+                                  ? "bg-emerald-500/10 border-emerald-500/20"
+                                  : "bg-bgSurfaceHover border-borderFocus"
+                              } border flex items-center justify-center shrink-0`}
+                            >
+                              {getStatusIcon(task.status)}
+                            </div>
+                            <span className="text-[11px] font-mono text-textMuted w-12">
+                              {task.taskKey || "TASK"}
+                            </span>
+                            <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-bgSurfaceHover/50 text-textSecondary rounded-md border border-borderSubtle truncate max-w-[80px]">
+                              {task.epic || "Geral"}
+                            </span>
+                            <span className="text-[13px] font-semibold text-textPrimary group-hover:text-textPrimary transition-colors truncate max-w-[300px]">
+                              {task.title}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-8 text-[11px]">
+                            <div className="w-20"></div>
+                            <div className="flex items-center gap-1.5 text-textFaint w-12">
+                              <MessageSquare size={12} />{" "}
+                              {task.commentsCount || 0}
+                            </div>
+                            <div className="text-textFaint font-mono text-[10px] w-20 flex items-center gap-1.5 truncate">
+                              <Calendar size={10} />{" "}
+                              {formatDate(task.updatedAt || task.createdAt)}
+                            </div>
+                            <div className="w-12 flex justify-center">
+                              <span
+                                className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase border ${getPriorityStyles(
+                                  task.priority,
+                                )}`}
+                              >
+                                {task.priority || "Low"}
+                              </span>
+                            </div>
+                            <div className="w-10 flex justify-center">
+                              <span
+                                className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-bold border ${
+                                  task.points
+                                    ? "bg-bgSurfaceHover text-textSecondary border-borderFocus"
+                                    : "bg-transparent border-dashed border-borderFocus text-textFaint"
+                                }`}
+                              >
+                                {task.points || "-"}
+                              </span>
+                            </div>
+                            <div className="w-10 flex justify-end">
+                              <img
+                                src={
+                                  task.assigneePhoto ||
+                                  `https://ui-avatars.com/api/?name=${
+                                    task.assignee || "U"
+                                  }&background=0D0D0D&color=fff`
+                                }
+                                className="w-7 h-7 rounded-full grayscale group-hover:grayscale-0 transition-all border border-borderFocus hover:scale-110"
+                                alt=""
+                                title={`Ver perfil de ${task.assignee}`}
+                                onClick={(e) =>
+                                  handleProfileClick(task.assignee, e)
+                                }
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Versão mobile */}
+                        <div className="sm:hidden px-4 py-3 border-b border-borderSubtle last:border-0">
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={`w-6 h-6 rounded-lg shrink-0 flex items-center justify-center ${
+                                task.status === "done"
+                                  ? "bg-emerald-500/10 border-emerald-500/20"
+                                  : "bg-bgSurfaceHover border-borderFocus"
+                              } border`}
+                            >
+                              {getStatusIcon(task.status)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[10px] font-mono text-textMuted">
+                                  {task.taskKey || "TASK"}
+                                </span>
+                                <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 bg-bgSurfaceHover/50 text-textSecondary rounded-md border border-borderSubtle truncate max-w-[80px]">
+                                  {task.epic || "Geral"}
+                                </span>
+                              </div>
+                              <h4 className="text-[13px] font-semibold text-textPrimary truncate mt-1">
+                                {task.title}
+                              </h4>
+                              <div className="flex items-center justify-between mt-2">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-md border ${getPriorityStyles(
+                                      task.priority,
+                                    )}`}
+                                  >
+                                    {task.priority || "Low"}
+                                  </span>
+                                  <div className="flex items-center gap-1 text-textFaint text-[10px]">
+                                    <MessageSquare size={12} />{" "}
+                                    {task.commentsCount || 0}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span
+                                    className={`w-5 h-5 flex items-center justify-center rounded-full text-[9px] font-bold border ${
+                                      task.points
+                                        ? "bg-bgSurfaceHover text-textSecondary border-borderFocus"
+                                        : "bg-transparent border-dashed border-borderFocus text-textFaint"
+                                    }`}
+                                  >
+                                    {task.points || "-"}
+                                  </span>
+                                  <img
+                                    src={
+                                      task.assigneePhoto ||
+                                      `https://ui-avatars.com/api/?name=${
+                                        task.assignee || "U"
+                                      }&background=0D0D0D&color=fff`
+                                    }
+                                    className="w-5 h-5 rounded-full grayscale group-hover:grayscale-0 transition-all border border-borderFocus"
+                                    alt=""
+                                    title={`Ver perfil de ${task.assignee}`}
+                                    onClick={(e) =>
+                                      handleProfileClick(task.assignee, e)
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </motion.div>
@@ -1015,7 +1227,7 @@ export default function BacklogPage() {
         </div>
       </div>
 
-      {/* --- SIDEBARS (HISTÓRICO E INSIGHTS) --- */}
+      {/* SIDEBARS (HISTÓRICO E INSIGHTS) */}
       <AnimatePresence>
         {(showHistory || showInsights) && (
           <>
@@ -1034,7 +1246,7 @@ export default function BacklogPage() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 bottom-0 w-full max-w-sm bg-bgPanel border-l border-borderFocus z-[101] shadow-2xl flex flex-col"
+              className="fixed top-0 right-0 bottom-0 w-full sm:max-w-sm bg-bgPanel border-l border-borderFocus z-[101] shadow-2xl flex flex-col"
             >
               <div className="p-6 border-b border-borderSubtle flex items-center justify-between">
                 <h2 className="text-lg font-black text-textPrimary flex items-center gap-2">
@@ -1078,7 +1290,11 @@ export default function BacklogPage() {
                             {sprint.name}
                           </h4>
                           <span
-                            className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${sprint.status === "active" ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" : "bg-bgSurfaceHover text-textSecondary border-borderFocus"}`}
+                            className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded border ${
+                              sprint.status === "active"
+                                ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                                : "bg-bgSurfaceHover text-textSecondary border-borderFocus"
+                            }`}
                           >
                             {sprint.status === "active"
                               ? "Em curso"
@@ -1128,7 +1344,11 @@ export default function BacklogPage() {
                       <div
                         className="bg-emerald-500 h-full transition-all duration-1000"
                         style={{
-                          width: `${totalIssues === 0 ? 0 : (completedIssues / totalIssues) * 100}%`,
+                          width: `${
+                            totalIssues === 0
+                              ? 0
+                              : (completedIssues / totalIssues) * 100
+                          }%`,
                         }}
                       />
                     </div>
@@ -1150,7 +1370,11 @@ export default function BacklogPage() {
                       <div
                         className="w-12 bg-red-500/80 rounded-t-md transition-all duration-1000 relative group"
                         style={{
-                          height: `${totalIssues === 0 ? 0 : Math.max(10, (highPriority / totalIssues) * 100)}%`,
+                          height: `${
+                            totalIssues === 0
+                              ? 0
+                              : Math.max(10, (highPriority / totalIssues) * 100)
+                          }%`,
                         }}
                       >
                         <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-textPrimary opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1160,7 +1384,15 @@ export default function BacklogPage() {
                       <div
                         className="w-12 bg-borderFocus rounded-t-md transition-all duration-1000 relative group"
                         style={{
-                          height: `${totalIssues === 0 ? 0 : Math.max(10, ((totalIssues - highPriority) / totalIssues) * 100)}%`,
+                          height: `${
+                            totalIssues === 0
+                              ? 0
+                              : Math.max(
+                                  10,
+                                  ((totalIssues - highPriority) / totalIssues) *
+                                    100,
+                                )
+                          }%`,
                         }}
                       >
                         <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-textPrimary opacity-0 group-hover:opacity-100 transition-opacity">

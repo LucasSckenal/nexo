@@ -33,9 +33,7 @@ export default function AnalisesPage() {
   useEffect(() => {
     if (!activeProject?.id) return;
 
-    const q = query(
-      collection(db, "projects", activeProject.id, "tasks")
-    );
+    const q = query(collection(db, "projects", activeProject.id, "tasks"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const tasksData = snapshot.docs.map((doc) => ({
@@ -52,29 +50,29 @@ export default function AnalisesPage() {
   const stats = useMemo(() => {
     const total = tasks.length;
     const completedTasks = tasks.filter(
-      (t) => t.status === "done" || t.status === "concluido"
+      (t) => t.status === "done" || t.status === "concluido",
     );
     const completed = completedTasks.length;
-    
+
     const inProgress = tasks.filter(
-      (t) => t.status === "in-progress" || t.status === "review"
+      (t) => t.status === "in-progress" || t.status === "review",
     ).length;
-    
+
     // Consideramos "bugs" como tarefas não concluídas de prioridade crítica
     const bugs = tasks.filter(
-      (t) => t.priority === "critical" && t.status !== "done"
+      (t) => t.priority === "critical" && t.status !== "done",
     ).length;
-    
+
     const totalPoints = tasks.reduce(
       (acc, t) => acc + (Number(t.points) || 0),
-      0
+      0,
     );
-    
+
     const donePoints = completedTasks.reduce(
       (acc, t) => acc + (Number(t.points) || 0),
-      0
+      0,
     );
-    
+
     const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     return {
@@ -107,11 +105,11 @@ export default function AnalisesPage() {
       if (t.status === "done" || t.status === "concluido") {
         const dateValue = t.updatedAt || t.createdAt;
         if (!dateValue) return;
-        
+
         const tDate = dateValue.toDate
           ? dateValue.toDate()
           : new Date(dateValue);
-          
+
         if (!isNaN(tDate.getTime())) {
           const match = data.find((d) => d.dateKey === tDate.toDateString());
           if (match) {
@@ -128,9 +126,11 @@ export default function AnalisesPage() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="h-full flex flex-col p-4 md:p-6 max-w-[1600px] mx-auto w-full gap-4 md:gap-6 overflow-hidden"
+      // Removido o h-full e overflow-hidden para permitir scroll vertical no mobile
+      // Adicionado pb-32 para dar espaço ao dock mobile
+      className="flex flex-col p-4 md:p-6 pb-32 lg:pb-6 max-w-[1600px] mx-auto w-full gap-4 md:gap-6 min-h-full"
     >
-      {/* Header Estilizado - Ajustado para ocupar menos espaço vertical */}
+      {/* Header Estilizado */}
       <header className="shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-indigo-500 mb-1">
@@ -150,7 +150,7 @@ export default function AnalisesPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-4 bg-bgPanel border border-borderSubtle p-1.5 rounded-2xl shadow-xl">
+        <div className="flex items-center gap-4 bg-bgPanel border border-borderSubtle p-1.5 rounded-2xl shadow-xl w-max">
           <div className="bg-emerald-500/10 text-emerald-500 px-4 py-2 rounded-xl flex items-center gap-2 border border-emerald-500/10">
             <TrendingUp size={14} />
             <span className="text-[10px] font-black tracking-widest uppercase">
@@ -160,8 +160,8 @@ export default function AnalisesPage() {
         </div>
       </header>
 
-      {/* Grid de Cards com Glassmorphism - Reduzido paddings */}
-      <div className="shrink-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Grid de Cards - Ajustado para sm:grid-cols-2 para melhorar em tablets/telas médias */}
+      <div className="shrink-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Progresso Final"
           value={`${stats.percent}%`}
@@ -192,10 +192,10 @@ export default function AnalisesPage() {
         />
       </div>
 
-      {/* Seção Central de Gráficos - Flex-1 para preencher tela e min-h-0 para evitar scroll */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-        {/* Container do Gráfico */}
-        <div className="lg:col-span-2 bg-bgPanel border border-borderSubtle rounded-[2rem] p-6 flex flex-col relative overflow-hidden shadow-2xl">
+      {/* Seção Central de Gráficos */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+        {/* Container do Gráfico - min-h-[350px] adicionado para não sumir no mobile */}
+        <div className="lg:col-span-2 bg-bgPanel border border-borderSubtle rounded-[2rem] p-6 flex flex-col relative overflow-hidden shadow-2xl min-h-[350px] lg:min-h-0">
           <div className="absolute top-0 right-0 p-6 pointer-events-none">
             <Layout size={80} className="text-textPrimary opacity-5" />
           </div>
@@ -214,7 +214,7 @@ export default function AnalisesPage() {
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 w-full mt-2">
+          <div className="flex-1 min-h-[250px] w-full mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
@@ -232,7 +232,11 @@ export default function AnalisesPage() {
                   dataKey="name"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "var(--text-secondary)", fontSize: 10, fontWeight: 800 }}
+                  tick={{
+                    fill: "var(--text-secondary)",
+                    fontSize: 10,
+                    fontWeight: 800,
+                  }}
                   dy={10}
                 />
                 <Tooltip

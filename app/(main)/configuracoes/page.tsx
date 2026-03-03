@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "../../lib/firebase";
 import { useData } from "../../context/DataContext";
-import { useTheme } from "../../context/ThemeContext"; // Importado o hook do tema
+import { useTheme } from "../../context/ThemeContext";
 import {
   Globe,
   Users,
@@ -107,7 +107,7 @@ const AVAILABLE_COLORS = [
 
 export default function SettingsPage() {
   const { activeProject } = useData();
-  const { theme } = useTheme(); // Uso do tema
+  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<
     "general" | "board" | "members" | "integrations"
   >("general");
@@ -383,7 +383,7 @@ export default function SettingsPage() {
       showToast("Erro ao remover membro.", "error");
     } finally {
       setIsSaving(false);
-      setMemberToRemove(null); // Fecha o modal no final
+      setMemberToRemove(null);
     }
   };
 
@@ -456,6 +456,31 @@ export default function SettingsPage() {
     }
   };
 
+  // Componente para as abas mobile
+  const MobileTab = ({
+    icon,
+    label,
+    isActive,
+    onClick,
+  }: {
+    icon: React.ReactNode;
+    label: string;
+    isActive: boolean;
+    onClick: () => void;
+  }) => (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 px-4 py-3 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+        isActive
+          ? "bg-accentPurple/10 text-accentPurple border border-accentPurple/20"
+          : "text-textMuted bg-bgSurface/60 hover:bg-bgSurface"
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+
   if (!activeProject) return null;
 
   return (
@@ -469,7 +494,11 @@ export default function SettingsPage() {
             className="fixed top-8 left-1/2 -translate-x-1/2 z-[200]"
           >
             <div
-              className={`flex items-center gap-3 px-6 py-3 rounded-full border shadow-2xl backdrop-blur-md ${toast.type === "success" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-red-500/10 border-red-500/20 text-red-500"}`}
+              className={`flex items-center gap-3 px-6 py-3 rounded-full border shadow-2xl backdrop-blur-md ${
+                toast.type === "success"
+                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                  : "bg-red-500/10 border-red-500/20 text-red-500"
+              }`}
             >
               {toast.type === "success" ? (
                 <CheckCircle2 size={16} />
@@ -484,16 +513,20 @@ export default function SettingsPage() {
         )}
       </AnimatePresence>
 
-      {/* Luzes de Fundo (Glow Effect) adaptáveis ao tema */}
+      {/* Luzes de Fundo */}
       <div
-        className={`absolute top-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full pointer-events-none blur-[120px] transition-all duration-700 ${theme === "dark" ? "bg-indigo-600/10" : "bg-indigo-500/5"}`}
+        className={`absolute top-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full pointer-events-none blur-[120px] transition-all duration-700 ${
+          theme === "dark" ? "bg-indigo-600/10" : "bg-indigo-500/5"
+        }`}
       />
       <div
-        className={`absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full pointer-events-none blur-[100px] transition-all duration-700 ${theme === "dark" ? "bg-purple-600/5" : "bg-purple-500/5"}`}
+        className={`absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full pointer-events-none blur-[100px] transition-all duration-700 ${
+          theme === "dark" ? "bg-purple-600/5" : "bg-purple-500/5"
+        }`}
       />
 
       {/* HEADER */}
-      <header className="shrink-0 border-b border-borderSubtle bg-bgMain/60 backdrop-blur-xl px-10 py-8 flex items-center justify-between z-20 transition-colors duration-300">
+      <header className="shrink-0 border-b border-borderSubtle bg-bgMain/60 backdrop-blur-xl px-6 sm:px-10 py-6 sm:py-8 flex items-center justify-between z-20 transition-colors duration-300">
         <div>
           <div className="flex items-center gap-2 text-accentPurple font-bold text-[10px] uppercase tracking-[0.4em] mb-2">
             <motion.div
@@ -502,15 +535,22 @@ export default function SettingsPage() {
             >
               <Settings size={12} />
             </motion.div>
-            <span>Project Settings</span>
+            <span className="hidden sm:inline">Project Settings</span>
+            <span className="sm:hidden">Config</span>
           </div>
-          <h1 className="text-4xl font-black text-textPrimary tracking-tighter">
+          <h1 className="text-2xl sm:text-4xl font-black text-textPrimary tracking-tighter">
             Configurações
           </h1>
         </div>
         <div className="flex items-center gap-4">
           <div
-            className={`flex items-center gap-2 px-4 py-2 bg-bgSurface border border-borderSubtle rounded-full ${syncStatus === "saving" ? "text-accentPurple" : isDirty ? "text-amber-500" : "text-textMuted"}`}
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 bg-bgSurface border border-borderSubtle rounded-full ${
+              syncStatus === "saving"
+                ? "text-accentPurple"
+                : isDirty
+                  ? "text-amber-500"
+                  : "text-textMuted"
+            }`}
           >
             {syncStatus === "synced" && !isDirty && (
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -521,7 +561,7 @@ export default function SettingsPage() {
             {isDirty && syncStatus !== "saving" && (
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
             )}
-            <span className="text-[10px] font-bold uppercase tracking-widest">
+            <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">
               {syncStatus === "saving"
                 ? "A guardar..."
                 : isDirty
@@ -532,9 +572,39 @@ export default function SettingsPage() {
         </div>
       </header>
 
+      {/* Navegação Mobile - visível apenas em telas pequenas */}
+      <div className="block sm:hidden border-b border-borderSubtle bg-bgMain/60 backdrop-blur-xl px-4 py-2 overflow-x-auto whitespace-nowrap scrollbar-hide">
+        <div className="flex gap-2">
+          <MobileTab
+            icon={<Globe size={16} />}
+            label="Geral"
+            isActive={activeTab === "general"}
+            onClick={() => setActiveTab("general")}
+          />
+          <MobileTab
+            icon={<Columns size={16} />}
+            label="Quadro"
+            isActive={activeTab === "board"}
+            onClick={() => setActiveTab("board")}
+          />
+          <MobileTab
+            icon={<Users size={16} />}
+            label="Membros"
+            isActive={activeTab === "members"}
+            onClick={() => setActiveTab("members")}
+          />
+          <MobileTab
+            icon={<Github size={16} />}
+            label="Integrações"
+            isActive={activeTab === "integrations"}
+            onClick={() => setActiveTab("integrations")}
+          />
+        </div>
+      </div>
+
       <div className="flex-1 flex overflow-hidden z-10">
-        {/* SIDEBAR DE NAVEGAÇÃO */}
-        <aside className="w-80 border-r border-borderSubtle p-8 space-y-2 bg-bgSurface/40 transition-colors duration-300">
+        {/* SIDEBAR DE NAVEGAÇÃO - oculta no mobile */}
+        <aside className="hidden sm:block w-80 border-r border-borderSubtle p-8 space-y-2 bg-bgSurface/40 transition-colors duration-300">
           <SidebarItem
             icon={<Globe size={18} />}
             label="Geral"
@@ -562,8 +632,8 @@ export default function SettingsPage() {
         </aside>
 
         {/* CONTEÚDO PRINCIPAL */}
-        <main className="flex-1 overflow-y-auto p-12 custom-scrollbar relative">
-          <div className="max-w-4xl space-y-12 pb-32">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-12 hide-scrollbar custom-scrollbar relative">
+          <div className="max-w-4xl mx-auto space-y-8 sm:space-y-12 pb-32">
             {/* ABA GERAL */}
             {activeTab === "general" && (
               <motion.div
@@ -571,12 +641,12 @@ export default function SettingsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-6"
               >
-                <section className="bg-bgCard border border-borderSubtle rounded-[2rem] p-8 space-y-6 shadow-sm transition-colors duration-300">
+                <section className="bg-bgCard border border-borderSubtle rounded-[2rem] p-6 sm:p-8 space-y-6 shadow-sm transition-colors duration-300">
                   <h3 className="text-lg font-black text-textPrimary tracking-tight">
                     Identidade do Projeto
                   </h3>
 
-                  <div className="flex items-center gap-6">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -612,7 +682,7 @@ export default function SettingsPage() {
                       )}
                     </div>
 
-                    <div className="space-y-2 flex-1">
+                    <div className="space-y-2 flex-1 w-full">
                       <div>
                         <h3 className="text-xs font-bold text-textPrimary mb-1">
                           Ícone Personalizado
@@ -629,13 +699,21 @@ export default function SettingsPage() {
                               fileInputRef.current?.click();
                             else setIconType("image");
                           }}
-                          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold transition-all ${iconType === "image" ? "bg-accentPurple/10 text-accentPurple border border-accentPurple/30 shadow-sm" : "text-textSecondary hover:bg-bgSurfaceHover border border-transparent"}`}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold transition-all ${
+                            iconType === "image"
+                              ? "bg-accentPurple/10 text-accentPurple border border-accentPurple/30 shadow-sm"
+                              : "text-textSecondary hover:bg-bgSurfaceHover border border-transparent"
+                          }`}
                         >
                           <ImageIcon size={12} /> Imagem
                         </button>
                         <div className="w-px h-4 bg-borderSubtle" />
                         <div
-                          className={`flex items-center gap-1.5 px-2 py-2 rounded-lg text-[11px] font-bold transition-all border ${iconType === "emoji" ? "bg-amber-500/10 text-amber-500 border-amber-500/30 shadow-sm" : "text-textSecondary border-transparent hover:bg-bgSurfaceHover focus-within:border-borderSubtle"}`}
+                          className={`flex items-center gap-1.5 px-2 py-2 rounded-lg text-[11px] font-bold transition-all border ${
+                            iconType === "emoji"
+                              ? "bg-amber-500/10 text-amber-500 border-amber-500/30 shadow-sm"
+                              : "text-textSecondary border-transparent hover:bg-bgSurfaceHover focus-within:border-borderSubtle"
+                          }`}
                         >
                           <Smile
                             size={12}
@@ -694,13 +772,13 @@ export default function SettingsPage() {
                     <textarea
                       value={projectDescription}
                       onChange={(e) => setProjectDescription(e.target.value)}
-                      rows={2} // <-- Reduzido de 3 para 2 linhas
+                      rows={2}
                       className="w-full bg-bgSurface border border-borderSubtle rounded-xl px-4 py-3 text-sm text-textPrimary focus:border-accentPurple outline-none transition-all resize-none custom-scrollbar"
                     />
                   </div>
                 </section>
 
-                {/* ZONA DE PERIGO (DANGER ZONE) - AGORA HORIZONTAL */}
+                {/* ZONA DE PERIGO */}
                 <section className="bg-red-500/5 border border-red-500/20 rounded-[2rem] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                   <div>
                     <h3 className="text-base font-black text-red-500 tracking-tight mb-1">
@@ -728,8 +806,8 @@ export default function SettingsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-10"
               >
-                <section className="bg-bgCard border border-borderSubtle rounded-[2.5rem] p-10 space-y-8 shadow-sm">
-                  <div className="flex items-center justify-between border-b border-borderSubtle pb-8">
+                <section className="bg-bgCard border border-borderSubtle rounded-[2.5rem] p-6 sm:p-10 space-y-8 shadow-sm">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-borderSubtle pb-8 gap-4">
                     <div>
                       <h3 className="text-xl font-black text-textPrimary tracking-tight mb-2">
                         Capa das Colunas
@@ -805,8 +883,8 @@ export default function SettingsPage() {
                         </div>
 
                         {/* CONTROLOS INFERIORES */}
-                        <div className="p-6 flex items-center gap-6">
-                          <div className="flex flex-col gap-1 text-textMuted">
+                        <div className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+                          <div className="flex sm:flex-col gap-1 text-textMuted order-last sm:order-first">
                             <button
                               type="button"
                               onClick={() => moveColumn(idx, "up")}
@@ -866,7 +944,7 @@ export default function SettingsPage() {
                             </AnimatePresence>
                           </div>
 
-                          <div className="flex-1">
+                          <div className="flex-1 w-full">
                             <label className="text-[10px] font-black text-textMuted uppercase tracking-widest block mb-2">
                               Nome da Coluna
                             </label>
@@ -880,7 +958,7 @@ export default function SettingsPage() {
                             />
                           </div>
 
-                          <div className="w-40 shrink-0 hidden md:block border-l border-borderSubtle pl-6">
+                          <div className="w-full sm:w-40 shrink-0 hidden sm:block border-l border-borderSubtle pl-6">
                             <label className="text-[10px] font-black text-textMuted uppercase tracking-widest mb-2 block">
                               Cor Base
                             </label>
@@ -898,14 +976,18 @@ export default function SettingsPage() {
                                         colorOption.name,
                                       )
                                     }
-                                    className={`w-5 h-5 rounded-full ${colorOption.bg} border-2 transition-all ${col.color === colorOption.name ? "border-textPrimary scale-125 shadow-md" : "border-transparent opacity-40 hover:opacity-100"}`}
+                                    className={`w-5 h-5 rounded-full ${colorOption.bg} border-2 transition-all ${
+                                      col.color === colorOption.name
+                                        ? "border-textPrimary scale-125 shadow-md"
+                                        : "border-transparent opacity-40 hover:opacity-100"
+                                    }`}
                                   />
                                 ),
                               )}
                             </div>
                           </div>
 
-                          <div className="pl-6 border-l border-borderSubtle flex items-center">
+                          <div className="sm:pl-6 sm:border-l border-borderSubtle flex items-center">
                             <button
                               onClick={() => confirmDeleteColumn(idx)}
                               className="text-textMuted hover:text-red-500 p-3 rounded-2xl hover:bg-red-500/10 transition-all"
@@ -929,8 +1011,8 @@ export default function SettingsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-8"
               >
-                <section className="bg-bgCard border border-borderSubtle p-10 rounded-[2.5rem] space-y-8 shadow-sm">
-                  <div className="flex justify-between items-center border-b border-borderSubtle pb-8">
+                <section className="bg-bgCard border border-borderSubtle p-6 sm:p-10 rounded-[2.5rem] space-y-8 shadow-sm">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-borderSubtle pb-8 gap-4">
                     <div>
                       <h3 className="text-xl font-black text-textPrimary tracking-tight mb-2">
                         Equipa do Projeto
@@ -981,7 +1063,11 @@ export default function SettingsPage() {
                             </div>
                             <div className="flex items-center gap-4 sm:ml-auto">
                               <div
-                                className={`px-4 py-1.5 border rounded-xl text-[10px] font-black uppercase tracking-widest ${isAdmin ? "bg-accentPurple/10 border-accentPurple/20 text-accentPurple" : "bg-bgSurface border-borderSubtle text-textSecondary"}`}
+                                className={`px-4 py-1.5 border rounded-xl text-[10px] font-black uppercase tracking-widest ${
+                                  isAdmin
+                                    ? "bg-accentPurple/10 border-accentPurple/20 text-accentPurple"
+                                    : "bg-bgSurface border-borderSubtle text-textSecondary"
+                                }`}
                               >
                                 {isAdmin ? "Administrador" : "Membro"}
                               </div>
@@ -1012,7 +1098,7 @@ export default function SettingsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-8"
               >
-                <section className="bg-bgCard border border-borderSubtle p-10 rounded-[2.5rem] shadow-sm">
+                <section className="bg-bgCard border border-borderSubtle p-6 sm:p-10 rounded-[2.5rem] shadow-sm">
                   <div className="border-b border-borderSubtle pb-8 mb-8">
                     <h3 className="text-xl font-black text-textPrimary tracking-tight mb-2">
                       Integrações
@@ -1022,7 +1108,11 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   <div
-                    className={`border rounded-[2rem] p-8 transition-all relative overflow-hidden ${activeProject.githubRepo ? "bg-accentPurple/5 border-accentPurple/20" : "bg-bgElement border-borderSubtle"}`}
+                    className={`border rounded-[2rem] p-6 sm:p-8 transition-all relative overflow-hidden ${
+                      activeProject.githubRepo
+                        ? "bg-accentPurple/5 border-accentPurple/20"
+                        : "bg-bgElement border-borderSubtle"
+                    }`}
                   >
                     {activeProject.githubRepo && (
                       <div className="absolute top-0 right-0 w-64 h-64 bg-accentPurple/10 blur-[100px] rounded-full pointer-events-none" />
@@ -1076,7 +1166,7 @@ export default function SettingsPage() {
                     </div>
 
                     {activeProject.githubRepo && (
-                      <div className="mt-8 pt-6 border-t border-borderSubtle flex items-center justify-between relative z-10">
+                      <div className="mt-8 pt-6 border-t border-borderSubtle flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
                         <a
                           href={`https://github.com/${activeProject.githubRepo}`}
                           target="_blank"
@@ -1105,7 +1195,7 @@ export default function SettingsPage() {
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 50 }}
-                className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-bgPanel border border-borderSubtle shadow-2xl rounded-3xl p-4 pl-8 flex items-center justify-between gap-12 z-50 w-max"
+                className="absolute bottom-0 sm:bottom-12 left-0 sm:left-1/2 sm:-translate-x-1/2 w-full sm:w-auto bg-bgPanel border border-borderSubtle shadow-2xl rounded-t-3xl sm:rounded-3xl p-4 pl-4 sm:pl-8 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-12 z-50"
               >
                 <div className="flex items-center gap-4 text-amber-500">
                   <AlertTriangle size={24} />
@@ -1118,24 +1208,24 @@ export default function SettingsPage() {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 w-full sm:w-auto">
                   <button
                     onClick={handleDiscard}
-                    className="px-6 py-4 text-[10px] font-black text-textMuted hover:text-textPrimary uppercase tracking-widest transition-colors"
+                    className="flex-1 sm:flex-none px-6 py-4 text-[10px] font-black text-textMuted hover:text-textPrimary uppercase tracking-widest transition-colors"
                   >
                     Reverter
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="bg-textPrimary text-bgMain hover:opacity-80 px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl transition-all flex items-center gap-3 disabled:opacity-50"
+                    className="flex-1 sm:flex-none bg-textPrimary text-bgMain hover:opacity-80 px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                   >
                     {isSaving ? (
                       <Loader2 size={16} className="animate-spin" />
                     ) : (
                       <Save size={16} />
                     )}{" "}
-                    Salvar Configurações
+                    Salvar
                   </button>
                 </div>
               </motion.div>
@@ -1144,7 +1234,7 @@ export default function SettingsPage() {
         </main>
       </div>
 
-      {/* MODAL DE CONVITE PREMIUM */}
+      {/* MODAL DE CONVITE */}
       <AnimatePresence>
         {isInviteModalOpen && (
           <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
@@ -1152,17 +1242,17 @@ export default function SettingsPage() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-bgPanel border border-borderSubtle rounded-[2.5rem] w-full max-w-lg shadow-2xl overflow-hidden relative"
+              className="bg-bgPanel border border-borderSubtle rounded-2xl sm:rounded-[2.5rem] w-full max-w-sm sm:max-w-lg mx-4 shadow-2xl overflow-hidden relative"
             >
               <div className="absolute top-0 right-0 w-48 h-48 bg-accentPurple/10 blur-[80px] rounded-full pointer-events-none" />
-              <div className="p-10 border-b border-borderSubtle relative">
+              <div className="p-6 sm:p-10 border-b border-borderSubtle relative">
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <div className="flex items-center gap-2 text-accentPurple font-bold text-[10px] uppercase tracking-[0.3em] mb-3">
                       <Users size={14} />
                       <span>Colaboração</span>
                     </div>
-                    <h2 className="text-3xl font-black text-textPrimary tracking-tight">
+                    <h2 className="text-2xl sm:text-3xl font-black text-textPrimary tracking-tight">
                       Novo Membro
                     </h2>
                   </div>
@@ -1177,7 +1267,7 @@ export default function SettingsPage() {
 
               <form
                 onSubmit={handleInviteMember}
-                className="p-10 space-y-8 relative"
+                className="p-6 sm:p-10 space-y-8 relative"
               >
                 <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-2.5">
@@ -1216,15 +1306,27 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setInviteRole("member")}
-                      className={`group p-5 rounded-[1.5rem] border text-left transition-all relative overflow-hidden ${inviteRole === "member" ? "bg-accentPurple/10 border-accentPurple ring-1 ring-accentPurple/50" : "bg-bgSurface border-borderSubtle text-textMuted hover:bg-bgSurfaceHover"}`}
+                      className={`group p-4 sm:p-5 rounded-[1.5rem] border text-left transition-all relative overflow-hidden ${
+                        inviteRole === "member"
+                          ? "bg-accentPurple/10 border-accentPurple ring-1 ring-accentPurple/50"
+                          : "bg-bgSurface border-borderSubtle text-textMuted hover:bg-bgSurfaceHover"
+                      }`}
                     >
                       <div
-                        className={`mb-3 p-2 rounded-lg w-fit transition-colors ${inviteRole === "member" ? "bg-accentPurple text-white" : "bg-bgSurfaceHover text-textMuted group-hover:text-textPrimary"}`}
+                        className={`mb-3 p-2 rounded-lg w-fit transition-colors ${
+                          inviteRole === "member"
+                            ? "bg-accentPurple text-white"
+                            : "bg-bgSurfaceHover text-textMuted group-hover:text-textPrimary"
+                        }`}
                       >
                         <Users size={16} />
                       </div>
                       <span
-                        className={`text-sm font-bold block mb-1 ${inviteRole === "member" ? "text-textPrimary" : "group-hover:text-textPrimary"}`}
+                        className={`text-sm font-bold block mb-1 ${
+                          inviteRole === "member"
+                            ? "text-textPrimary"
+                            : "group-hover:text-textPrimary"
+                        }`}
                       >
                         Membro
                       </span>
@@ -1235,15 +1337,27 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={() => setInviteRole("admin")}
-                      className={`group p-5 rounded-[1.5rem] border text-left transition-all relative overflow-hidden ${inviteRole === "admin" ? "bg-purple-500/10 border-purple-500 ring-1 ring-purple-500/50" : "bg-bgSurface border-borderSubtle text-textMuted hover:bg-bgSurfaceHover"}`}
+                      className={`group p-4 sm:p-5 rounded-[1.5rem] border text-left transition-all relative overflow-hidden ${
+                        inviteRole === "admin"
+                          ? "bg-purple-500/10 border-purple-500 ring-1 ring-purple-500/50"
+                          : "bg-bgSurface border-borderSubtle text-textMuted hover:bg-bgSurfaceHover"
+                      }`}
                     >
                       <div
-                        className={`mb-3 p-2 rounded-lg w-fit transition-colors ${inviteRole === "admin" ? "bg-purple-500 text-white shadow-lg" : "bg-bgSurfaceHover text-textMuted group-hover:text-textPrimary"}`}
+                        className={`mb-3 p-2 rounded-lg w-fit transition-colors ${
+                          inviteRole === "admin"
+                            ? "bg-purple-500 text-white shadow-lg"
+                            : "bg-bgSurfaceHover text-textMuted group-hover:text-textPrimary"
+                        }`}
                       >
                         <Crown size={16} />
                       </div>
                       <span
-                        className={`text-sm font-bold block mb-1 ${inviteRole === "admin" ? "text-textPrimary" : "group-hover:text-textPrimary"}`}
+                        className={`text-sm font-bold block mb-1 ${
+                          inviteRole === "admin"
+                            ? "text-textPrimary"
+                            : "group-hover:text-textPrimary"
+                        }`}
                       >
                         Admin
                       </span>
@@ -1254,7 +1368,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="pt-6 mt-4 border-t border-borderSubtle flex items-center justify-between">
+                <div className="pt-6 mt-4 border-t border-borderSubtle flex flex-col sm:flex-row items-center justify-between gap-4">
                   <button
                     type="button"
                     onClick={() => setIsInviteModalOpen(false)}
@@ -1265,7 +1379,7 @@ export default function SettingsPage() {
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="bg-textPrimary text-bgMain hover:opacity-80 px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 disabled:opacity-50 shadow-xl"
+                    className="w-full sm:w-auto bg-textPrimary text-bgMain hover:opacity-80 px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl"
                   >
                     {isSaving ? (
                       <Loader2 size={16} className="animate-spin" />
@@ -1289,9 +1403,9 @@ export default function SettingsPage() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-bgPanel border border-red-500/20 rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden"
+              className="bg-bgPanel border border-red-500/20 rounded-2xl sm:rounded-[2.5rem] w-full max-w-sm sm:max-w-md mx-4 shadow-2xl overflow-hidden"
             >
-              <div className="p-10 text-center">
+              <div className="p-6 sm:p-10 text-center">
                 <div className="w-20 h-20 bg-red-500/10 border border-red-500/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
                   <Trash2 size={32} className="text-red-500" />
                 </div>
@@ -1325,6 +1439,7 @@ export default function SettingsPage() {
           </div>
         )}
       </AnimatePresence>
+
       {/* MODAL DE REMOÇÃO DE MEMBRO */}
       <AnimatePresence>
         {memberToRemove !== null && (
@@ -1333,9 +1448,9 @@ export default function SettingsPage() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-bgPanel border border-red-500/20 rounded-[2.5rem] w-full max-w-md shadow-2xl overflow-hidden"
+              className="bg-bgPanel border border-red-500/20 rounded-2xl sm:rounded-[2.5rem] w-full max-w-sm sm:max-w-md mx-4 shadow-2xl overflow-hidden"
             >
-              <div className="p-10 text-center">
+              <div className="p-6 sm:p-10 text-center">
                 <div className="w-20 h-20 bg-red-500/10 border border-red-500/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
                   <LogOut size={32} className="text-red-500" />
                 </div>
@@ -1377,6 +1492,7 @@ export default function SettingsPage() {
           </div>
         )}
       </AnimatePresence>
+
       {/* MODAL DE ELIMINAR PROJETO */}
       <AnimatePresence>
         {isDeleteModalOpen && (
@@ -1385,9 +1501,9 @@ export default function SettingsPage() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-[#0D0D0F] border border-red-500/20 rounded-[2.5rem] w-full max-w-md shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden"
+              className="bg-[#0D0D0F] border border-red-500/20 rounded-2xl sm:rounded-[2.5rem] w-full max-w-sm sm:max-w-md mx-4 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] overflow-hidden"
             >
-              <div className="p-10 text-center relative">
+              <div className="p-6 sm:p-10 text-center relative">
                 <div className="w-20 h-20 bg-red-500/10 border border-red-500/20 rounded-3xl flex items-center justify-center mx-auto mb-6">
                   <AlertTriangle size={32} className="text-red-500" />
                 </div>

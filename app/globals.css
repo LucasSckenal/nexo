@@ -116,3 +116,12 @@
   border-radius: 0.5rem;
   font-family: monospace;
 }
+
+.hide-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}

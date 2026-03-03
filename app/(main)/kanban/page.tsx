@@ -32,6 +32,7 @@ import {
   Trash2,
   LayoutGrid,
   CalendarDays,
+  X,
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -149,7 +150,6 @@ const getDaysInMonth = (year: number, month: number) => {
 };
 
 const getTaskDate = (task: any) => {
-  // Pega a data de entrega ou cai na data de criação como fallback
   const tDate = task.dueDate || task.endDate || task.createdAt;
   if (!tDate) return null;
   return tDate.seconds ? new Date(tDate.seconds * 1000) : new Date(tDate);
@@ -162,6 +162,7 @@ export default function QuadrosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [draggedOverCol, setDraggedOverCol] = useState<string | null>(null);
   const [activeSprint, setActiveSprint] = useState<any>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false); // Para mobile
 
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [editingLimitCol, setEditingLimitCol] = useState<string | null>(null);
@@ -172,7 +173,6 @@ export default function QuadrosPage() {
   const [selectedDateForModal, setSelectedDateForModal] = useState<
     string | undefined
   >(undefined);
-  // --- ESTADO DA VIZUALIZAÇÃO (Kanban vs Calendário) ---
   const [viewMode, setViewMode] = useState<"kanban" | "calendar">("kanban");
 
   const boardColumns = activeProject?.boardColumns || DEFAULT_COLUMNS;
@@ -193,10 +193,8 @@ export default function QuadrosPage() {
   useEffect(() => {
     if (taskIdFromUrl && tasks.length > 0) {
       const task = tasks.find((t) => t.id === taskIdFromUrl);
-
       if (task) {
         setSelectedTask(task);
-
         const newUrl = window.location.pathname;
         window.history.replaceState({}, "", newUrl);
       }
@@ -277,21 +275,17 @@ export default function QuadrosPage() {
     const taskId = e.dataTransfer.getData("taskId");
 
     try {
-      // 1. Atualiza o status da tarefa no Firestore
       const taskRef = doc(db, "projects", activeProject.id, "tasks", taskId);
       await updateDoc(taskRef, {
         status: status,
         updatedAt: serverTimestamp(),
       });
 
-      // 2. Procura a tarefa localmente para obter os dados (membros, título, etc)
       const movedTask = tasks.find((t) => t.id === taskId);
       const destinationColumn = DEFAULT_COLUMNS.find((c) => c.id === status);
 
       if (movedTask && auth.currentUser) {
         const currentUser = auth.currentUser;
-
-        // 1. Volta o filtro: apenas membros que NÃO são o usuário atual
         const membersToNotify =
           movedTask.members?.filter(
             (memberId: string) => memberId !== currentUser.uid,
@@ -301,7 +295,7 @@ export default function QuadrosPage() {
           sendNotification({
             userId: memberId,
             senderName: currentUser.displayName || "Um colega",
-            senderPhoto: currentUser.photoURL || "", // <--- Adicionamos a foto aqui
+            senderPhoto: currentUser.photoURL || "",
             title: "Card Movimentado",
             message: `${currentUser.displayName || "Alguém"} moveu "${movedTask.title}" para ${destinationColumn?.title}`,
             type: "status",
@@ -347,7 +341,6 @@ export default function QuadrosPage() {
   ) => {
     if (!task.members || !Array.isArray(task.members)) return;
 
-    // Filtra todos os membros da tarefa, exceto quem moveu o card
     const membersToNotify = task.members.filter(
       (memberId: string) => memberId !== currentUser.uid,
     );
@@ -379,15 +372,16 @@ export default function QuadrosPage() {
       : Math.round((completedSprintTasks / totalSprintTasks) * 100);
 
   return (
-    <main className="flex-1 flex flex-col h-full bg-bgDeep text-textPrimary relative overflow-hidden">
+    <main className="flex-1 flex flex-col h-full bg-bgDeep text-textPrimary relative overflow-hidden scrollbar-hide">
       {/* Efeitos de Fundo */}
       <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-indigo-600/10 blur-[140px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-20%] left-[10%] w-[500px] h-[500px] bg-purple-600/10 blur-[150px] rounded-full pointer-events-none" />
 
-      {/* HEADER DO QUADRO */}
-      <header className="shrink-0 px-8 py-6 border-b border-borderGlass bg-bgGlass backdrop-blur-2xl flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-20">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
+      {/* HEADER DO QUADRO - Responsivo */}
+      <header className="shrink-0 px-4 sm:px-8 py-4 sm:py-6 border-b border-borderGlass bg-bgGlass backdrop-blur-2xl flex flex-col gap-4 relative z-20">
+        {/* Primeira linha: título + indicadores (sempre visível) */}
+        <div className="flex items-start justify-between">
+          <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] uppercase tracking-[0.4em]">
               <Target size={12} />
               <span>
@@ -397,105 +391,159 @@ export default function QuadrosPage() {
               </span>
             </div>
 
-            {activeSprint?.endDate && activeProject.category !== "design" && (
-              <div
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full bg-bgGlassHover border ${getDaysRemaining(activeSprint.endDate)?.includes("Atrasada") ? "border-red-500/30 text-red-400" : "border-borderGlass text-textSecondary"} text-[9px] font-black uppercase tracking-widest shadow-sm`}
-              >
-                <Clock size={10} />
-                <span>{getDaysRemaining(activeSprint.endDate)}</span>
-              </div>
-            )}
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-textPrimary tracking-tighter leading-none">
+                {activeProject.category === "design"
+                  ? "Quadro de Design"
+                  : activeSprint?.name || "Quadro Kanban"}
+              </h1>
+
+              {activeSprint?.endDate && activeProject.category !== "design" && (
+                <div
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-bgGlassHover border ${
+                    getDaysRemaining(activeSprint.endDate)?.includes("Atrasada")
+                      ? "border-red-500/30 text-red-400"
+                      : "border-borderGlass text-textSecondary"
+                  } text-[9px] font-black uppercase tracking-widest`}
+                >
+                  <Clock size={10} />
+                  <span >
+                    {getDaysRemaining(activeSprint.endDate)}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-col md:flex-row md:items-end gap-8">
-            <h1 className="text-4xl font-black text-textPrimary tracking-tighter leading-none">
-              {activeProject.category === "design"
-                ? "Quadro de Design"
-                : activeSprint?.name || "Quadro Kanban"}
-            </h1>
+          {/* Botões de ação (mobile) */}
+          <div className="flex items-center gap-2 sm:hidden">
+            <button
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+              className="p-2 bg-bgGlassHover border border-borderFocus rounded-xl text-textMuted"
+            >
+              <Search size={18} />
+            </button>
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="p-2 bg-textPrimary text-bgMain rounded-xl"
+            >
+              <Plus size={18} strokeWidth={3} />
+            </button>
+          </div>
 
-            <div className="flex items-center gap-4 bg-bgGlassHover border border-borderGlass rounded-2xl px-5 py-2.5 backdrop-blur-md">
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between items-center w-32">
-                  <span className="text-[9px] font-black text-textMuted uppercase tracking-widest">
-                    Progresso
-                  </span>
-                  <span className="text-[10px] font-bold text-emerald-400">
-                    {sprintProgress}%
-                  </span>
-                </div>
-                <div className="w-full bg-bgSurfaceActive rounded-full h-1.5 overflow-hidden shadow-inner">
-                  <div
-                    className="bg-emerald-500 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.5)]"
-                    style={{ width: `${sprintProgress}%` }}
-                  />
-                </div>
-              </div>
-              <div className="flex flex-col border-l border-borderFocus pl-4">
-                <div className="text-[13px] font-black text-textPrimary leading-none">
-                  {completedSprintTasks}{" "}
-                  <span className="text-[10px] text-textFaint font-bold">
-                    / {totalSprintTasks}
-                  </span>
-                </div>
-                <span className="text-[8px] font-black text-textMuted uppercase tracking-widest mt-1">
-                  Tarefas
-                </span>
-              </div>
+          {/* Botões de ação (desktop) */}
+          <div className="hidden sm:flex items-center gap-4">
+            {/* Toggle de visualização */}
+            <div className="flex items-center gap-1 bg-bgGlassHover border border-borderFocus p-1 rounded-xl">
+              <button
+                onClick={() => setViewMode("kanban")}
+                className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${
+                  viewMode === "kanban"
+                    ? "bg-bgSurfaceActive text-indigo-400 shadow-sm border border-indigo-500/20"
+                    : "text-textMuted hover:text-textPrimary hover:bg-bgSurfaceHover border border-transparent"
+                }`}
+              >
+                <LayoutGrid size={14} /> Kanban
+              </button>
+              <button
+                onClick={() => setViewMode("calendar")}
+                className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${
+                  viewMode === "calendar"
+                    ? "bg-bgSurfaceActive text-indigo-400 shadow-sm border border-indigo-500/20"
+                    : "text-textMuted hover:text-textPrimary hover:bg-bgSurfaceHover border border-transparent"
+                }`}
+              >
+                <CalendarDays size={14} /> Calendário
+              </button>
             </div>
+
+            {/* Pesquisa */}
+            <div className="relative group">
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted group-focus-within:text-indigo-400 transition-colors"
+              />
+              <input
+                type="text"
+                placeholder="Pesquisar tarefas..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-56 bg-bgGlassHover backdrop-blur-md border border-borderFocus rounded-2xl py-2.5 pl-10 pr-4 text-sm text-textPrimary placeholder:text-textMuted focus:border-indigo-500/50 outline-none transition-all"
+              />
+            </div>
+
+            {/* Botão Nova Tarefa */}
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-textPrimary text-bgMain hover:opacity-90 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-[0_10px_30px_rgba(255,255,255,0.05)] active:scale-95 whitespace-nowrap"
+            >
+              <Plus size={16} strokeWidth={3} /> Nova Tarefa
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          {/* --- NOVO: TOGGLE DE VISUALIZAÇÃO --- */}
-          <div className="flex items-center gap-1 bg-bgGlassHover border border-borderFocus p-1 rounded-xl">
-            <button
-              onClick={() => setViewMode("kanban")}
-              className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${
-                viewMode === "kanban"
-                  ? "bg-bgSurfaceActive text-indigo-400 shadow-sm border border-indigo-500/20"
-                  : "text-textMuted hover:text-textPrimary hover:bg-bgSurfaceHover border border-transparent"
-              }`}
+        {/* Barra de pesquisa mobile (aparece quando isSearchOpen true) */}
+        <AnimatePresence>
+          {isSearchOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="sm:hidden"
             >
-              <LayoutGrid size={14} /> Kanban
-            </button>
-            <button
-              onClick={() => setViewMode("calendar")}
-              className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${
-                viewMode === "calendar"
-                  ? "bg-bgSurfaceActive text-indigo-400 shadow-sm border border-indigo-500/20"
-                  : "text-textMuted hover:text-textPrimary hover:bg-bgSurfaceHover border border-transparent"
-              }`}
-            >
-              <CalendarDays size={14} /> Calendário
-            </button>
-          </div>
+              <div className="relative">
+                <Search
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted"
+                />
+                <input
+                  type="text"
+                  placeholder="Pesquisar tarefas..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-bgGlassHover border border-borderFocus rounded-2xl py-3 pl-10 pr-4 text-sm text-textPrimary placeholder:text-textMuted outline-none"
+                  autoFocus
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-          <div className="relative group hidden lg:block">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted group-focus-within:text-indigo-400 transition-colors"
-            />
-            <input
-              type="text"
-              placeholder="Pesquisar tarefas..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-56 bg-bgGlassHover backdrop-blur-md border border-borderFocus rounded-2xl py-2.5 pl-10 pr-4 text-sm text-textPrimary placeholder:text-textMuted focus:border-indigo-500/50 outline-none transition-all"
-            />
+        {/* Barra de progresso (sempre visível) - recolocada abaixo para mobile */}
+        <div className="flex items-center gap-4 bg-bgGlassHover border border-borderGlass rounded-2xl px-4 py-2.5 backdrop-blur-md self-start">
+          <div className="flex flex-col gap-1.5 min-w-[120px]">
+            <div className="flex justify-between items-center w-full">
+              <span className="text-[9px] font-black text-textMuted uppercase tracking-widest">
+                Progresso
+              </span>
+              <span className="text-[10px] font-bold text-emerald-400">
+                {sprintProgress}%
+              </span>
+            </div>
+            <div className="w-full bg-bgSurfaceActive rounded-full h-1.5 overflow-hidden shadow-inner">
+              <div
+                className="bg-emerald-500 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                style={{ width: `${sprintProgress}%` }}
+              />
+            </div>
           </div>
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-textPrimary text-bgMain hover:opacity-90 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-[0_10px_30px_rgba(255,255,255,0.05)] active:scale-95 whitespace-nowrap"
-          >
-            <Plus size={16} strokeWidth={3} /> Nova Tarefa
-          </button>
+          <div className="flex flex-col border-l border-borderFocus pl-4">
+            <div className="text-[13px] font-black text-textPrimary leading-none">
+              {completedSprintTasks}{" "}
+              <span className="text-[10px] text-textFaint font-bold">
+                / {totalSprintTasks}
+              </span>
+            </div>
+            <span className="text-[8px] font-black text-textMuted uppercase tracking-widest mt-1">
+              Tarefas
+            </span>
+          </div>
         </div>
       </header>
 
-      {/* ÁREA DE SCROLL PRINCIPAL: KANBAN OU CALENDÁRIO */}
+      {/* ÁREA DE SCROLL PRINCIPAL */}
       {viewMode === "kanban" ? (
-        <div className="flex-1 flex gap-6 px-8 py-6 overflow-x-auto overflow-y-hidden custom-scrollbar relative z-10 min-h-0">
+        <div className="flex-1 flex gap-4 sm:gap-6 px-4 sm:px-8 py-4 sm:py-6 overflow-x-auto overflow-y-hidden scrollbar-hide relative z-10 min-h-0">
           {isLoading ? (
             <div className="w-full h-full flex items-center justify-center text-textMuted">
               <Loader2 size={24} className="animate-spin text-indigo-500" />
@@ -516,11 +564,19 @@ export default function QuadrosPage() {
                   onDragOver={(e) => handleDragOver(e, column.id)}
                   onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, column.id)}
-                  className={`flex-1 min-w-[320px] flex flex-col bg-bgGlass backdrop-blur-[2px] border border-borderGlass rounded-3xl transition-all duration-300 ${isDraggedOver ? "bg-bgGlassHover ring-1 ring-borderFocus scale-[1.01]" : ""} ${isOverLimit ? "border-red-500/20 bg-red-500/[0.02]" : ""}`}
+                  className={`flex-1 min-w-[280px] sm:min-w-[320px] flex flex-col bg-bgGlass backdrop-blur-[2px] border border-borderGlass rounded-3xl transition-all duration-300 ${
+                    isDraggedOver
+                      ? "bg-bgGlassHover ring-1 ring-borderFocus scale-[1.01]"
+                      : ""
+                  } ${isOverLimit ? "border-red-500/20 bg-red-500/[0.02]" : ""}`}
                 >
                   {/* CABEÇALHO DA COLUNA */}
                   <div
-                    className={`relative flex items-end justify-between border-b border-borderGlass shrink-0 bg-bgGlass backdrop-blur-md rounded-t-3xl overflow-hidden transition-all duration-300 ${column.bannerUrl ? "h-28 p-5" : "p-5"}`}
+                    className={`relative flex items-end justify-between border-b border-borderGlass shrink-0 bg-bgGlass backdrop-blur-md rounded-t-3xl overflow-hidden transition-all duration-300 ${
+                      column.bannerUrl
+                        ? "h-24 sm:h-28 p-4 sm:p-5"
+                        : "p-4 sm:p-5"
+                    }`}
                   >
                     {column.bannerUrl && (
                       <>
@@ -534,7 +590,7 @@ export default function QuadrosPage() {
                       </>
                     )}
 
-                    <div className="flex items-center gap-2.5 relative z-10">
+                    <div className="flex items-center gap-2 relative z-10">
                       {column.emoji ? (
                         <span className="text-xl drop-shadow-lg">
                           {column.emoji}
@@ -545,7 +601,7 @@ export default function QuadrosPage() {
                         />
                       )}
                       <h3
-                        className={`text-[13px] font-black uppercase tracking-widest drop-shadow-md text-textPrimary`}
+                        className={`text-[12px] sm:text-[13px] font-black uppercase tracking-widest drop-shadow-md text-textPrimary`}
                       >
                         {column.title}
                       </h3>
@@ -577,7 +633,11 @@ export default function QuadrosPage() {
                             setEditingLimitCol(column.id);
                             setTempLimit(column.limit?.toString() || "0");
                           }}
-                          className={`cursor-pointer hover:scale-105 px-2.5 py-0.5 rounded-lg text-[11px] font-black tracking-wider transition-all backdrop-blur-md ${isOverLimit ? "bg-red-500/20 text-red-300 border border-red-500/30" : `bg-bgSurfaceActive text-textPrimary border border-borderFocus hover:brightness-110`}`}
+                          className={`cursor-pointer hover:scale-105 px-2.5 py-0.5 rounded-lg text-[11px] font-black tracking-wider transition-all backdrop-blur-md ${
+                            isOverLimit
+                              ? "bg-red-500/20 text-red-300 border border-red-500/30"
+                              : `bg-bgSurfaceActive text-textPrimary border border-borderFocus hover:brightness-110`
+                          }`}
                         >
                           {columnTasks.length}{" "}
                           {hasLimit ? (
@@ -591,8 +651,8 @@ export default function QuadrosPage() {
                   </div>
 
                   {/* LISTA DE CARTÕES */}
-                  <div className="flex-1 overflow-y-auto p-3 custom-scrollbar min-h-0">
-                    <div className="space-y-4">
+                  <div className="flex-1 overflow-y-auto p-3 scrollbar-hide min-h-0">
+                    <div className="space-y-3 sm:space-y-4">
                       <AnimatePresence>
                         {columnTasks.map((task) => {
                           const totalSubtasks = task.checklist?.length || 0;
@@ -628,14 +688,14 @@ export default function QuadrosPage() {
                               }
                               onDragEnd={() => handleDragEnd(task.id)}
                               onClick={() => setSelectedTask(task)}
-                              className="group relative bg-bgCard border border-borderGlass hover:border-indigo-500/30 p-6 rounded-[2rem] cursor-grab active:cursor-grabbing transition-all duration-300 shadow-xl hover:shadow-[0_20px_40px_-10px_rgba(79,70,229,0.15)] hover:-translate-y-1.5 overflow-hidden"
+                              className="group relative bg-bgCard border border-borderGlass hover:border-indigo-500/30 p-5 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] cursor-grab active:cursor-grabbing transition-all duration-300 shadow-xl hover:shadow-[0_20px_40px_-10px_rgba(79,70,229,0.15)] hover:-translate-y-1.5 overflow-hidden"
                             >
                               <div
                                 className={`absolute left-0 top-0 bottom-0 w-[3px] opacity-60 group-hover:opacity-100 transition-opacity z-20 ${getPriorityAccent(task.priority)}`}
                               />
 
                               {task.coverImage && (
-                                <div className="-mx-6 -mt-6 mb-5 h-36 relative shrink-0 overflow-hidden border-b border-borderGlass rounded-t-[2rem]">
+                                <div className="-mx-5 -mt-5 sm:-mx-6 sm:-mt-6 mb-4 sm:mb-5 h-28 sm:h-36 relative shrink-0 overflow-hidden border-b border-borderGlass rounded-t-[1.5rem] sm:rounded-t-[2rem]">
                                   <img
                                     src={task.coverImage}
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
@@ -647,15 +707,15 @@ export default function QuadrosPage() {
 
                               <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 
-                              <div className="flex items-center justify-between mb-4 relative z-10">
+                              <div className="flex items-center justify-between mb-3 sm:mb-4 relative z-10">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-black text-textMuted uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
+                                  <span className="text-[9px] sm:text-[10px] font-black text-textMuted uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
                                     {task.key || task.taskKey || "TSK"}
                                   </span>
                                   {task.clientId && (
                                     <>
                                       <span className="w-1 h-1 rounded-full bg-textMuted" />
-                                      <span className="text-[9px] font-bold text-textSecondary group-hover:text-textPrimary flex items-center gap-1">
+                                      <span className="text-[8px] sm:text-[9px] font-bold text-textSecondary group-hover:text-textPrimary flex items-center gap-1">
                                         <Briefcase size={10} />
                                         Cliente
                                       </span>
@@ -675,32 +735,40 @@ export default function QuadrosPage() {
                                   </button>
 
                                   <div
-                                    className={`px-2.5 py-1 rounded-xl text-[8px] font-black uppercase border backdrop-blur-md ${getPriorityStyles(task.priority)}`}
+                                    className={`px-2 py-1 rounded-xl text-[7px] sm:text-[8px] font-black uppercase border backdrop-blur-md ${getPriorityStyles(task.priority)}`}
                                   >
                                     {task.priority || "Normal"}
                                   </div>
                                 </div>
                               </div>
 
-                              <h4 className="text-[15px] font-bold text-textPrimary leading-snug mb-5 group-hover:brightness-125 transition-all relative z-10">
+                              <h4 className="text-sm sm:text-[15px] font-bold text-textPrimary leading-snug mb-4 sm:mb-5 group-hover:brightness-125 transition-all relative z-10">
                                 {task.title}
                               </h4>
 
                               {totalSubtasks > 0 && (
-                                <div className="mb-5 relative z-10 bg-bgGlass border border-borderGlass p-3 rounded-2xl">
+                                <div className="mb-4 sm:mb-5 relative z-10 bg-bgGlass border border-borderGlass p-2 sm:p-3 rounded-xl sm:rounded-2xl">
                                   <div className="flex items-center justify-between mb-2">
-                                    <span className="flex items-center gap-1.5 text-[9px] font-black text-textMuted uppercase tracking-widest">
+                                    <span className="flex items-center gap-1.5 text-[8px] sm:text-[9px] font-black text-textMuted uppercase tracking-widest">
                                       <ListChecks size={12} /> Subtarefas
                                     </span>
                                     <span
-                                      className={`text-[10px] font-black ${isAllCompleted ? "text-emerald-400" : "text-textSecondary"}`}
+                                      className={`text-[9px] sm:text-[10px] font-black ${
+                                        isAllCompleted
+                                          ? "text-emerald-400"
+                                          : "text-textSecondary"
+                                      }`}
                                     >
                                       {completedSubtasks}/{totalSubtasks}
                                     </span>
                                   </div>
                                   <div className="h-1.5 w-full bg-bgSurfaceActive rounded-full overflow-hidden">
                                     <div
-                                      className={`h-full rounded-full transition-all duration-700 ${isAllCompleted ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.6)]"}`}
+                                      className={`h-full rounded-full transition-all duration-700 ${
+                                        isAllCompleted
+                                          ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"
+                                          : "bg-indigo-500 shadow-[0_0_8px_rgba(79,70,229,0.6)]"
+                                      }`}
                                       style={{
                                         width: `${(completedSubtasks / totalSubtasks) * 100}%`,
                                       }}
@@ -709,26 +777,26 @@ export default function QuadrosPage() {
                                 </div>
                               )}
 
-                              <div className="flex items-center justify-between pt-4 border-t border-borderGlass relative z-10">
-                                <div className="flex items-center gap-3 text-textMuted">
+                              <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-borderGlass relative z-10">
+                                <div className="flex items-center gap-2 sm:gap-3 text-textMuted">
                                   {task.points && (
-                                    <div className="flex items-center justify-center px-2 py-1 bg-bgGlassHover border border-borderGlass rounded-lg text-[10px] font-black text-indigo-400">
+                                    <div className="flex items-center justify-center px-1.5 sm:px-2 py-1 bg-bgGlassHover border border-borderGlass rounded-lg text-[8px] sm:text-[10px] font-black text-indigo-400">
                                       {task.points} pts
                                     </div>
                                   )}
                                   {task.branch && (
                                     <div
-                                      className="flex items-center gap-1.5 px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded-lg text-[10px] font-mono font-bold"
+                                      className="flex items-center gap-1 px-1.5 sm:px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded-lg text-[8px] sm:text-[10px] font-mono font-bold"
                                       title={`Branch: ${task.branch}`}
                                     >
                                       <GitBranch size={10} />{" "}
-                                      <span className="max-w-[60px] truncate">
+                                      <span className="max-w-[40px] sm:max-w-[60px] truncate">
                                         {task.branch}
                                       </span>
                                     </div>
                                   )}
                                   {task.attachmentsCount > 0 && (
-                                    <div className="flex items-center gap-1 text-[11px] font-black text-textSecondary">
+                                    <div className="flex items-center gap-1 text-[9px] sm:text-[11px] font-black text-textSecondary">
                                       <Paperclip size={12} />{" "}
                                       {task.attachmentsCount}
                                     </div>
@@ -743,14 +811,14 @@ export default function QuadrosPage() {
                                         <img
                                           key={i}
                                           src={a.photo || a.photoURL}
-                                          className="w-7 h-7 rounded-xl border-2 border-bgCard object-cover ring-1 ring-borderGlass relative z-10 hover:z-20 hover:scale-110 hover:-translate-y-1 transition-all shadow-lg"
+                                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-xl border-2 border-bgCard object-cover ring-1 ring-borderGlass relative z-10 hover:z-20 hover:scale-110 hover:-translate-y-1 transition-all shadow-lg"
                                           title={a.name}
                                           alt=""
                                         />
                                       ))
                                   ) : (
-                                    <div className="w-7 h-7 rounded-xl border-2 border-bgCard bg-bgSurfaceActive flex items-center justify-center relative z-10">
-                                      <span className="text-[9px] font-black text-textMuted">
+                                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-xl border-2 border-bgCard bg-bgSurfaceActive flex items-center justify-center relative z-10">
+                                      <span className="text-[7px] sm:text-[9px] font-black text-textMuted">
                                         ?
                                       </span>
                                     </div>
@@ -766,13 +834,13 @@ export default function QuadrosPage() {
                     {idx === 0 && activeProject.category === "design" && (
                       <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="mt-4 w-full py-3.5 border border-dashed border-borderFocus hover:border-indigo-500/40 hover:bg-indigo-500/5 rounded-[1.5rem] flex items-center justify-center gap-2 text-textMuted hover:text-indigo-400 transition-all group shrink-0"
+                        className="mt-4 w-full py-3 border border-dashed border-borderFocus hover:border-indigo-500/40 hover:bg-indigo-500/5 rounded-[1.5rem] flex items-center justify-center gap-2 text-textMuted hover:text-indigo-400 transition-all group shrink-0"
                       >
                         <Plus
                           size={16}
                           className="group-hover:scale-110 transition-transform"
                         />
-                        <span className="text-[10px] font-black uppercase tracking-widest">
+                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest">
                           Adicionar Cartão
                         </span>
                       </button>
@@ -780,13 +848,13 @@ export default function QuadrosPage() {
 
                     {columnTasks.length === 0 &&
                       (activeProject.category !== "design" || idx !== 0) && (
-                        <div className="mt-4 h-28 border-2 border-dashed border-borderGlass rounded-[2rem] flex flex-col items-center justify-center text-textFaint bg-bgGlass transition-colors shrink-0">
+                        <div className="mt-4 h-24 sm:h-28 border-2 border-dashed border-borderGlass rounded-[1.5rem] sm:rounded-[2rem] flex flex-col items-center justify-center text-textFaint bg-bgGlass transition-colors shrink-0">
                           <div
-                            className={`p-2 rounded-xl bg-bgGlassHover mb-2`}
+                            className={`p-1.5 sm:p-2 rounded-xl bg-bgGlassHover mb-1 sm:mb-2`}
                           >
                             <Plus size={16} />
                           </div>
-                          <span className="text-[9px] font-black uppercase tracking-widest opacity-50">
+                          <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest opacity-50">
                             Mover para aqui
                           </span>
                         </div>
@@ -798,15 +866,15 @@ export default function QuadrosPage() {
           )}
         </div>
       ) : (
-        /* --- VISÃO DE CALENDÁRIO --- */
-        <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar relative z-10 min-h-0">
-          <div className="bg-bgGlass border border-borderGlass rounded-[2rem] p-6 h-full flex flex-col shadow-xl backdrop-blur-sm">
+        /* --- VISÃO DE CALENDÁRIO RESPONSIVA --- */
+        <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-4 sm:py-6 scrollbar-hide relative z-10 min-h-0">
+          <div className="bg-bgGlass border border-borderGlass rounded-[2rem] p-4 sm:p-6 h-full flex flex-col shadow-xl backdrop-blur-sm">
             {/* Cabeçalho de Dias da Semana */}
-            <div className="grid grid-cols-7 gap-4 mb-4">
+            <div className="grid grid-cols-7 gap-1 sm:gap-4 mb-3 sm:mb-4">
               {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day) => (
                 <div
                   key={day}
-                  className="text-center text-[10px] font-black uppercase text-textMuted tracking-widest"
+                  className="text-center text-[8px] sm:text-[10px] font-black uppercase text-textMuted tracking-widest"
                 >
                   {day}
                 </div>
@@ -814,12 +882,12 @@ export default function QuadrosPage() {
             </div>
 
             {/* Grelha de Dias */}
-            <div className="grid grid-cols-7 gap-4 flex-1 auto-rows-[minmax(100px,1fr)]">
+            <div className="grid grid-cols-7 gap-1 sm:gap-4 flex-1 auto-rows-[minmax(70px,1fr)] sm:auto-rows-[minmax(100px,1fr)]">
               {/* Espaços vazios no início do mês */}
               {Array.from({ length: firstDayOfWeek }).map((_, i) => (
                 <div
                   key={`empty-${i}`}
-                  className="bg-bgSurfaceActive/30 rounded-2xl border border-borderGlass/30 opacity-40 pointer-events-none"
+                  className="bg-bgSurfaceActive/30 rounded-xl sm:rounded-2xl border border-borderGlass/30 opacity-40 pointer-events-none"
                 />
               ))}
 
@@ -840,47 +908,57 @@ export default function QuadrosPage() {
                   day.getMonth() === today.getMonth() &&
                   day.getFullYear() === today.getFullYear();
 
-                // Formatar a data para YYYY-MM-DD
-                const formattedDate = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+                const formattedDate = `${day.getFullYear()}-${String(
+                  day.getMonth() + 1,
+                ).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
 
                 return (
                   <div
                     key={day.toISOString()}
-                    // ---> NOVO: Abre o modal ao clicar no dia <---
                     onClick={() => {
                       setSelectedDateForModal(formattedDate);
                       setIsCalendarModalOpen(true);
                     }}
-                    className={`rounded-2xl border flex flex-col p-2.5 transition-colors overflow-hidden cursor-pointer ${isToday ? "border-indigo-500/50 bg-indigo-500/10 shadow-[inset_0_0_20px_rgba(79,70,229,0.1)]" : "border-borderGlass bg-bgCard hover:border-indigo-500/30"}`}
+                    className={`rounded-xl sm:rounded-2xl border flex flex-col p-1.5 sm:p-2.5 transition-colors overflow-hidden cursor-pointer ${
+                      isToday
+                        ? "border-indigo-500/50 bg-indigo-500/10 shadow-[inset_0_0_20px_rgba(79,70,229,0.1)]"
+                        : "border-borderGlass bg-bgCard hover:border-indigo-500/30"
+                    }`}
                   >
-                    <div className="flex items-center justify-between mb-2 px-1">
+                    <div className="flex items-center justify-between mb-1 px-1">
                       <span
-                        className={`text-[12px] font-black ${isToday ? "text-indigo-400" : "text-textSecondary"}`}
+                        className={`text-[10px] sm:text-[12px] font-black ${
+                          isToday ? "text-indigo-400" : "text-textSecondary"
+                        }`}
                       >
                         {day.getDate()}
                       </span>
                       {dayTasks.length > 0 && (
-                        <span className="text-[9px] font-bold text-textMuted bg-bgSurfaceHover px-1.5 py-0.5 rounded-md">
+                        <span className="text-[7px] sm:text-[9px] font-bold text-textMuted bg-bgSurfaceHover px-1 py-0.5 sm:px-1.5 sm:py-0.5 rounded-md">
                           {dayTasks.length}
                         </span>
                       )}
                     </div>
 
-                    <div className="flex-1 flex flex-col gap-1.5 overflow-y-auto custom-scrollbar pr-1">
-                      {dayTasks.map((task) => (
+                    <div className="flex-1 flex flex-col gap-1 overflow-y-auto scrollbar-hide pr-0.5">
+                      {dayTasks.slice(0, 3).map((task) => (
                         <div
                           key={task.id}
-                          // ---> NOVO: Impede que abrir a tarefa abra também o modal do dia <---
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedTask(task);
                           }}
-                          className={`text-[10px] font-bold px-2 py-1.5 rounded-lg truncate cursor-pointer hover:scale-[1.03] transition-transform border backdrop-blur-md shadow-sm ${getPriorityStyles(task.priority)}`}
+                          className={`text-[7px] sm:text-[9px] font-bold px-1 sm:px-2 py-0.5 sm:py-1 rounded-md truncate cursor-pointer hover:scale-[1.02] transition-transform border backdrop-blur-md shadow-sm ${getPriorityStyles(task.priority)}`}
                           title={task.title}
                         >
                           {task.title}
                         </div>
                       ))}
+                      {dayTasks.length > 3 && (
+                        <div className="text-[7px] sm:text-[8px] text-textMuted text-center">
+                          +{dayTasks.length - 3}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
