@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { collection, query, where, getDocs, updateDoc, doc } from "firebase/firestore";
-import { db } from "@/lib/firebase"; // Ajusta este caminho para o teu ficheiro do firebase
+import { db } from "@/app/lib/firebase";
 
 export async function POST(req: Request) {
   try {
