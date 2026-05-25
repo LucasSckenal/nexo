@@ -1,36 +1,123 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nexo
 
-## Getting Started
+Plataforma de gestão e colaboração de equipes — workspace com Kanban, backlog, gestão de clientes e membros, análises e integração com IA.
 
-First, run the development server:
+Construído com **Next.js 16**, **React 19**, **TypeScript**, **Tailwind CSS v4** e **Firebase**.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Funcionalidades
+
+- **Kanban** — quadro de tarefas com colunas customizáveis, busca e layout responsivo
+- **Backlog** — gestão de itens pendentes e priorização
+- **Clientes** — cadastro e acompanhamento de clientes
+- **Membros / Convites** — gestão de equipe e onboarding por convite
+- **Análises** — dashboards e métricas com Recharts
+- **Perfil & Configurações** — preferências do usuário e do workspace
+- **Notificações em tempo real** — painel com foto do remetente e suporte a imagens
+- **Editor rico** — TipTap para descrições e comentários
+- **IA integrada** — geração de tarefas e polimento de texto via Google Gemini
+- **Tema claro/escuro** — alternância via `ThemeContext`
+- **Integração com GitHub** — via `GitHubContext`
+
+## Stack
+
+| Camada | Tecnologia |
+| --- | --- |
+| Framework | Next.js 16 (App Router) |
+| UI | React 19, Tailwind CSS v4, Framer Motion |
+| Ícones | Phosphor Icons, Lucide React |
+| Editor | TipTap 3 |
+| Charts | Recharts |
+| Backend | Firebase (Auth, Firestore, Storage) |
+| IA | Google Generative AI (Gemini) |
+| Datas | date-fns |
+| Linguagem | TypeScript 5 |
+| Package manager | pnpm |
+
+## Estrutura
+
+```
+app/
+├── (auth)/login/          # Tela de autenticação
+├── (main)/                # Área autenticada
+│   ├── analises/
+│   ├── backlog/
+│   ├── clientes/
+│   ├── configuracoes/
+│   ├── convite/
+│   ├── kanban/
+│   ├── members/
+│   ├── membros/
+│   └── perfil/
+├── api/
+│   ├── generate-task/     # Geração de tarefa via Gemini
+│   ├── polish-text/       # Polimento de texto via Gemini
+│   └── webhooks/
+├── components/
+│   ├── backlog/
+│   ├── modals/
+│   └── ui/
+├── context/               # ThemeContext, GitHubContext, DataContext
+├── hook/
+├── lib/                   # firebase, notifications, taskScheduler
+└── layout.tsx
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Como rodar
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Pré-requisitos
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Node.js 20+
+- pnpm 10+
+- Conta Firebase com Auth, Firestore e Storage habilitados
+- Chave de API do Google Gemini
 
-## Learn More
+### Instalação
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm install
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Variáveis de ambiente
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Crie um arquivo `.env.local` na raiz:
 
-## Deploy on Vercel
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY="..."
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="..."
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="..."
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="..."
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="..."
+NEXT_PUBLIC_FIREBASE_APP_ID="..."
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID="..."
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+GEMINI_API_KEY="..."
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Desenvolvimento
+
+```bash
+pnpm dev
+```
+
+Abra [http://localhost:3000](http://localhost:3000).
+
+### Build de produção
+
+```bash
+pnpm build
+pnpm start
+```
+
+### Lint
+
+```bash
+pnpm lint
+```
+
+## Deploy
+
+Recomendado: [Vercel](https://vercel.com). Configure as mesmas variáveis de ambiente no painel do projeto antes de fazer o deploy.
+
+## Licença
+
+Privado — todos os direitos reservados.
