@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import {
   collection,
   query,
@@ -156,6 +156,14 @@ const getTaskDate = (task: any) => {
 };
 
 export default function QuadrosPage() {
+  return (
+    <Suspense fallback={null}>
+      <QuadrosPageInner />
+    </Suspense>
+  );
+}
+
+function QuadrosPageInner() {
   const { activeProject } = useData();
   const [tasks, setTasks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);

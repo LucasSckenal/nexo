@@ -35,7 +35,7 @@ interface TaskModalProps {
   isSaving: boolean;
   epics: any[];
   activeProject: any;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleAddLink: () => void;
   removeAttachment: (id: string) => void;
@@ -722,16 +722,16 @@ export function TaskModal({
                         ) : (
                           branches.map((b) => (
                             <button
-                              key={b.name}
+                              key={b}
                               type="button"
                               onClick={() => {
-                                setTaskForm({ ...taskForm, branch: b.name });
+                                setTaskForm({ ...taskForm, branch: b });
                                 setIsBranchDropdownOpen(false);
                               }}
-                              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${taskForm.branch === b.name ? "bg-indigo-500/10 text-indigo-400" : "text-textSecondary hover:bg-bgSurfaceHover hover:text-textPrimary"}`}
+                              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${taskForm.branch === b ? "bg-indigo-500/10 text-indigo-400" : "text-textSecondary hover:bg-bgSurfaceHover hover:text-textPrimary"}`}
                             >
-                              <span className="truncate">{b.name}</span>
-                              {taskForm.branch === b.name && (
+                              <span className="truncate">{b}</span>
+                              {taskForm.branch === b && (
                                 <Check
                                   size={14}
                                   className="text-indigo-400 shrink-0"

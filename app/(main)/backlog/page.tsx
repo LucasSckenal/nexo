@@ -853,7 +853,7 @@ export default function BacklogPage() {
                           onDragStart={(e: any) =>
                             handleDragStart(e, task, "sprint")
                           }
-                          onDragEnd={handleDragEnd}
+                          onDragEnd={handleDragEnd as any}
                           onClick={() => openEditModal(task)}
                           onContextMenu={(e) => handleContextMenu(e, task)}
                           className={`group cursor-pointer ${
@@ -1060,7 +1060,7 @@ export default function BacklogPage() {
                         onDragStart={(e: any) =>
                           handleDragStart(e, task, "backlog")
                         }
-                        onDragEnd={handleDragEnd}
+                        onDragEnd={handleDragEnd as any}
                         onClick={() => openEditModal(task)}
                         onContextMenu={(e) => handleContextMenu(e, task)}
                         className={`group cursor-pointer ${

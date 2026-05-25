@@ -8,29 +8,27 @@ export function PriorityIcon({ priority }: Props) {
   switch (priority) {
     case "low":
       return (
-        <ArrowDown
-          size={14}
-          className="text-zinc-500"
-          title="Prioridade Baixa"
-        />
+        <span title="Prioridade Baixa" className="inline-flex">
+          <ArrowDown size={14} className="text-zinc-500" />
+        </span>
       );
     case "medium":
       return (
-        <ArrowRight
-          size={14}
-          className="text-zinc-400"
-          title="Prioridade Média"
-        />
+        <span title="Prioridade Média" className="inline-flex">
+          <ArrowRight size={14} className="text-zinc-400" />
+        </span>
       );
     case "high":
       return (
-        <ArrowUp size={14} className="text-amber-500" title="Prioridade Alta" />
+        <span title="Prioridade Alta" className="inline-flex">
+          <ArrowUp size={14} className="text-amber-500" />
+        </span>
       );
     case "critical":
       return (
-        <div className="bg-red-500/10 text-red-500 p-0.5 rounded">
-          <ArrowUp size={14} title="Crítica" />
-        </div>
+        <span title="Crítica" className="bg-red-500/10 text-red-500 p-0.5 rounded inline-flex">
+          <ArrowUp size={14} />
+        </span>
       );
     default:
       return <ArrowRight size={14} className="text-zinc-500" />;

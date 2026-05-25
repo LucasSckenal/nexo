@@ -15,6 +15,7 @@ interface Issue {
   branch: import("react/jsx-runtime").JSX.Element;
   id: string;
   key?: string;
+  taskKey?: string;
   title: string;
   type: string;
   status: string;
@@ -135,16 +136,16 @@ export function IssueRow({
             {tag}
           </span>
         ))}
-        {issue.tags?.length > 2 && (
+        {(issue.tags?.length ?? 0) > 2 && (
           <span className="text-[10px] text-zinc-500">
-            +{issue.tags.length - 2}
+            +{(issue.tags?.length ?? 0) - 2}
           </span>
         )}
       </div>
 
       <div className="hidden lg:flex items-center justify-center gap-1 w-12 shrink-0 text-zinc-500">
-        {issue.attachments?.length > 0 && (
-          <div title={`${issue.attachments.length} anexo(s)`}>
+        {(issue.attachments?.length ?? 0) > 0 && (
+          <div title={`${issue.attachments?.length ?? 0} anexo(s)`}>
             <Paperclip size={12} />
           </div>
         )}

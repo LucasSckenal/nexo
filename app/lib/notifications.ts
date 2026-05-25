@@ -8,7 +8,7 @@ interface NotificationData {
   senderPhoto?: string; // <-- Adicione aqui
   title: string;
   message: string;
-  type: NotificationData;
+  type: string;
   taskId?: string;
   projectId?: string;
 }

@@ -88,7 +88,7 @@ export default function AnalisesPage() {
 
   // Cálculo funcional do gráfico (Velocidade dos últimos 5 dias)
   const chartData = useMemo(() => {
-    const data = [];
+    const data: { name: string; val: number; dateKey: string }[] = [];
     // Gerar os últimos 5 dias
     for (let i = 4; i >= 0; i--) {
       const d = new Date();

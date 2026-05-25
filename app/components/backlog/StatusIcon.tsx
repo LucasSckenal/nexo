@@ -8,31 +8,27 @@ export function StatusIcon({ status }: Props) {
   switch (status) {
     case "todo":
       return (
-        <CircleDashed size={16} className="text-zinc-500" title="A Fazer" />
+        <span title="A Fazer" className="inline-flex">
+          <CircleDashed size={16} className="text-zinc-500" />
+        </span>
       );
     case "in-progress":
       return (
-        <ArrowRightCircle
-          size={16}
-          className="text-amber-500"
-          title="Em Progresso"
-        />
+        <span title="Em Progresso" className="inline-flex">
+          <ArrowRightCircle size={16} className="text-amber-500" />
+        </span>
       );
     case "review":
       return (
-        <ArrowRightCircle
-          size={16}
-          className="text-purple-500"
-          title="Em Revisão"
-        />
+        <span title="Em Revisão" className="inline-flex">
+          <ArrowRightCircle size={16} className="text-purple-500" />
+        </span>
       );
     case "done":
       return (
-        <CheckCircle2
-          size={16}
-          className="text-emerald-500"
-          title="Concluído"
-        />
+        <span title="Concluído" className="inline-flex">
+          <CheckCircle2 size={16} className="text-emerald-500" />
+        </span>
       );
     default:
       return <CircleDashed size={16} className="text-zinc-500" />;

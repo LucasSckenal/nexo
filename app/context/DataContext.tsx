@@ -62,7 +62,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setProjects(projectsData);
 
         // Usamos callback no setter para garantir que temos sempre o valor mais atual do estado
-        setActiveProject((currentActive) => {
+        setActiveProject((currentActive: any) => {
           // Se já houver um projeto ativo na sessão, procuramos a sua versão mais recente no snapshot (caso tenha sido editado)
           if (currentActive) {
             const updatedActive = projectsData.find(
