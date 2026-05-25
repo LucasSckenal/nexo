@@ -153,15 +153,20 @@ export default function DashboardPage() {
     return () => document.removeEventListener("click", handleClick);
   }, []);
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return "Bom dia";
-    if (hour >= 12 && hour < 18) return "Boa tarde";
-    if (hour >= 18 && hour < 22) return "Boa noite";
-    return "Boa madrugada";
-  };
+  // Estados time-dependent só preenchidos após hydration pra evitar mismatch SSR/CSR
+  const [mounted, setMounted] = useState(false);
+  const [greeting, setGreeting] = useState("");
+  const [currentDate, setCurrentDate] = useState("");
 
-  const currentDate = useMemo(() => dateFormatter.format(new Date()), []);
+  useEffect(() => {
+    setMounted(true);
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) setGreeting("Bom dia");
+    else if (hour >= 12 && hour < 18) setGreeting("Boa tarde");
+    else if (hour >= 18 && hour < 22) setGreeting("Boa noite");
+    else setGreeting("Boa madrugada");
+    setCurrentDate(dateFormatter.format(new Date()));
+  }, []);
 
   const formatTime = (timestamp: any) => {
     if (!timestamp) return "Agora";
@@ -295,7 +300,7 @@ export default function DashboardPage() {
                 </span>
               </div>
               <h1 className="text-5xl md:text-6xl font-black text-textPrimary tracking-tighter mt-2">
-                {getGreeting()}, {user?.displayName?.split(" ")[0] || "Usuário"}
+                {greeting}, {mounted ? (user?.displayName?.split(" ")[0] || "Usuário") : "..."}
                 .
               </h1>
               <p className="text-sm font-medium text-textSecondary mt-3 tracking-wide">
@@ -413,7 +418,7 @@ export default function DashboardPage() {
                           const pStyle =
                             PRIORITY_STYLES[
                               task.priority?.toLowerCase() || "default"
-                            ];
+                            ] || PRIORITY_STYLES.default;
 
                           return (
                             <motion.div
